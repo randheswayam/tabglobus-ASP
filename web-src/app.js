@@ -347,6 +347,57 @@ V['client-home'] = {
   }
 };
 
+const normName = n => String(n || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+V['client-signoff'] = {
+  load: async () => { ui.data.so = await API.clientSignoff(ui.p.sid); ui.data.docUrl = null; },
+  html: () => {
+    const s = ui.data.so, opened = s.attachments.filter(a => a.viewed).length, total = s.attachments.length;
+    const doc = s.attachments.find(a => a.id === ui.p.openDoc);
+    return `<div data-testid="client-signoff"><div class="crumbs"><button data-act="client-open" data-pid="${s.project.id}">${ico('back')}${esc(s.project.name)}</button>/<span>Sign-off</span></div>
+      <div class="head"><div><div class="eyebrow">${esc(s.stage)} · version ${s.version}</div><h1>${esc(s.title)}</h1>
+        <div class="sub">Sent ${fmtStamp(s.sent_at)}. Review every document, then sign off or ask for changes.</div></div>
+        <div class="row">${pill({sent: 'submitted', approved: 'done', changes_requested: 'rework'}[s.status], {sent: 'Waiting for you', approved: 'Signed', changes_requested: 'Changes requested'}[s.status])}</div></div>
+      ${errBox()}
+      <div class="act"><div class="form">
+        <section class="sec"><div class="sec-h"><h3>${ico('doc')}What you are approving</h3></div><div class="sec-b"><p class="so-summary">${esc(s.summary)}</p></div></section>
+        <section class="sec"><div class="sec-h"><h3>${ico('image')}Documents</h3><span class="pcount ${opened < total ? 'short' : ''}">${opened} of ${total} opened</span></div>
+          <div class="sec-b mlist">${s.attachments.map(a => `<div class="mitem doc-row">${ico(a.content_type === 'application/pdf' ? 'doc' : 'image')}<span>${esc(a.filename)}</span>
+            ${a.viewed ? pill('done', 'Opened') : pill('', 'Not opened')}
+            <button class="btn sm" data-act="client-doc" data-aid="${a.id}" data-testid="signoff-open-${a.id}">${ui.p.openDoc === a.id ? 'Showing' : 'Open'}</button></div>`).join('')}</div>
+          ${doc && ui.data.docUrl ? `<div class="doc-viewer" data-testid="signoff-viewer">${doc.content_type === 'application/pdf'
+            ? `<iframe src="${ui.data.docUrl}" title="${esc(doc.filename)}"></iframe>` : `<img src="${ui.data.docUrl}" alt="${esc(doc.filename)}">`}
+            <a class="btn sm ghost" href="${ui.data.docUrl}" download="${esc(doc.filename)}">Download ${esc(doc.filename)}</a></div>` : ''}
+        </section>
+      </div>
+      <div class="panel reqpanel"><div class="panel-h"><h3>Your decision</h3></div><div class="panel-b form">
+        ${s.can_respond ? `
+          <ul class="reqlist" data-testid="signoff-checklist">
+            <li class="${opened === total ? 'ok' : 'no'}"><span class="ck">${opened === total ? ico('check') : ''}</span>Open every document (${opened} of ${total} opened)</li>
+            <li class="no" id="so-need-confirm"><span class="ck"></span>Tick the confirmation</li>
+            <li class="no" id="so-need-name"><span class="ck"></span>Type your full name: ${esc(ui.me.name)}</li></ul>
+          <label class="chk so-confirm"><input type="checkbox" id="so-confirm" data-testid="signoff-confirm"><span>${esc(s.confirmation_text)}</span></label>
+          <div class="field"><label for="so-name">Your full name</label><input id="so-name" data-testid="signoff-name" autocomplete="name" placeholder="${esc(ui.me.name)}"></div>
+          <button class="btn primary" data-act="client-approve" data-testid="signoff-approve" disabled>${ico('check')}Sign off version ${s.version}</button>
+          <div class="subh">Or ask for changes</div>
+          <div class="field"><label for="so-changes">What should change?</label><textarea id="so-changes" rows="3" data-testid="signoff-changes-comment"></textarea></div>
+          <button class="btn danger" data-act="client-changes" data-testid="signoff-request-changes">Ask for changes</button>`
+        : s.status === 'approved' ? `<div class="banner ok">${ico('check')}<span>You signed this version as ${esc(s.signer_name)} on ${fmtStamp(s.responded_at)}.</span></div>`
+        : `<div class="banner rework">${ico('alert')}<span>You asked for changes on ${fmtStamp(s.responded_at)}: “${esc(s.response_comment)}”. Your architect will send a new version.</span></div>`}
+      </div></div></div></div>`;
+  }
+};
+
+/* Approve unlocks only when every document is opened, the box is ticked and the typed name is the client's. */
+function syncApprove(){
+  const btn = $('[data-testid="signoff-approve"]'); if (!btn || !ui.data.so) return;
+  const allOpened = ui.data.so.attachments.every(a => a.viewed);
+  const confirmed = $('#so-confirm').checked, named = normName($('#so-name').value) === normName(ui.me.name) && !!normName(ui.me.name);
+  const mark = (id, ok) => { const li = $(id); if (li){ li.className = ok ? 'ok' : 'no'; li.querySelector('.ck').innerHTML = ok ? ico('check') : ''; } };
+  mark('#so-need-confirm', confirmed); mark('#so-need-name', named);
+  btn.disabled = !(allOpened && confirmed && named);
+}
+
 V['client-project'] = {
   load: async () => { ui.data.mine = await API.clientProject(ui.p.pid); },
   html: () => {
@@ -1027,6 +1078,28 @@ document.addEventListener('click', async e => {
     case 'client-unfold': { const n = +a.dataset.n, u = ui.p.unfold || [];
       ui.p.unfold = u.includes(n) ? u.filter(x => x !== n) : [...u, n]; rerenderKeepScroll(); break; }
     case 'client-review': go('client-signoff', {sid: +a.dataset.sid}); break;
+    case 'client-doc': {
+      const aid = +a.dataset.aid;
+      const keep = {confirm: ($('#so-confirm') || {}).checked, name: ($('#so-name') || {}).value, changes: ($('#so-changes') || {}).value};
+      try {
+        ui.data.docUrl = await API.clientDocumentUrl(ui.data.so.id, aid);  // opening it records the review
+        ui.p.openDoc = aid;
+        const att = ui.data.so.attachments.find(x => x.id === aid); if (att) att.viewed = true;
+      } catch (err){ toast(err.message); }
+      rerenderKeepScroll();
+      if ($('#so-confirm')){ $('#so-confirm').checked = !!keep.confirm; $('#so-name').value = keep.name || ''; $('#so-changes').value = keep.changes || ''; syncApprove(); }
+      break; }
+    case 'client-approve': {
+      a.disabled = true;
+      try { await API.approveSignoff(ui.data.so.id, $('#so-name').value); toast('Signed off. Thank you.'); await go('client-project', {pid: ui.data.so.project.id}); }
+      catch (err){ setError(err); rerenderKeepScroll(); }
+      break; }
+    case 'client-changes': {
+      const comment = ($('#so-changes').value || '').trim();
+      if (!comment){ toast('Say what should change so your architect can prepare a new version.'); break; }
+      try { await API.requestChanges(ui.data.so.id, comment); toast('Sent to your architect.'); await go('client-project', {pid: ui.data.so.project.id}); }
+      catch (err){ setError(err); rerenderKeepScroll(); }
+      break; }
     case 'signoff-create': {
       const key = a.dataset.key, title = ($('#so-title-' + key).value || '').trim(), summary = ($('#so-sum-' + key).value || '').trim();
       if (!title || !summary){ toast('Add a title and a summary for the client.'); break; }
@@ -1170,6 +1243,9 @@ document.addEventListener('input', e => {
   }
   if (el.id === 'lg-doc') syncLegalSave();
 });
+document.addEventListener('input', e => { if (e.target.id === 'so-name') syncApprove(); });
+document.addEventListener('change', e => { if (e.target.id === 'so-confirm') syncApprove(); });
+
 let fltTimer = null;
 document.addEventListener('input', e => {
   const el = e.target;

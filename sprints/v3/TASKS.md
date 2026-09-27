@@ -171,7 +171,7 @@
   - Files: web-src/api.js, web-src/app.js, web-src/app.html, tests/e2e/v3-client-app.spec.js
   - Completed: 2026-09-27. Clients land on My projects: cards with the phase, 10 phase bars, current stages, construction progress and a 'Sign-off waiting for you' badge. The project view has a 'Waiting for your sign-off' panel (Review and sign), the stage-by-stage timeline (Completed with date, In progress, Upcoming, Completed before SiteFlow, 'Your sign-off' on milestone stages, 'Signed by … on … (version N)') and the sign-off history. Finished phases fold to one line on the client view. Staff navigation is hidden, and client notifications open the client's project. Fixed a leak found in review: stage 12's description carried a planning marker ('TBD_PARVEZ, D-05'). It's now a code comment, and tests forbid TBD markers in client-facing text (backend and E2E). 2 new E2E tests (22 in total) with 3 screenshots, 1 new backend test (398 in total).
 
-- [ ] Task 19: UI: client sign-off review screen (P0)
+- [x] Task 19: UI: client sign-off review screen (P0)
   - Acceptance:
     - The client opens a request, and it shows the summary and each attachment: images inline, PDFs in an in-page viewer, and a download link as a fallback.
     - Each attachment is ticked when viewed.
@@ -179,6 +179,7 @@
     - "Request changes" needs a comment.
     - The Playwright test covers the full cycle: the client requests changes on version 1, the Architect sends version 2, the client approves, stage 4 completes and the Phase 2 branches open. Screenshots at phone width.
   - Files: web-src/app.js, web-src/app.html, tests/e2e/v3-signoff.spec.js
+  - Completed: 2026-09-27. The client's sign-off screen shows what they are approving, then the documents with Opened or Not opened status. 'Open' fetches the document through the recording endpoint and shows it in the page (an image inline, a PDF in a viewer, with a Download link as a fallback). A live checklist tracks: every document opened, the confirmation ticked (the wording comes from SIGNOFF_CONFIRMATION_TEXT), and the full name typed to match the client's name. 'Sign off version N' is enabled only when all three hold. 'Ask for changes' needs a comment. Answered versions are read-only. The E2E test covers the full cycle: the client asks for changes on v1, the Architect prepares v2 (with the title renumbered), the client opens the document and signs, stage 4 completes, both Phase 2 branches open for the client and staff, and the audit records the signer. Phone width is covered by the Task 18 client test. 3 new E2E tests (25 in total) with 3 screenshots.
 
 - [ ] Task 20: UI: dashboard shows phase, client and waiting for client (P1)
   - Acceptance:
