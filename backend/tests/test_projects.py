@@ -29,7 +29,7 @@ def test_members_are_creator_engineer_and_admins(new_project, users, db):
 
 def test_create_writes_audit_event(new_project, users):
     p = new_project()
-    assert len(p["audit"]) == 1
+    assert [e["action"] for e in p["audit"]] == ["project.created", "stage.activated"]
     ev = p["audit"][0]
     assert ev["action"] == "project.created"
     assert ev["actor"] == "Meera Joshi"

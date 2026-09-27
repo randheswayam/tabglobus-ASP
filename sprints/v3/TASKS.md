@@ -39,7 +39,7 @@
   - Files: backend/app/services/stages.py, backend/tests/test_stage_engine.py
   - Completed: 2026-09-27. services/stages.py has the pure functions to_release() (locked stages whose predecessors are completed or historical, so parallel branches release together) and evaluate(). evaluate() reports each stage as locked (with 'Waiting for: …'), active, blocked (with gate reasons for client sign-off, Legal Approval and major problems), completed or historical. Database helpers: create_stages (with historical onboarding), stage_rows, facts and release (audited stage.activated). 9 unit tests, 252 in total.
 
-- [ ] Task 5: Stage tracker API and legacy onboarding at project creation (P0)
+- [x] Task 5: Stage tracker API and legacy onboarding at project creation (P0)
   - Acceptance:
     - `POST /projects` creates the 22 stages with stage 1 active.
     - An optional `start_stage` and `historical_confirmed_by` mark earlier stages historical, with the confirmer recorded (PRD 7.19). Historical stages are labelled "Historical — completed before SiteFlow" in every response.
@@ -47,6 +47,7 @@
     - Project detail and summary gain `phase`, `current_stages` (a list, because branches run in parallel) and `stage_progress` (completed stages out of the total).
     - Visibility rules as in v2. Tests cover creation, legacy start, the historical labels and 404 for non-members.
   - Files: backend/app/routers/stages.py, backend/app/routers/projects.py, backend/app/schemas.py, backend/app/main.py, backend/tests/test_stages_api.py
+  - Completed: 2026-09-27. POST /projects creates every stage and releases stage 1. start_stage plus historical_confirmed_by (validated) marks earlier stages historical, and the creation audit records who confirmed them. GET /projects/{id}/stages returns the phases with each stage's state, reasons, can_complete for the caller, the historical label and a signed_by_client flag (always false for historical stages). The project list and detail gain phase, current_stages and stage_progress. Audit-order tests now skip stage.* events through workflow_actions(). 9 new tests, 261 in total.
 
 - [ ] Task 6: Owners complete ordinary stages; gate stages cannot be completed by hand (P0)
   - Acceptance:

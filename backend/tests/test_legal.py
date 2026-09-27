@@ -1,5 +1,7 @@
 import pytest
 
+from tests.conftest import workflow_actions
+
 APPLIED = {"status": "Applied", "authority_name": "Pune Municipal Corporation",
            "application_reference": "PMC/BP/2026/0142", "application_date": "2026-09-01"}
 APPROVED = {"status": "Approved", "approval_date": "2026-09-20",
@@ -41,12 +43,12 @@ def test_admin_applies_then_approves_and_step2_unlocks(legal):
 def test_each_change_writes_audit_events(legal):
     legal(APPLIED)
     p = legal(APPROVED).json()
-    actions = [e["action"] for e in p["audit"]]
-    assert actions == ["project.created", "legal.updated", "legal.updated",
-                       "step.completed", "step.activated"]
-    assert p["audit"][2]["detail"]["from"] == "Applied"
-    assert p["audit"][2]["detail"]["to"] == "Approved"
-    assert p["audit"][2]["actor"] == "Office Coordinator"
+    assert workflow_actions(p["audit"]) == ["project.created", "legal.updated", "legal.updated",
+                                            "step.completed", "step.activated"]
+    approved = [e for e in p["audit"] if e["action"] == "legal.updated"][1]
+    assert approved["detail"]["from"] == "Applied"
+    assert approved["detail"]["to"] == "Approved"
+    assert approved["actor"] == "Office Coordinator"
 
 
 def test_cannot_skip_applied(legal):

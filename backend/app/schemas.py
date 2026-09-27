@@ -1,9 +1,10 @@
 from datetime import date, datetime, timezone
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import stage_config as sc
 from app.models import AuditEvent, Project, Role, SiteVisit, StepStatus, User
 
 
@@ -19,8 +20,22 @@ class ProjectIn(BaseModel):
     location: str
     civil_engineer_id: int
     legal_expected_date: date | None = None
+    # Onboarding a project that is already in progress (PRD 7.19): earlier stages become historical.
+    start_stage: str | None = None
+    historical_confirmed_by: str | None = None
 
     _strip = field_validator("name", "location")(_not_blank)
+
+    @model_validator(mode="after")
+    def _onboarding(self):
+        if self.start_stage is None:
+            return self
+        if self.start_stage not in sc.BY_KEY or self.start_stage == sc.STAGES[0]["key"]:
+            raise ValueError("start_stage must be a later stage of the residential flow")
+        if not (self.historical_confirmed_by or "").strip():
+            raise ValueError("historical_confirmed_by is required when start_stage is set")
+        self.historical_confirmed_by = self.historical_confirmed_by.strip()
+        return self
 
 
 # ---------- serializers ----------
@@ -139,7 +154,21 @@ def project_summary(project: Project) -> dict:
         "official_progress": project.official_progress,
         "latest_visit_status": v.status.value if v else None,
         "civil_engineer": user_brief(civil_engineer_of(project)),
+        **stage_summary(project),
     }
+
+
+def stage_summary(project: Project) -> dict:
+    """Phase, open stages and progress through the flow, from the stored stage statuses."""
+    status = {r.key: r.status.value for r in project.stages}
+    if not status:
+        return {"phase": None, "current_stages": [], "stage_progress": None}
+    open_ = [s for s in sc.STAGES if status.get(s["key"]) == "active"]
+    done = sum(1 for v in status.values() if v in ("completed", "historical"))
+    number = min(s["phase"] for s in open_) if open_ else (sc.PHASES[-1]["number"] if done == len(sc.STAGES) else None)
+    phase = next((p for p in sc.PHASES if p["number"] == number), None)
+    return {"phase": dict(phase) if phase else None, "current_stages": [s["label"] for s in open_],
+            "stage_progress": {"done": done, "total": len(sc.STAGES)}}
 
 
 def project_detail(db: Session, project: Project) -> dict:

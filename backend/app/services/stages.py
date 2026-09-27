@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app import stage_config as sc
 from app.models import LegalStatus, Problem, ProblemStatus, Project, ProjectStage, StageStatus, User
+from app.schemas import iso_utc, user_brief
 from app.services import audit
 
 DONE = ("completed", "historical")
@@ -98,6 +99,50 @@ def facts(db: Session, project: Project, signoffs: dict | None = None) -> GateFa
         Problem.severity.in_(("High", "Critical"))))
     return GateFacts(legal_status=la.status.value if la else LegalStatus.not_started.value,
                      open_major_problems=major or 0, signoffs=signoffs or {})
+
+
+HISTORICAL_LABEL = "Historical — completed before SiteFlow"
+_STAFF_COMPLETERS = ("architect", "team_lead")
+
+
+def can_complete(user: User, stage: dict, state: str) -> bool:
+    """Owners (and the Architect or Team Lead) finish active stages; client sign-off stages finish only by approval."""
+    if state != "active" or stage["gate"] == "client_signoff":
+        return False
+    return user.role.value == stage["owner_role"] or user.role.value in _STAFF_COMPLETERS
+
+
+def signoff_facts(db: Session, project: Project) -> dict:
+    """Latest sign-off request per stage, for the client_signoff gate. Filled in once sign-offs exist."""
+    return {}
+
+
+def project_view(db: Session, project: Project, user: User) -> dict:
+    """The tracker: phases with their stages, each with state, reasons and what the caller may do."""
+    rows = stage_rows(db, project)
+    signoffs = signoff_facts(db, project)
+    view = evaluate({k: r.status.value for k, r in rows.items()}, facts(db, project, signoffs))
+
+    def stage_out(s):
+        r, v = rows[s["key"]], view[s["key"]]
+        req = signoffs.get(s["key"])
+        return {
+            "key": s["key"], "number": s["number"], "label": s["label"], "detail": s["detail"],
+            "workstream": s["workstream"], "owner_role": s["owner_role"], "gate": s["gate"],
+            "state": v["state"], "reasons": v["reasons"], "can_complete": can_complete(user, s, v["state"]),
+            "started_at": iso_utc(r.started_at), "completed_at": iso_utc(r.completed_at),
+            "completed_by": user_brief(r.completed_by), "completion_note": r.completion_note,
+            "historical": {"label": HISTORICAL_LABEL, "confirmed_by": r.historical_confirmed_by,
+                           "note": r.historical_note} if r.status == StageStatus.historical else None,
+            "signed_by_client": bool(req and req["status"] == "approved" and r.status == StageStatus.completed),
+        }
+
+    done = sum(1 for v in view.values() if v["state"] in DONE)
+    return {
+        "phases": [{**p, "stages": [stage_out(s) for s in sc.STAGES if s["phase"] == p["number"]]} for p in sc.PHASES],
+        "current_stages": [s["label"] for s in sc.STAGES if view[s["key"]]["state"] in ("active", "blocked")],
+        "stage_progress": {"done": done, "total": len(sc.STAGES)},
+    }
 
 
 def release(db: Session, project: Project, actor: User | None) -> list[str]:

@@ -9,7 +9,7 @@ from app.db import get_db
 from app.deps import get_current_user, get_visible_project, require_role, visible_projects
 from app.models import LegalApproval, Project, ProjectMember, Role, StepStatus, User, WorkflowStep
 from app.schemas import ProjectIn, project_detail, project_summary, visit_history_row
-from app.services import audit
+from app.services import audit, stages
 
 router = APIRouter(tags=["projects"])
 
@@ -37,7 +37,11 @@ def create_project(body: ProjectIn, db: Session = Depends(get_db),
                             activated_at=now if first else None))
     db.add(LegalApproval(project_id=project.id, expected_date=body.legal_expected_date))
     audit.record(db, user, "project.created", project_id=project.id, entity_type="project",
-                 entity_id=project.id, detail={"civil_engineer_id": engineer.id})
+                 entity_id=project.id, detail={"civil_engineer_id": engineer.id,
+                                               "start_stage": body.start_stage,
+                                               "historical_confirmed_by": body.historical_confirmed_by})
+    stages.create_stages(db, project, body.start_stage, body.historical_confirmed_by)
+    stages.release(db, project, user)
     db.commit()
     db.refresh(project)
     return project_detail(db, project)
