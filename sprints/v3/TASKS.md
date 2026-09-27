@@ -13,13 +13,14 @@
   - Files: docs/reference/*, CLAUDE.md, docs/decisions/0001-evolve-current-stack.md, docs/decisions/0002-client-app.md, docs/PROGRESS.md, backend/app/workflow_config.py, backend/app/template_config.py, backend/tests/test_storage.py
   - Completed: 2026-09-27. Reference documents are in docs/reference/ (PRD 3.1, the plan, the reference CLAUDE.md and the workflow diagram). Added a repo CLAUDE.md adapted to the real stack, decisions 0001 (evolve the stack) and 0002 (client app, pending Parvez), and docs/PROGRESS.md with the open questions. workflow_config.py gains the client sign-off SLA, invite TTL and attempts, sign-off attachment types, limit and confirmation wording. The PLACEHOLDER markers are now TBD_PARVEZ. 2 new tests, 236 in total.
 
-- [ ] Task 2: Stage flow configuration from the workflow diagram (P0)
+- [x] Task 2: Stage flow configuration from the workflow diagram (P0)
   - Acceptance:
     - `stage_config.py` defines the 22 stages: 18 numbered, plus 4 pre-design activities (site visit, investigations, concept, tentative elevations). Each has a key, number or label, phase (1 to 10), workstream (Studio, Site or Both), owner role, predecessors and gate type.
     - The parallel branches match the diagram: the pre-design Site and Studio branches after stage 4, 8A and 8B after stage 7, and 9 after both 8A and 8B.
     - The client sign-off gates are on stages 4, 11, 17 and 18. `legal_approval` is on 14, and `no_open_major_problems` is on 16.
     - Unit tests check there are no cycles, no orphans and exactly one start stage, that every predecessor exists, and that the phase order is the diagram's.
   - Files: backend/app/stage_config.py, backend/tests/test_stage_config.py
+  - Completed: 2026-09-27. stage_config.py holds 23 entries: 19 numbered (8 splits into 8A and 8B) plus 4 pre-design activities, in 10 phases, with the Site and Studio pre-design branches after stage 4, 8A and 8B after 7, and 9 after both. Gates: client_signoff on 4, 11, 17 and 18, legal_approval on 14 (D-01, assumed) and no_open_major_problems on 16. Roles that don't exist yet (Structural Consultant, Accounts) are owned by Architect, Team Lead or Admin. 6 tests (well-formed, one start, no cycles or orphans, parallel branches, gates, phase order). 242 tests in total.
 
 - [ ] Task 3: ProjectStage model, migration, and backfill of existing projects (P0)
   - Acceptance:
