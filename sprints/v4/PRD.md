@@ -10,6 +10,7 @@ Sprint v4 is the first sprint of the V4 programme. It closes the core gaps that 
 
 - **Requested on 28 September 2026:** every workflow activity can be marked complete with a text note and attached photos, videos, AutoCAD drawings (DWG or DXF) and PDFs.
 - **Requested on 28 September 2026:** hovering over a project on the dashboard shows its complete workflow as a callout, coloured green (completed), yellow (waiting) and red (delayed).
+- **Requested on 28 September 2026:** every progress dash on the dashboard and Projects cards becomes a representative icon for its phase, and the callout shows the workflow visually, drawn like the architect's workflow diagram.
 
 No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **Build** stage of Build → Deploy → Evaluate → Maintain.
 
@@ -34,6 +35,7 @@ No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **
 - **The dashboard shows each project's whole workflow at a glance.** Hovering over (or focusing, or tapping) a project row opens a callout with all 10 phases and 23 stages.
   - Colours: green Completed, yellow Waiting, red Delayed, grey Upcoming. Each has an icon, text and a reason.
   - Delayed comes from the existing red-flag rules mapped to their stage. A per-stage days threshold can be added once Parvez sets it.
+- **Progress is shown as icons, not dashes.** The 10 phase segments are replaced by icons from the workflow diagram (folder, people, document, hard hat, gear, house, key and so on), each coloured by the phase's state and labelled for screen readers. Hovering over one icon shows that phase's stages. Hovering over the project opens the full visual workflow, with stage boxes, arrows, parallel workstreams and the client rework loop.
 - **Nothing regresses.** All 409 backend tests and 28 E2E tests from v3 still pass, or are updated only where a rule deliberately changed.
 
 ## User Stories
@@ -46,6 +48,7 @@ No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **
 - As a Civil Engineer, I want to attach site photos and videos when I mark the pre-design site visit complete, so that the conditions are on record, not only in my phone.
 - As an Architect, I want to attach the AutoCAD centerline or grid drawing (DWG or DXF) to the stage I complete, so that the Structural Consultant works from the file that was actually issued.
 - As Parvez, I want to hover over a project on the dashboard and see every stage coloured by state, so that I know what is done, what is waiting and what is late without opening the project.
+- As Parvez, I want each phase on a project card shown as a recognisable icon in its state colour, and the full workflow drawn like my diagram when I hover, so that I read a project's position the way I already think about it.
 - As an Admin, I want to import the in-progress projects from a spreadsheet with a preview and row errors, so that onboarding the roughly 20 projects doesn't mean entering each one by hand (PRD 7.19, FR-27).
 
 ## Technical Architecture
@@ -114,7 +117,10 @@ No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **
    - The dashboard response carries each row's `workflow` summary, built by `modules/workflow/health.py` from the stage engine and the open red flags. There is no extra request per hover.
    - A stage is Delayed when an open red flag applies to it (for example Legal delay → Site line-out, or Client decision overdue → that sign-off stage), or when it has been active longer than its configured threshold.
    - This is an early, rule-based version of the V4 traffic lights. V04 later derives Studio and Site health from the same rules instead of adding a second rule set (R-12).
-7. **Field rules.** A single permission matrix (`FIELD_RULES`) removes commercial fields from API responses for roles without access. It is applied in the response builders, not in the UI.
+7. **Icons and the visual callout.**
+   - `stage_config` gives every phase and stage an `icon` key. `web-src/icons.js` holds the icons as inline SVG, so there are no external requests and it works offline in the Android app.
+   - The project list and dashboard responses already carry each stage's health (step 6). The browser draws the icon strip and the diagram-style callout from them, with no extra request.
+8. **Field rules.** A single permission matrix (`FIELD_RULES`) removes commercial fields from API responses for roles without access. It is applied in the response builders, not in the UI.
 
 ## Out of Scope (later sprints)
 - **Core steps S05 to S18:**
@@ -127,6 +133,7 @@ No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **
 - **UUID ids and `organization_id`.** Recorded in decision 0003 as a later step, before V08 (R-14).
 - **React migration.** Not in this sprint (decision 0001).
 - **Date-based delay.** Red from planned and forecast dates needs the V03 scheduling engine. In this sprint, Delayed comes only from red flags and an optional per-stage day count.
+- **An editable workflow diagram.** The callout is a read-only view of the configured flow. Changing the flow still means changing `stage_config.py`.
 - **Viewing AutoCAD drawings in SiteFlow.** DWG and DXF files are stored and downloaded only; there is no in-app preview or conversion.
 - **Demo parity.** The client demo stays exactly as published for v3 (R-16). `demo-api.js` is not changed, and the demo E2E test must still pass.
 

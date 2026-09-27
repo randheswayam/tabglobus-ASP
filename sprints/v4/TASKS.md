@@ -306,7 +306,7 @@ Applies to every workflow activity in the v3 tracker: staff mark a stage complet
 
 ### Dashboard workflow callout (requested 28 September 2026)
 
-On the dashboard, hovering over a project shows its complete workflow as a callout. Each stage is coloured green (completed), yellow (waiting) or red (delayed), always with an icon and text as well as the colour.
+On the dashboard and the Projects cards, the progress dashes become phase icons taken from the workflow diagram, and hovering over a project shows its complete workflow as a callout drawn like that diagram. Each stage is coloured green (completed), yellow (waiting) or red (delayed), always with an icon and text as well as the colour.
 
 - [ ] Task 27: Workflow health per stage for the dashboard (P0)
   - Acceptance:
@@ -327,27 +327,70 @@ On the dashboard, hovering over a project shows its complete workflow as a callo
     - Tests: `test_workflow_health.py` covers each colour, each flag-to-stage mapping, the days rule when configured, and the rule staying off when empty.
   - Files: backend/app/modules/workflow/health.py, backend/app/workflow_config.py, backend/app/routers/dashboard.py, backend/tests/test_workflow_health.py
 
-- [ ] Task 28: Hover callout on the dashboard (P0)
+- [ ] Task 28: Phase and stage icons replace the progress dashes (P0)
   - Acceptance:
-    - In All Projects and Needs Architect Attention, hovering over a project row, or focusing it with the keyboard, opens a callout (`data-testid="wf-callout-<project id>"`, `role="tooltip"`, linked by `aria-describedby`). On touch screens a tap opens it, and a second tap or Esc closes it.
-    - The callout contains:
-      - the project name, phase and "N of 23 done";
-      - the 10 phases in order, each with its stages as chips: green with a tick for Completed, yellow with a clock for Waiting, red with a warning icon for Delayed, grey for Upcoming;
-      - the reason text for each waiting or delayed stage;
-      - a legend and counts, for example "15 completed · 1 waiting · 1 delayed · 6 upcoming".
-    - Colour is never the only signal: each chip has an icon and its text is readable by screen readers.
-    - The callout stays inside the viewport, and at phone width it opens below the row.
-    - Opening it makes no extra API call; the data comes from the dashboard response.
+    - Each phase and stage in `stage_config` gains an `icon` key, following the workflow diagram (`docs/reference/workflow-diagram.jpeg`), for example:
+      - project setup: folder;
+      - client discovery: people;
+      - requirement baseline: document;
+      - client sign-offs: check badge;
+      - pre-design site visit: hard hat;
+      - investigations: magnifier;
+      - concept: pencil;
+      - tentative elevations: drafting;
+      - grid: ruler and set square;
+      - freeze: people with a check;
+      - structural design: gear;
+      - architectural package: house;
+      - structural package: frame;
+      - MEP: pipes;
+      - elevations: building;
+      - 50% gate: payment card;
+      - detailed drawings: drawing sheet;
+      - line-out: surveyor;
+      - construction: clipboard;
+      - civil completion: city block;
+      - interiors: sofa;
+      - handover: key.
+    - `test_stage_config.py` asserts that every phase and stage has an icon from the known set.
+    - `web-src/icons.js` holds the icons as inline SVG, with no external image or font requests. `build.py` includes it in the web, Android and demo builds.
+    - On the Projects cards and in the dashboard's All Projects Stage column, the 10 dash segments become 10 phase icons in order.
+    - Each icon is coloured by the phase's health from Task 27, using the worst stage in the phase: green Completed, yellow Waiting, red Delayed, grey Upcoming.
+    - Each icon has an `aria-label` such as "Phase 5, Client approval and commercial gate: waiting" and `data-testid="phase-icon-<project id>-<phase>"`.
+    - Hovering, focusing or tapping one icon shows a small tooltip with that phase's name, its stages and their states.
+    - It stays readable at phone width: the icons shrink and the strip scrolls rather than wraps.
+    - The client app's timeline uses the same icons, with the client-safe states only.
+    - E2E: the Projects card for a project onboarded at the design freeze shows four green phase icons and a yellow phase-5 icon. Screenshots are saved.
+  - Files: backend/app/stage_config.py, backend/tests/test_stage_config.py, web-src/icons.js, web-src/build.py, web-src/app.js, web-src/app.html, tests/e2e/v4-phase-icons.spec.js
+
+- [ ] Task 29: Workflow callout drawn like the workflow diagram (P0)
+  - Acceptance:
+    - In All Projects and Needs Architect Attention on the dashboard, and on each Projects card, hovering over a project (or focusing it with the keyboard, or tapping it on a touch screen) opens a callout. It has `data-testid="wf-callout-<project id>"`, `role="tooltip"`, and is linked by `aria-describedby`. A second tap or Esc closes it.
+    - The callout is a small visual version of the workflow diagram:
+      - a phase column on the left;
+      - the stages as boxes in flow order, joined by arrows, each with its icon, number, title and one-line detail;
+      - the Site and Studio pre-design workstreams side by side;
+      - 8A and 8B side by side;
+      - the client review and rework loop shown on stage 4.
+    - Each box takes its state colour from Task 27, and the legend and counts sit at the top (for example "15 completed · 1 waiting · 1 delayed · 6 upcoming"):
+      - green with a tick for Completed;
+      - yellow with a clock for Waiting, with the reason;
+      - red with a warning icon for Delayed, with the reason;
+      - grey for Upcoming;
+      - Historical boxes are green and marked "before SiteFlow".
+    - Colour is never the only signal: each box carries its icon and state text, and is readable by screen readers.
+    - The callout fits the viewport. On a narrow or short screen it scrolls inside itself, and at phone width it opens as a full-width sheet below the row.
+    - Opening it makes no extra API call; the data comes from the dashboard and project list responses.
     - E2E `v4-dashboard-callout.spec.js`:
-      - hovering a project onboarded at the design freeze shows earlier stages green and the sent sign-off yellow;
+      - hovering a project onboarded at the design freeze shows earlier stages green and the sent sign-off yellow with its reason;
       - a project with a critical problem shows Construction quality stages red, with the reason;
       - the keyboard and phone-tap paths work.
       - Screenshots are saved.
-  - Files: web-src/app.js, web-src/app.html, tests/e2e/v4-dashboard-callout.spec.js
+  - Files: web-src/app.js, web-src/app.html, web-src/icons.js, tests/e2e/v4-dashboard-callout.spec.js
 
 ### P1 — Should have
 
-- [ ] Task 29: Password reset stub (P1)
+- [ ] Task 30: Password reset stub (P1)
   - Acceptance:
     - An Admin can issue a reset for a staff user: a one-time token hashed at rest, a TTL setting, and single use. Nothing is emailed (no channel until S15).
     - `POST /auth/reset` with the token sets a new password (minimum 10 characters) and revokes every session.
@@ -355,7 +398,7 @@ On the dashboard, hovering over a project shows its complete workflow as a callo
     - Tests cover expiry, reuse and the session revocation.
   - Files: backend/app/models.py, backend/migrations/versions/0017_password_resets.py, backend/app/modules/identity/reset.py, backend/tests/test_password_reset.py
 
-- [ ] Task 30: Approval delegation (P1)
+- [ ] Task 31: Approval delegation (P1)
   - Acceptance:
     - A new `ApprovalDelegation` model (delegator, delegate, start, end, reason) has a migration. A Team Lead can delegate site-visit review to another staff user for a date range.
     - The delegate can review while the range is active in the business timezone; after the end date they get 403.
@@ -364,7 +407,7 @@ On the dashboard, hovering over a project shows its complete workflow as a callo
     - Tests: `test_delegation.py` (active, expired, over-authority).
   - Files: backend/app/models.py, backend/migrations/versions/0018_delegations.py, backend/app/modules/identity/delegation.py, backend/app/routers/reviews.py, backend/tests/test_delegation.py
 
-- [ ] Task 31: Activity state machine (pure) (P1)
+- [ ] Task 32: Activity state machine (pure) (P1)
   - Acceptance:
     - `backend/app/modules/workflow/states.py` defines the PRD 6.3 states:
       - Not Started, Ready, In Progress, Submitted, Under Review, Approved, Rework, Rejected, Completed;
@@ -375,7 +418,7 @@ On the dashboard, hovering over a project shows its complete workflow as a callo
     - Nothing is wired into ProjectStage yet: that's a follow-up task in S05, recorded in `docs/PROGRESS.md`.
   - Files: backend/app/modules/workflow/states.py, backend/tests/test_states.py
 
-- [ ] Task 32: Pin each project to a flow version (P1)
+- [ ] Task 33: Pin each project to a flow version (P1)
   - Acceptance:
     - A new `FlowVersion` model (number, created_at, snapshot JSON of `stage_config.PHASES` and `STAGES`) has a migration that backfills version 1 from a frozen copy.
     - `projects.flow_version_id` is added, and new projects pin the current version.
@@ -383,21 +426,21 @@ On the dashboard, hovering over a project shows its complete workflow as a callo
     - A test changes the config in memory, creates a new version, and shows that an existing project keeps the old flow.
   - Files: backend/app/models.py, backend/migrations/versions/0019_flow_versions.py, backend/app/modules/workflow/versions.py, backend/app/services/stages.py, backend/tests/test_flow_versions.py
 
-- [ ] Task 33: Map the diagram stages to PRD Stage 0 to 15 (P1)
+- [ ] Task 34: Map the diagram stages to PRD Stage 0 to 15 (P1)
   - Acceptance:
     - Each stage in `stage_config` gains `prd_stage` (for example setup → 0, `requirements_signoff` → 2, `line_out` → 11).
     - A test asserts that every PRD stage 0 to 15 is covered at least once.
     - The mapping table is added to `docs/V4_EXECUTION_PLAN.md` (closes R-09) and shown as a small label in the stage detail.
   - Files: backend/app/stage_config.py, backend/tests/test_stage_config.py, docs/V4_EXECUTION_PLAN.md, web-src/app.js
 
-- [ ] Task 34: XLSX import (P1)
+- [ ] Task 35: XLSX import (P1)
   - Acceptance:
     - The preview and commit also accept `.xlsx` (the first sheet, same columns) through `openpyxl`, which is added to requirements and passes pip-audit.
     - The file type is checked by its signature (a zip header), not only the extension.
     - Tests reuse the CSV cases with an XLSX fixture.
   - Files: backend/requirements.txt, backend/app/modules/projects/importer.py, backend/tests/test_import.py, backend/tests/fixtures/import.xlsx
 
-- [ ] Task 35: Sprint close: status docs (P1)
+- [ ] Task 36: Sprint close: status docs (P1)
   - Acceptance:
     - `docs/V4_EXECUTION_PLAN.md` section 2 updates S00 to S04 with the new evidence (file paths and test names) and their new status.
     - `docs/PROGRESS.md` gets a dated entry: done, not done, deviations, and open questions (stage owners, field matrix, exception roles, stage evidence rules and file size limits, stage delay thresholds, D-13 data).
