@@ -35,6 +35,7 @@ def write(path, text):
 def demo_template():
     """The /template payload, built from the backend's own config so the demo never drifts from it."""
     sys.path.insert(0, os.path.join(root, 'backend'))
+    from app import stage_config as sc
     from app import template_config as tc
     from app import workflow_config as wc
     return {
@@ -48,6 +49,14 @@ def demo_template():
         "red_flag_rules": wc.RED_FLAG_RULES,
         "workflow": {"review_sla_hours": wc.REVIEW_SLA_HOURS, "visit_interval_days": wc.VISIT_INTERVAL_DAYS,
                      "rework_limit": wc.REWORK_LIMIT},
+        # The 18-stage flow (as /template serves it) and, for the demo's own engine, the full stage rules.
+        "phases": sc.PHASES,
+        "flow": [{"key": s["key"], "number": s["number"], "label": s["label"], "phase": s["phase"]} for s in sc.STAGES],
+        "stage_flow": sc.STAGES,
+        "business_timezone": wc.BUSINESS_TIMEZONE,
+        "signoff": {"sla_days": wc.CLIENT_SIGNOFF_SLA_DAYS, "invite_ttl_days": wc.INVITE_CODE_TTL_DAYS,
+                    "invite_max_attempts": wc.INVITE_MAX_ATTEMPTS, "attachment_types": wc.SIGNOFF_ATTACHMENT_TYPES,
+                    "max_attachment_mb": wc.MAX_SIGNOFF_ATTACHMENT_MB, "confirmation_text": wc.SIGNOFF_CONFIRMATION_TEXT},
     }
 
 

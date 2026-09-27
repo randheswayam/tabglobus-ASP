@@ -435,18 +435,19 @@ body.anon .side,body.anon .tabs{display:none}
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const DEMO_TEMPLATE = {"id": "residential", "version": 1, "steps": ["Legal Approval", "Site Visit", "Team Lead Review"], "stages": [{"name": "Foundation", "weight": 12.5, "checklist": [{"id": "fdn-excavation", "label": "Excavation to drawing depth"}, {"id": "fdn-pcc", "label": "PCC bed laid"}, {"id": "fdn-footing-rebar", "label": "Footing reinforcement checked"}, {"id": "fdn-footing-concrete", "label": "Footing concrete poured"}]}, {"name": "Plinth", "weight": 12.5, "checklist": [{"id": "pln-beam", "label": "Plinth beam cast"}, {"id": "pln-filling", "label": "Plinth filling and compaction"}, {"id": "pln-dpc", "label": "Damp proof course laid"}]}, {"name": "Superstructure", "weight": 12.5, "checklist": [{"id": "sup-columns", "label": "Columns cast"}, {"id": "sup-beams", "label": "Beams cast"}, {"id": "sup-slab", "label": "Slab cast"}, {"id": "sup-curing", "label": "Curing completed"}]}, {"name": "Masonry", "weight": 12.5, "checklist": [{"id": "msn-walls", "label": "External walls built"}, {"id": "msn-partitions", "label": "Internal partitions built"}, {"id": "msn-lintels", "label": "Lintels and sills cast"}]}, {"name": "Plastering", "weight": 12.5, "checklist": [{"id": "pls-internal", "label": "Internal plaster"}, {"id": "pls-external", "label": "External plaster"}]}, {"name": "Services", "weight": 12.5, "checklist": [{"id": "svc-plumbing", "label": "Plumbing lines laid"}, {"id": "svc-electrical", "label": "Electrical conduits and wiring"}, {"id": "svc-testing", "label": "Pressure and circuit tests"}]}, {"name": "Finishes", "weight": 12.5, "checklist": [{"id": "fin-flooring", "label": "Flooring and tiling"}, {"id": "fin-doors-windows", "label": "Doors and windows fixed"}, {"id": "fin-painting", "label": "Painting"}, {"id": "fin-fixtures", "label": "Fixtures installed"}]}, {"name": "Handover", "weight": 12.5, "checklist": [{"id": "hnd-snag", "label": "Snag list closed"}, {"id": "hnd-cleaning", "label": "Site cleaned"}, {"id": "hnd-documents", "label": "Handover documents ready"}]}], "checklist_states": ["Done", "In progress", "Not started"], "problems": {"Structural": ["Crack in beam, column or slab", "Honeycombing in concrete", "Rebar spacing or cover not per drawing", "Formwork misalignment"], "Quality": ["Poor curing", "Plaster hollowness", "Level or plumb deviation", "Brickwork joint issues"], "Water": ["Seepage or dampness", "Waterproofing defect", "Drainage slope issue"], "Site": ["Material shortage", "Labour shortage", "Equipment breakdown", "Deviation from approved drawing"], "Safety": ["Missing barricading", "No safety gear in use", "Unsafe scaffolding"], "Other": []}, "severities": ["Low", "Medium", "High", "Critical"], "min_photos": 5, "max_photo_mb": 10, "max_video_mb": 100, "photo_types": ["image/jpeg", "image/png", "image/webp"], "video_types": ["video/mp4", "video/webm"], "red_flag_rules": {"critical_issue": {"label": "Critical issue", "rank": 5}, "overdue_fix": {"label": "Overdue fix", "rank": 4}, "review_overdue": {"label": "Review overdue", "rank": 3}, "repeated_rework": {"label": "Repeated rework", "rank": 3}, "legal_delay": {"label": "Legal delay", "rank": 2}, "no_recent_visit": {"label": "No recent visit", "rank": 1}, "client_decision_overdue": {"label": "Client decision overdue", "rank": 4}}, "workflow": {"review_sla_hours": 48, "visit_interval_days": 14, "rework_limit": 2}};
+const DEMO_TEMPLATE = {"id": "residential", "version": 1, "steps": ["Legal Approval", "Site Visit", "Team Lead Review"], "stages": [{"name": "Foundation", "weight": 12.5, "checklist": [{"id": "fdn-excavation", "label": "Excavation to drawing depth"}, {"id": "fdn-pcc", "label": "PCC bed laid"}, {"id": "fdn-footing-rebar", "label": "Footing reinforcement checked"}, {"id": "fdn-footing-concrete", "label": "Footing concrete poured"}]}, {"name": "Plinth", "weight": 12.5, "checklist": [{"id": "pln-beam", "label": "Plinth beam cast"}, {"id": "pln-filling", "label": "Plinth filling and compaction"}, {"id": "pln-dpc", "label": "Damp proof course laid"}]}, {"name": "Superstructure", "weight": 12.5, "checklist": [{"id": "sup-columns", "label": "Columns cast"}, {"id": "sup-beams", "label": "Beams cast"}, {"id": "sup-slab", "label": "Slab cast"}, {"id": "sup-curing", "label": "Curing completed"}]}, {"name": "Masonry", "weight": 12.5, "checklist": [{"id": "msn-walls", "label": "External walls built"}, {"id": "msn-partitions", "label": "Internal partitions built"}, {"id": "msn-lintels", "label": "Lintels and sills cast"}]}, {"name": "Plastering", "weight": 12.5, "checklist": [{"id": "pls-internal", "label": "Internal plaster"}, {"id": "pls-external", "label": "External plaster"}]}, {"name": "Services", "weight": 12.5, "checklist": [{"id": "svc-plumbing", "label": "Plumbing lines laid"}, {"id": "svc-electrical", "label": "Electrical conduits and wiring"}, {"id": "svc-testing", "label": "Pressure and circuit tests"}]}, {"name": "Finishes", "weight": 12.5, "checklist": [{"id": "fin-flooring", "label": "Flooring and tiling"}, {"id": "fin-doors-windows", "label": "Doors and windows fixed"}, {"id": "fin-painting", "label": "Painting"}, {"id": "fin-fixtures", "label": "Fixtures installed"}]}, {"name": "Handover", "weight": 12.5, "checklist": [{"id": "hnd-snag", "label": "Snag list closed"}, {"id": "hnd-cleaning", "label": "Site cleaned"}, {"id": "hnd-documents", "label": "Handover documents ready"}]}], "checklist_states": ["Done", "In progress", "Not started"], "problems": {"Structural": ["Crack in beam, column or slab", "Honeycombing in concrete", "Rebar spacing or cover not per drawing", "Formwork misalignment"], "Quality": ["Poor curing", "Plaster hollowness", "Level or plumb deviation", "Brickwork joint issues"], "Water": ["Seepage or dampness", "Waterproofing defect", "Drainage slope issue"], "Site": ["Material shortage", "Labour shortage", "Equipment breakdown", "Deviation from approved drawing"], "Safety": ["Missing barricading", "No safety gear in use", "Unsafe scaffolding"], "Other": []}, "severities": ["Low", "Medium", "High", "Critical"], "min_photos": 5, "max_photo_mb": 10, "max_video_mb": 100, "photo_types": ["image/jpeg", "image/png", "image/webp"], "video_types": ["video/mp4", "video/webm"], "red_flag_rules": {"critical_issue": {"label": "Critical issue", "rank": 5}, "overdue_fix": {"label": "Overdue fix", "rank": 4}, "review_overdue": {"label": "Review overdue", "rank": 3}, "repeated_rework": {"label": "Repeated rework", "rank": 3}, "legal_delay": {"label": "Legal delay", "rank": 2}, "no_recent_visit": {"label": "No recent visit", "rank": 1}, "client_decision_overdue": {"label": "Client decision overdue", "rank": 4}}, "workflow": {"review_sla_hours": 48, "visit_interval_days": 14, "rework_limit": 2}, "phases": [{"number": 1, "name": "Initiation and requirements"}, {"number": 2, "name": "Parallel pre-design"}, {"number": 3, "name": "Structural design"}, {"number": 4, "name": "Design development and coordination"}, {"number": 5, "name": "Client approval and commercial gate"}, {"number": 6, "name": "Detailed drawings"}, {"number": 7, "name": "Construction execution"}, {"number": 8, "name": "Civil completion"}, {"number": 9, "name": "Interiors"}, {"number": 10, "name": "Handover"}], "flow": [{"key": "setup", "number": "1", "label": "Project setup", "phase": 1}, {"key": "discovery", "number": "2", "label": "Client discovery meetings", "phase": 1}, {"key": "baseline", "number": "3", "label": "Preliminary requirement baseline", "phase": 1}, {"key": "requirements_signoff", "number": "4", "label": "Client sign-off: preliminary requirements", "phase": 1}, {"key": "predesign_site_visit", "number": null, "label": "Pre-design site visit", "phase": 2}, {"key": "investigations", "number": null, "label": "Investigations", "phase": 2}, {"key": "concept", "number": null, "label": "Preliminary concept", "phase": 2}, {"key": "tentative_elevations", "number": null, "label": "Tentative elevations", "phase": 2}, {"key": "grid", "number": "5", "label": "Centerline, grid, foundation basis and column positions", "phase": 3}, {"key": "grid_freeze", "number": "6", "label": "Architect and structural consultant freeze", "phase": 3}, {"key": "structural_design", "number": "7", "label": "Structural design package", "phase": 3}, {"key": "architectural_package", "number": "8A", "label": "Architectural package", "phase": 4}, {"key": "structural_package", "number": "8B", "label": "Structural package", "phase": 4}, {"key": "mep", "number": "9", "label": "MEP and coordination", "phase": 4}, {"key": "elevations_package", "number": "10", "label": "All elevations package", "phase": 4}, {"key": "design_freeze_signoff", "number": "11", "label": "Client sign-off: design freeze", "phase": 5}, {"key": "payment_gate", "number": "12", "label": "50% upfront gate", "phase": 5}, {"key": "detailed_drawings", "number": "13", "label": "Detailed drawings and controlled issue", "phase": 6}, {"key": "line_out", "number": "14", "label": "Site line-out", "phase": 7}, {"key": "construction", "number": "15", "label": "Construction quality stages", "phase": 7}, {"key": "civil_completion", "number": "16", "label": "Civil completion", "phase": 8}, {"key": "interiors_signoff", "number": "17", "label": "Client sign-off: interiors and tile selection", "phase": 9}, {"key": "handover_signoff", "number": "18", "label": "Client sign-off: handover and closeout", "phase": 10}], "stage_flow": [{"key": "setup", "number": "1", "label": "Project setup", "phase": 1, "workstream": "Both", "owner_role": "architect", "predecessors": [], "gate": null, "detail": "Project details, team assignment, initial timeline and budget."}, {"key": "discovery", "number": "2", "label": "Client discovery meetings", "phase": 1, "workstream": "Studio", "owner_role": "architect", "predecessors": ["setup"], "gate": null, "detail": "Repeatable meetings: requirements, notes, photos and documents."}, {"key": "baseline", "number": "3", "label": "Preliminary requirement baseline", "phase": 1, "workstream": "Studio", "owner_role": "architect", "predecessors": ["discovery"], "gate": null, "detail": "Requirements document: scope, constraints and priorities."}, {"key": "requirements_signoff", "number": "4", "label": "Client sign-off: preliminary requirements", "phase": 1, "workstream": "Studio", "owner_role": "client", "predecessors": ["baseline"], "gate": "client_signoff", "detail": "Approval to proceed to design. Triggers the parallel workstreams."}, {"key": "predesign_site_visit", "number": null, "label": "Pre-design site visit", "phase": 2, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["requirements_signoff"], "gate": null, "detail": "Site conditions, photos and videos."}, {"key": "investigations", "number": null, "label": "Investigations", "phase": 2, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["predesign_site_visit"], "gate": null, "detail": "Well, soil condition (black cotton soil), test pit (outstation)."}, {"key": "concept", "number": null, "label": "Preliminary concept", "phase": 2, "workstream": "Studio", "owner_role": "architect", "predecessors": ["requirements_signoff"], "gate": null, "detail": "Initial layouts and ideas."}, {"key": "tentative_elevations", "number": null, "label": "Tentative elevations", "phase": 2, "workstream": "Studio", "owner_role": "architect", "predecessors": ["concept"], "gate": null, "detail": "Not frozen, for discussion only."}, {"key": "grid", "number": "5", "label": "Centerline, grid, foundation basis and column positions", "phase": 3, "workstream": "Studio", "owner_role": "architect", "predecessors": ["investigations", "tentative_elevations"], "gate": null, "detail": "Based on site data and the preliminary design."}, {"key": "grid_freeze", "number": "6", "label": "Architect and structural consultant freeze", "phase": 3, "workstream": "Studio", "owner_role": "team_lead", "predecessors": ["grid"], "gate": null, "detail": "Centerline, foundation and column positions reviewed and signed off."}, {"key": "structural_design", "number": "7", "label": "Structural design package", "phase": 3, "workstream": "Studio", "owner_role": "architect", "predecessors": ["grid_freeze"], "gate": null, "detail": "Structural consultant: RCC design, foundation, columns and beams."}, {"key": "architectural_package", "number": "8A", "label": "Architectural package", "phase": 4, "workstream": "Studio", "owner_role": "architect", "predecessors": ["structural_design"], "gate": null, "detail": "Architectural drawings, plans and elevations."}, {"key": "structural_package", "number": "8B", "label": "Structural package", "phase": 4, "workstream": "Studio", "owner_role": "architect", "predecessors": ["structural_design"], "gate": null, "detail": "Final structural drawings."}, {"key": "mep", "number": "9", "label": "MEP and coordination", "phase": 4, "workstream": "Studio", "owner_role": "architect", "predecessors": ["architectural_package", "structural_package"], "gate": null, "detail": "Electrical, plumbing and HVAC drawings; clash check across disciplines."}, {"key": "elevations_package", "number": "10", "label": "All elevations package", "phase": 4, "workstream": "Studio", "owner_role": "architect", "predecessors": ["mep"], "gate": null, "detail": "Final elevations (all sides), materials and finishes, optional 3D views."}, {"key": "design_freeze_signoff", "number": "11", "label": "Client sign-off: design freeze", "phase": 5, "workstream": "Studio", "owner_role": "client", "predecessors": ["elevations_package"], "gate": "client_signoff", "detail": "Approval of all elevations. Changes after this stage are costly."}, {"key": "payment_gate", "number": "12", "label": "50% upfront gate", "phase": 5, "workstream": "Both", "owner_role": "admin", "predecessors": ["design_freeze_signoff"], "gate": null, "detail": "Payment milestone cleared before detailed drawings."}, {"key": "detailed_drawings", "number": "13", "label": "Detailed drawings and controlled issue", "phase": 6, "workstream": "Studio", "owner_role": "architect", "predecessors": ["payment_gate"], "gate": null, "detail": "Detailed architectural, structural and MEP drawings, issued with version control."}, {"key": "line_out", "number": "14", "label": "Site line-out", "phase": 7, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["detailed_drawings"], "gate": "legal_approval", "detail": "Site marking and verification as per approved drawings."}, {"key": "construction", "number": "15", "label": "Construction quality stages", "phase": 7, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["line_out"], "gate": null, "detail": "Site visits with checklists, photos, review and derived progress."}, {"key": "civil_completion", "number": "16", "label": "Civil completion", "phase": 8, "workstream": "Site", "owner_role": "team_lead", "predecessors": ["construction"], "gate": "no_open_major_problems", "detail": "Civil completion checklist and quality sign-off; ready for interiors."}, {"key": "interiors_signoff", "number": "17", "label": "Client sign-off: interiors and tile selection", "phase": 9, "workstream": "Both", "owner_role": "client", "predecessors": ["civil_completion"], "gate": "client_signoff", "detail": "Material and tile selection approvals."}, {"key": "handover_signoff", "number": "18", "label": "Client sign-off: handover and closeout", "phase": 10, "workstream": "Both", "owner_role": "client", "predecessors": ["interiors_signoff"], "gate": "client_signoff", "detail": "Final inspection, snag list and handover documents."}], "business_timezone": "Asia/Kolkata", "signoff": {"sla_days": 7, "invite_ttl_days": 7, "invite_max_attempts": 5, "attachment_types": ["application/pdf", "image/jpeg", "image/png", "image/webp"], "max_attachment_mb": 20, "confirmation_text": "I have reviewed every document in this package and I approve this version on behalf of the client."}};
 /* ---------- SiteFlow demo API ----------
    Same interface as api.js, but the workflow runs in the browser with sample data, so the demo works
    as a single file with no server. The rules mirror the FastAPI backend: roles and project visibility,
    Legal Approval transitions, mandatory site visit validation with photo evidence, derived progress,
-   the Team Lead review with recurring visits, open problems, red flags, the dashboard and notifications.
+   the Team Lead review with recurring visits, open problems, red flags, the dashboard, notifications,
+   the 18-stage tracker, client invites, milestone sign-offs, the client app and shared site updates.
    DEMO_TEMPLATE is injected by build.py from the backend's template and workflow config, so stages,
    checklists, the problem list, media limits and red flag thresholds stay in step. */
 const SiteFlowAPI = (() => {
   'use strict';
   const T = DEMO_TEMPLATE;
-  const K_DB = 'siteflow.demo.db.v2', K_TOKEN = 'siteflow.demo.token';
+  const K_DB = 'siteflow.demo.db.v3', K_TOKEN = 'siteflow.demo.token';
   const PASSWORD = 'demo';
   const mem = {};
   const store = {
@@ -470,7 +471,7 @@ const SiteFlowAPI = (() => {
   const nowMs = () => Date.now() - clockOffset;
   const now = () => new Date(nowMs()).toISOString();
   const ymd = daysAgo => new Date(Date.now() - daysAgo * 864e5).toISOString().slice(0, 10);
-  function load(){ try { db = JSON.parse(store.get(K_DB) || 'null'); } catch (_) { db = null; } if (!db || db.v !== 2) seed(); }
+  function load(){ try { db = JSON.parse(store.get(K_DB) || 'null'); } catch (_) { db = null; } if (!db || db.v !== 3) seed(); }
   function save(){ if (!store.set(K_DB, JSON.stringify(db))) fail(507, 'The demo has run out of browser storage. Use Reset demo data to start again.'); }
   const nextId = kind => (db.seq[kind] = (db.seq[kind] || 0) + 1);
   const user = id => db.users.find(u => u.id === id);
@@ -484,6 +485,8 @@ const SiteFlowAPI = (() => {
     return u;
   }
   function role(u, ...roles){ if (!roles.includes(u.role)) fail(403, 'Your role cannot perform this action'); }
+  function staff(){ const u = current(); if (u.role === 'client') fail(403, 'This area is for the SiteFlow team. Clients use the client app.'); return u; }
+  function clientUser(){ const u = current(); if (u.role !== 'client') fail(403, 'This area is the client app'); return u; }
   const seesAll = u => u.role === 'architect' || u.role === 'team_lead';
   const visible = u => db.projects.filter(p => seesAll(u) || p.members.includes(u.id));
   function project(u, id){ const p = visible(u).find(x => x.id === +id); if (!p) fail(404, 'Project not found'); return p; }
@@ -563,8 +566,10 @@ const SiteFlowAPI = (() => {
 
   /* ---------- red flags (mirror services/red_flags.py) ---------- */
   const RULES = T.red_flag_rules;
+  // The office's calendar day (Asia/Kolkata), not UTC: mirrors app/clock.py.
+  const businessDate = ms => new Intl.DateTimeFormat('en-CA', {timeZone: T.business_timezone, year: 'numeric', month: '2-digit', day: '2-digit'}).format(new Date(ms));
   function evaluateFlags(p, at){
-    const out = new Set(), today = new Date(at).toISOString().slice(0, 10), W = T.workflow;
+    const out = new Set(), today = businessDate(at), W = T.workflow;
     db.problems.filter(x => x.project_id === p.id && x.status === 'open').forEach(x => {
       if (['High', 'Critical'].includes(x.severity)) out.add(`critical_issue|problem-${x.id}`);
       if (x.target_date < today) out.add(`overdue_fix|problem-${x.id}`);
@@ -577,6 +582,8 @@ const SiteFlowAPI = (() => {
     const approvals = visitsOf(p).map(approvedAt).filter(Boolean).sort();
     const since = approvals.length ? approvals[approvals.length - 1] : (step(p, 1).status === 'completed' ? step(p, 1).completed_at : null);
     if (step(p, 2).status === 'active' && since && at - Date.parse(since) > W.visit_interval_days * 864e5) out.add('no_recent_visit|project');
+    db.signoffs.filter(r => r.project_id === p.id && r.status === 'sent' && at - Date.parse(r.sent_at) > T.signoff.sla_days * 864e5)
+      .forEach(r => out.add(`client_decision_overdue|signoff-${r.id}`));
     return out;
   }
   function syncFlags(p){
@@ -621,7 +628,8 @@ const SiteFlowAPI = (() => {
   function summary(p){
     const v = latest(p), active = p.steps.find(s => s.status === 'active');
     return {id: p.id, name: p.name, location: p.location, current_step: active ? active.name : null,
-      official_progress: p.official_progress, latest_visit_status: v ? v.status : null, civil_engineer: brief(engineerOf(p))};
+      official_progress: p.official_progress, latest_visit_status: v ? v.status : null, civil_engineer: brief(engineerOf(p)),
+      ...stageSummary(p)};
   }
   function detail(p){
     const approved = visitsOf(p).filter(v => v.status === 'approved').length;
@@ -652,13 +660,20 @@ const SiteFlowAPI = (() => {
     if (!name || !location) fail(422, 'Project name and location are required');
     const eng = user(+b.civil_engineer_id);
     if (!eng || eng.role !== 'civil_engineer') fail(422, 'civil_engineer_id must be an active Civil Engineer');
+    const start = b.start_stage || null, confirmer = (b.historical_confirmed_by || '').trim();
+    if (start && (!BYKEY[start] || start === FLOW[0].key)) fail(422, 'start_stage must be a later stage of the residential flow');
+    if (start && !confirmer) fail(422, 'historical_confirmed_by is required when start_stage is set');
     const admins = db.users.filter(x => x.role === 'admin').map(x => x.id);
     const p = {id: nextId('project'), name, location, created_by: u.id, official_progress: 0, members: [...new Set([u.id, eng.id, ...admins])],
       steps: T.steps.map((s, i) => ({order: i + 1, name: s, status: i === 0 ? 'active' : 'locked', completed_at: null})),
       legal: {status: 'Not started', authority_name: null, application_reference: null, application_date: null,
         approval_date: null, expected_date: b.legal_expected_date || null, document_reference: null}};
     db.projects.push(p);
-    audit(p, u, 'project.created', {civil_engineer_id: eng.id});
+    audit(p, u, 'project.created', {civil_engineer_id: eng.id, start_stage: start, historical_confirmed_by: start ? confirmer : null});
+    const cut = start ? FLOW.findIndex(x => x.key === start) : 0;
+    p.stages = Object.fromEntries(FLOW.map((x, i) => [x.key, {status: i < cut ? 'historical' : 'locked', started_at: null, completed_at: null,
+      completed_by: null, note: null, hist_by: i < cut ? confirmer : null, hist_note: i < cut ? 'Completed before SiteFlow.' : null}]));
+    releaseStages(p, u);
     return p;
   }
 
@@ -689,7 +704,7 @@ const SiteFlowAPI = (() => {
   function openDraft(u, pid){
     role(u, 'civil_engineer');
     const p = project(u, pid);
-    if (step(p, 2).status !== 'active') fail(409, 'Site Visit step is not open for this project');
+    requireSiteVisitOpen(p);
     let v = openVisit(p);
     if (!v){ v = {id: nextId('visit'), project_id: p.id, engineer_id: u.id, status: 'draft', submission_count: 0, form: {}, checklist: {}, problems: [], no_issues: false, created_at: now()}; db.visits.push(v); }
     return v;
@@ -698,7 +713,7 @@ const SiteFlowAPI = (() => {
   function submitVisit(u, pid, b){
     role(u, 'civil_engineer');
     const p = project(u, pid);
-    if (step(p, 2).status !== 'active') fail(409, 'Site Visit step is not open for this project');
+    requireSiteVisitOpen(p);
     let v = openVisit(p);
     const [missing, invalid] = validate(b, v ? mediaOf(v) : []);
     if (missing.length || invalid.length) fail(422, 'Site visit is incomplete', {missing, invalid});
@@ -735,6 +750,8 @@ const SiteFlowAPI = (() => {
         resolved_at: null, resolved_by: null, resolution_note: null}));
       send([engineerOf(p), architectOf(p)], 'approved', p, `The site visit on ${p.name} is approved. Progress ${v.computed_progress}% is now official.`, u);
       setStep(p, 3, 'completed', u); setStep(p, 2, 'active', u); setStep(p, 3, 'locked', u);
+      if (p.stages[CONSTRUCTION_START].status === 'active')
+        completeStage(p, CONSTRUCTION_START, u, 'Completed when the first construction visit was approved.');
     } else {
       v.status = 'rework';
       audit(p, u, 'site_visit.rework_requested', d);
@@ -767,9 +784,14 @@ const SiteFlowAPI = (() => {
     let rows = projects.map(p => {
       const flags = db.flags.filter(x => x.project_id === p.id && !x.cleared_at).map(flagOut).sort((a, b) => b.rank - a.rank || a.raised_at.localeCompare(b.raised_at));
       const last = visitsOf(p).map(approvedAt).filter(Boolean).sort().pop() || null;
+      const waiting = db.signoffs.find(r => r.project_id === p.id && r.status === 'sent');
+      const client = clientsOf(p)[0];
       return {id: p.id, name: p.name, location: p.location, current_step: summary(p).current_step, official_progress: p.official_progress,
         open_problems: open.filter(x => x.project_id === p.id).length, last_visit_at: last, red_flags: flags.length,
-        flag_labels: flags.map(x => x.label), flags, civil_engineer: brief(engineerOf(p))};
+        flag_labels: flags.map(x => x.label), flags, civil_engineer: brief(engineerOf(p)), ...stageSummary(p),
+        client: client ? client.name : null,
+        waiting_for_client: waiting ? {signoff_id: waiting.id, stage: BYKEY[waiting.stage_key].label, version: waiting.version,
+          sent_at: waiting.sent_at, days_waiting: Math.floor((Date.now() - Date.parse(waiting.sent_at)) / 864e5)} : null};
     });
     const has = k => f[k] !== undefined && f[k] !== '';
     rows = rows.filter(r => (!has('q') || r.name.toLowerCase().includes(f.q.toLowerCase()))
@@ -780,8 +802,10 @@ const SiteFlowAPI = (() => {
       && ((!has('severity') && !has('category')) || open.some(x => x.project_id === r.id && match(x)))
       && (!has('progress_min') || r.official_progress >= +f.progress_min)
       && (!has('progress_max') || r.official_progress <= +f.progress_max)
-      && (!has('visit_from') || (r.last_visit_at && r.last_visit_at.slice(0, 10) >= f.visit_from))
-      && (!has('visit_to') || (r.last_visit_at && r.last_visit_at.slice(0, 10) <= f.visit_to)));
+      && (!has('visit_from') || (r.last_visit_at && businessDate(Date.parse(r.last_visit_at)) >= f.visit_from))
+      && (!has('visit_to') || (r.last_visit_at && businessDate(Date.parse(r.last_visit_at)) <= f.visit_to))
+      && (!has('phase') || (r.phase && r.phase.number === +f.phase))
+      && (!has('client_pending') || (r.waiting_for_client !== null) === (f.client_pending === 'true')));
     const kept = rows.map(r => r.id), order = {Critical: 0, High: 1};
     return {
       all_projects: rows,
@@ -789,8 +813,281 @@ const SiteFlowAPI = (() => {
         || a.flags.map(x => x.raised_at).sort()[0].localeCompare(b.flags.map(x => x.raised_at).sort()[0])),
       major_problems: open.filter(x => kept.includes(x.project_id) && x.severity in order && match(x))
         .sort((a, b) => order[a.severity] - order[b.severity] || a.target_date.localeCompare(b.target_date)).map(problemOut),
-      review_queue: queueRows(kept)
+      review_queue: queueRows(kept),
+      waiting_for_client: rows.filter(r => r.waiting_for_client).sort((a, b) => b.waiting_for_client.days_waiting - a.waiting_for_client.days_waiting)
     };
+  }
+
+  /* ---------- stage tracker (mirrors services/stages.py) ---------- */
+  const FLOW = T.stage_flow, BYKEY = Object.fromEntries(FLOW.map(x => [x.key, x])), DONE = ['completed', 'historical'];
+  const CONSTRUCTION_START = 'line_out', HISTORICAL_LABEL = 'Historical — completed before SiteFlow';
+  const STAFF_COMPLETERS = ['architect', 'team_lead'];
+  const latestSignoff = (p, key) => db.signoffs.filter(r => r.project_id === p.id && r.stage_key === key).sort((a, b) => a.version - b.version).pop();
+  const fmtDay = iso => new Date(iso).toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'});
+  function gateReasons(p, x){
+    if (x.gate === 'legal_approval' && p.legal.status !== 'Approved') return [`Legal Approval is ${p.legal.status}, not Approved`];
+    if (x.gate === 'no_open_major_problems'){
+      const n = db.problems.filter(q => q.project_id === p.id && q.status === 'open' && ['High', 'Critical'].includes(q.severity)).length;
+      if (n) return [`${n} open High or Critical problem${n === 1 ? '' : 's'}`];
+    }
+    if (x.gate === 'client_signoff'){
+      const r = latestSignoff(p, x.key);
+      if (!r || r.status === 'draft') return ['Sign-off package not sent to the client yet'];
+      if (r.status === 'sent') return [`Waiting for client sign-off on version ${r.version}, sent ${fmtDay(r.sent_at)}`];
+      if (r.status === 'changes_requested') return [`The client asked for changes on version ${r.version}; prepare version ${r.version + 1}`];
+    }
+    return [];
+  }
+  function evaluateStages(p){
+    const out = {};
+    FLOW.forEach(x => {
+      const st = p.stages[x.key].status;
+      if (DONE.includes(st)) out[x.key] = {state: st, reasons: []};
+      else if (st === 'locked'){
+        const waiting = x.predecessors.filter(k => !DONE.includes(p.stages[k].status)).map(k => BYKEY[k].label);
+        out[x.key] = {state: 'locked', reasons: waiting.length ? [`Waiting for: ${waiting.join(', ')}`] : []};
+      } else { const reasons = gateReasons(p, x); out[x.key] = {state: reasons.length ? 'blocked' : 'active', reasons}; }
+    });
+    return out;
+  }
+  function releaseStages(p, actor){
+    FLOW.filter(x => p.stages[x.key].status === 'locked' && x.predecessors.every(k => DONE.includes(p.stages[k].status))).forEach(x => {
+      Object.assign(p.stages[x.key], {status: 'active', started_at: now()});
+      audit(p, actor, 'stage.activated', {stage: x.label, key: x.key});
+      if (x.owner_role !== 'client'){
+        const users = x.owner_role === 'team_lead' ? leads() : p.members.map(user).filter(m => m && m.role === x.owner_role);
+        send(users, 'stage_ready', p, `${x.label} is open on ${p.name}.`, actor);
+      }
+    });
+  }
+  function completeStage(p, key, actor, note){
+    Object.assign(p.stages[key], {status: 'completed', completed_at: now(), completed_by: actor ? actor.id : null, note});
+    audit(p, actor, 'stage.completed', {stage: BYKEY[key].label, key, note});
+    releaseStages(p, actor);
+  }
+  function stageSummary(p){
+    if (!p.stages) return {phase: null, current_stages: [], stage_progress: null};
+    const open = FLOW.filter(x => p.stages[x.key].status === 'active');
+    const done = FLOW.filter(x => DONE.includes(p.stages[x.key].status)).length;
+    const n = open.length ? Math.min(...open.map(x => x.phase)) : (done === FLOW.length ? T.phases[T.phases.length - 1].number : null);
+    const phase = T.phases.find(ph => ph.number === n);
+    return {phase: phase ? {...phase} : null, current_stages: open.map(x => x.label), stage_progress: {done, total: FLOW.length}};
+  }
+  function stageView(p, u){
+    const view = evaluateStages(p);
+    const out = x => {
+      const r = p.stages[x.key], v = view[x.key], req = latestSignoff(p, x.key);
+      return {key: x.key, number: x.number, label: x.label, detail: x.detail, workstream: x.workstream, owner_role: x.owner_role,
+        gate: x.gate, state: v.state, reasons: v.reasons,
+        can_complete: v.state === 'active' && x.gate !== 'client_signoff' && (u.role === x.owner_role || STAFF_COMPLETERS.includes(u.role)),
+        started_at: r.started_at, completed_at: r.completed_at, completed_by: brief(user(r.completed_by)), completion_note: r.note,
+        historical: r.status === 'historical' ? {label: HISTORICAL_LABEL, confirmed_by: r.hist_by, note: r.hist_note} : null,
+        signed_by_client: !!(req && req.status === 'approved' && r.status === 'completed')};
+    };
+    return {phases: T.phases.map(ph => ({...ph, stages: FLOW.filter(x => x.phase === ph.number).map(out)})),
+      current_stages: FLOW.filter(x => ['active', 'blocked'].includes(view[x.key].state)).map(x => x.label),
+      stage_progress: {done: FLOW.filter(x => DONE.includes(view[x.key].state)).length, total: FLOW.length}};
+  }
+  function completeStageOp(u, pid, key, note){
+    const p = project(u, pid), x = BYKEY[key];
+    if (!x) fail(404, 'Stage not found');
+    const v = evaluateStages(p)[key];
+    if (x.gate === 'client_signoff') fail(409, 'This stage completes when the client approves the sign-off package', {reasons: v.reasons});
+    if (u.role !== x.owner_role && !STAFF_COMPLETERS.includes(u.role)) fail(403, 'Your role cannot complete this stage');
+    if (v.state !== 'active') fail(409, DONE.includes(v.state) ? 'This stage is already completed' : 'This stage cannot be completed yet', {reasons: v.reasons});
+    note = (note || '').trim();
+    if (!note) fail(422, 'Add a note on what was completed', {missing: ['note']});
+    completeStage(p, key, u, note);
+    return stageView(p, u);
+  }
+  const constructionStarted = p => ['active', 'completed', 'historical'].includes(p.stages[CONSTRUCTION_START].status);
+  function requireSiteVisitOpen(p){
+    if (!constructionStarted(p)) fail(409, 'Site visits open once Site line-out (stage 14) has started');
+    if (step(p, 2).status !== 'active') fail(409, 'Site Visit step is not open for this project');
+  }
+
+  /* ---------- clients and invites (mirror routers/invites.py and /auth/activate) ---------- */
+  const clientsOf = p => p.members.map(user).filter(m => m && m.role === 'client');
+  const clientOut = c => ({id: c.id, name: c.name, email: c.email, status: c.active === false ? 'invited' : 'active'});
+  const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function invite(u, pid, b){
+    role(u, 'architect');
+    const p = project(u, pid), name = (b.name || '').trim(), email = (b.email || '').trim().toLowerCase();
+    if (!name) fail(422, 'name must not be blank');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail(422, 'email must be an email address');
+    let c = db.users.find(x => x.email === email);
+    if (c && c.role !== 'client') fail(409, 'This email belongs to a SiteFlow team member');
+    if (!c){ c = {id: nextId('user'), name, email, role: 'client', active: false}; db.users.push(c); }
+    if (!p.members.includes(c.id)) p.members.push(c.id);
+    let code = null, expires = null;
+    if (c.active === false){
+      db.invites.filter(i => i.user_id === c.id && !i.used_at).forEach(i => { i.revoked_at = now(); });
+      const bytes = crypto.getRandomValues(new Uint8Array(8));
+      code = Array.from(bytes, n => ALPHABET[n % ALPHABET.length]).join('');
+      expires = new Date(Date.now() + T.signoff.invite_ttl_days * 864e5).toISOString();
+      db.invites.push({id: nextId('invite'), user_id: c.id, project_id: p.id, code, expires_at: expires, attempts: 0, used_at: null, revoked_at: null});
+    }
+    audit(p, u, 'client.invited', {client: c.name, new_code: code !== null});
+    return {client: clientOut(c), code, expires_at: expires};
+  }
+  function activate(email, code, password){
+    if (String(password || '').length < 10) fail(422, 'Choose a password of at least 10 characters', {missing: ['password']});
+    const invalid = 'This invite code is not valid. Ask your architect for a new one.';
+    const c = db.users.find(x => x.email === String(email).trim().toLowerCase() && x.role === 'client');
+    const inv = c && db.invites.filter(i => i.user_id === c.id && !i.used_at && !i.revoked_at).pop();
+    if (!inv || inv.attempts >= T.signoff.invite_max_attempts || Date.parse(inv.expires_at) < Date.now()) fail(400, invalid);
+    if (String(code).trim().toUpperCase() !== inv.code){ inv.attempts += 1; fail(400, invalid); }
+    Object.assign(c, {active: true, password});  // demo only: kept in this browser's storage
+    inv.used_at = now();
+    audit(byId(db.projects, inv.project_id), c, 'client.activated', {});
+    store.set(K_TOKEN, String(c.id));
+    return {id: c.id, name: c.name, email: c.email, role: c.role};
+  }
+
+  /* ---------- sign-off packages (mirror routers/signoffs.py and routers/client.py) ---------- */
+  const SIGNOFF_LABEL = key => BYKEY[key].label;
+  function signoffOut(r){
+    return {id: r.id, project_id: r.project_id, stage_key: r.stage_key, stage: SIGNOFF_LABEL(r.stage_key), version: r.version,
+      status: r.status, title: r.title, summary: r.summary, created_by: brief(user(r.created_by)), created_at: r.created_at,
+      sent_at: r.sent_at, responded_at: r.responded_at, response_comment: r.response_comment, signer_name: r.signer_name,
+      signed_by: brief(user(r.signer_id)), method: r.method, supersedes_id: r.supersedes_id,
+      attachments: r.attachments.map(a => ({id: a.id, filename: a.filename, content_type: a.content_type, size: a.size, uploaded_at: a.uploaded_at}))};
+  }
+  function clientSignoffOut(r, u){
+    const viewed = new Set(r.views.filter(v => v.user_id === u.id).map(v => v.attachment_id));
+    const p = byId(db.projects, r.project_id);
+    return {id: r.id, project: {id: p.id, name: p.name}, stage_key: r.stage_key, stage: SIGNOFF_LABEL(r.stage_key), version: r.version,
+      status: r.status, title: r.title, summary: r.summary, sent_at: r.sent_at, responded_at: r.responded_at,
+      response_comment: r.response_comment, signer_name: r.signer_name, confirmation_text: T.signoff.confirmation_text,
+      can_respond: r.status === 'sent',
+      attachments: r.attachments.map(a => ({id: a.id, filename: a.filename, content_type: a.content_type, size: a.size,
+        uploaded_at: a.uploaded_at, viewed: viewed.has(a.id)}))};
+  }
+  function editableSignoff(u, id){
+    role(u, 'architect');
+    const r = byId(db.signoffs, id);
+    if (!r || !visible(u).some(p => p.id === r.project_id)) fail(404, 'Sign-off not found');
+    if (r.status !== 'draft') fail(409, `Version ${r.version} was ${r.status} and can no longer change`);
+    return r;
+  }
+  function createSignoff(u, pid, b){
+    role(u, 'architect');
+    const p = project(u, pid);
+    if (!BYKEY[b.stage_key] || BYKEY[b.stage_key].gate !== 'client_signoff') fail(422, 'stage_key must be a client sign-off stage');
+    if (p.stages[b.stage_key].status !== 'active') fail(409, `${SIGNOFF_LABEL(b.stage_key)} is not open yet`);
+    const history = db.signoffs.filter(r => r.project_id === p.id && r.stage_key === b.stage_key);
+    if (history.some(r => ['draft', 'sent'].includes(r.status))) fail(409, 'This stage already has a package in progress');
+    const title = (b.title || '').trim(), summary = (b.summary || '').trim();
+    if (!title || !summary) fail(422, 'title and summary must not be blank');
+    const prev = history.sort((a, c) => a.version - c.version).pop();
+    const r = {id: nextId('signoff'), project_id: p.id, stage_key: b.stage_key, version: prev ? prev.version + 1 : 1, status: 'draft',
+      title, summary, created_by: u.id, created_at: now(), sent_at: null, responded_at: null, response_comment: null,
+      signer_id: null, signer_name: null, method: null, supersedes_id: prev ? prev.id : null, attachments: [], views: []};
+    db.signoffs.push(r);
+    audit(p, u, 'signoff.created', {stage: SIGNOFF_LABEL(r.stage_key), version: r.version});
+    return r;
+  }
+  function sendSignoff(u, id){
+    const r = editableSignoff(u, id), p = byId(db.projects, r.project_id);
+    const missing = [...(r.attachments.length ? [] : ['attachments']), ...(clientsOf(p).length ? [] : ['client'])];
+    if (missing.length) fail(422, 'Add at least one document and invite the client before sending', {missing});
+    Object.assign(r, {status: 'sent', sent_at: now()});
+    audit(p, u, 'signoff.sent', {stage: SIGNOFF_LABEL(r.stage_key), version: r.version});
+    send(clientsOf(p), 'signoff_requested', p, `Please review and sign off: ${SIGNOFF_LABEL(r.stage_key)} (version ${r.version}) on ${p.name}.`, u);
+    syncFlags(p);
+    return r;
+  }
+  const myProjectIds = u => db.projects.filter(p => p.members.includes(u.id)).map(p => p.id);
+  function myRequest(u, id){
+    const r = byId(db.signoffs, id);
+    if (!r || r.status === 'draft' || !myProjectIds(u).includes(r.project_id)) fail(404, 'Sign-off not found');
+    return r;
+  }
+  const norm = n => String(n || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  function approveSignoff(u, id, name){
+    const r = myRequest(u, id), p = byId(db.projects, r.project_id);
+    if (r.status !== 'sent') fail(409, `Version ${r.version} has already been answered`);
+    const viewed = new Set(r.views.filter(v => v.user_id === u.id).map(v => v.attachment_id));
+    const unviewed = r.attachments.filter(a => !viewed.has(a.id)).map(a => a.filename);
+    const invalid = norm(name) && norm(name) === norm(u.name) ? [] : ['signer_name'];
+    if (unviewed.length || invalid.length) fail(422, 'Open every document, tick the confirmation and type your full name to sign off',
+      {missing: unviewed.length ? ['attachments'] : [], invalid, unviewed});
+    Object.assign(r, {status: 'approved', responded_at: now(), signer_id: u.id, signer_name: String(name).trim(), method: 'client_app'});
+    audit(p, u, 'signoff.approved', {stage: SIGNOFF_LABEL(r.stage_key), version: r.version, signer: r.signer_name});
+    completeStage(p, r.stage_key, u, `Signed off by ${r.signer_name} in the client app (version ${r.version}).`);
+    send([architectOf(p), ...leads()], 'signoff_answered', p, `${r.signer_name} signed off ${SIGNOFF_LABEL(r.stage_key)} (version ${r.version}) on ${p.name}.`, u);
+    syncFlags(p);
+    return r;
+  }
+  function requestChanges(u, id, comment){
+    const r = myRequest(u, id), p = byId(db.projects, r.project_id);
+    if (r.status !== 'sent') fail(409, `Version ${r.version} has already been answered`);
+    comment = (comment || '').trim();
+    if (!comment) fail(422, 'Say what should change', {missing: ['comment']});
+    Object.assign(r, {status: 'changes_requested', responded_at: now(), signer_id: u.id, response_comment: comment, method: 'client_app'});
+    audit(p, u, 'signoff.changes_requested', {stage: SIGNOFF_LABEL(r.stage_key), version: r.version, comment});
+    send([architectOf(p), ...leads()], 'signoff_answered', p, `${u.name} asked for changes on ${SIGNOFF_LABEL(r.stage_key)} (version ${r.version}) on ${p.name}: ${comment}`, u);
+    syncFlags(p);
+    return r;
+  }
+  const fileAsDataUrl = file => new Promise((resolve, reject) => {
+    const fr = new FileReader(); fr.onload = () => resolve(fr.result); fr.onerror = () => reject(new ApiError(415, 'The file could not be read')); fr.readAsDataURL(file);
+  });
+
+  /* ---------- the client's view (mirrors services/client_view.py: allow-listed fields only) ---------- */
+  const CLIENT_STATE = {completed: 'completed', historical: 'historical', active: 'in_progress', locked: 'upcoming'};
+  function clientCard(p){
+    const st = stageSummary(p);
+    return {id: p.id, name: p.name, location: p.location, phase: st.phase, current_stages: st.current_stages,
+      stage_progress: st.stage_progress, official_progress: p.official_progress,
+      waiting_for_you: db.signoffs.filter(r => r.project_id === p.id && r.status === 'sent').length};
+  }
+  function clientDetail(p, u){
+    const shared = db.signoffs.filter(r => r.project_id === p.id && r.status !== 'draft');
+    const approved = Object.fromEntries(shared.filter(r => r.status === 'approved').map(r => [r.stage_key, r]));
+    return {...clientCard(p),
+      phases: T.phases.map(ph => ({number: ph.number, name: ph.name, stages: FLOW.filter(x => x.phase === ph.number).map(x => {
+        const r = p.stages[x.key], signed = r.status === 'completed' ? approved[x.key] : null;
+        return {key: x.key, number: x.number, label: x.label, detail: x.detail, workstream: x.workstream, state: CLIENT_STATE[r.status],
+          is_signoff: x.gate === 'client_signoff', started_at: r.started_at, completed_at: r.completed_at,
+          historical: r.status === 'historical' ? 'Completed before SiteFlow' : null,
+          signed: signed ? {by: signed.signer_name, at: signed.responded_at, version: signed.version} : null};
+      })})),
+      signoffs: shared.map(r => clientSignoffOut(r, u)),
+      shared_updates: db.updates.filter(x => x.project_id === p.id).slice().reverse().map(x => ({id: x.id, note: x.note, shared_at: x.created_at,
+        stage: (byId(db.visits, x.visit_id) || {}).current_stage || null,
+        photos: x.photo_ids.map(mid => ({id: mid, captured_at: (byId(db.media, mid) || {}).captured_at || null}))}))};
+  }
+
+  /* ---------- shared site updates (mirror routers/updates.py) ---------- */
+  function shareUpdate(u, vid, note, ids){
+    role(u, 'architect', 'team_lead');
+    const v = visibleVisit(u, vid);
+    if (v.status !== 'approved') fail(409, 'Only approved visits can be shared with the client');
+    note = (note || '').trim();
+    const photos = mediaOf(v).filter(m => m.kind === 'photo').map(m => m.id);
+    const invalid = (ids || []).filter(i => !photos.includes(i)).map(i => `media_ids.${i}`);
+    if (!note || invalid.length) fail(422, 'Write a note, and pick photos from this visit only', {missing: note ? [] : ['note'], invalid});
+    const p = byId(db.projects, v.project_id);
+    const x = {id: nextId('update'), project_id: p.id, visit_id: v.id, note, shared_by: u.id, created_at: now(), photo_ids: [...new Set(ids || [])]};
+    db.updates.push(x);
+    audit(p, u, 'update.shared', {visit_id: v.id, photos: x.photo_ids.length});
+    send(clientsOf(p), 'update_shared', p, `Your architect shared a site update on ${p.name}.`, u);
+    return {id: x.id, visit_id: x.visit_id, note: x.note, shared_at: x.created_at, shared_by: brief(u), photo_ids: x.photo_ids};
+  }
+
+  /* ---------- sample elevations for the design-freeze sign-off ---------- */
+  function sampleElevation(title, seed){
+    const c = document.createElement('canvas'); c.width = 640; c.height = 420; const g = c.getContext('2d');
+    g.fillStyle = '#f7f6f1'; g.fillRect(0, 0, 640, 420);
+    g.strokeStyle = '#2b3a3f'; g.lineWidth = 2;
+    g.strokeRect(80, 120, 480, 220); g.strokeRect(80, 60 + seed * 6, 480, 60 - seed * 6);
+    for (let i = 0; i < 4; i++) g.strokeRect(120 + i * 110, 170, 60, 80);
+    g.strokeRect(290, 260, 60, 80);
+    g.beginPath(); g.moveTo(40, 340); g.lineTo(600, 340); g.stroke();
+    g.fillStyle = '#2b3a3f'; g.font = 'bold 18px ui-sans-serif, system-ui'; g.fillText(title, 40, 385);
+    g.font = '12px ui-monospace, monospace'; g.fillText('Scale 1:100 · Sample drawing for the SiteFlow demo', 40, 405);
+    return c.toDataURL('image/jpeg', 0.7);
   }
 
   /* ---------- media: photos shrunk to small JPEGs so the demo fits in browser storage ---------- */
@@ -831,17 +1128,21 @@ const SiteFlowAPI = (() => {
 
   /* ---------- sample data ---------- */
   function seed(){
-    db = {v: 2, seq: {user: 4}, users: [
+    db = {v: 3, seq: {user: 6}, users: [
       {id: 1, name: 'Meera Joshi', email: 'architect@siteflow.demo', role: 'architect'},
       {id: 2, name: 'Parvez', email: 'parvez@siteflow.demo', role: 'team_lead'},
       {id: 3, name: 'Farhan Shaikh', email: 'engineer@siteflow.demo', role: 'civil_engineer'},
-      {id: 4, name: 'Office Coordinator', email: 'admin@siteflow.demo', role: 'admin'}
-    ], projects: [], visits: [], reviews: [], audit: [], media: [], problems: [], flags: [], notifications: []};
-    const [arch, lead, eng, admin] = db.users;
+      {id: 4, name: 'Office Coordinator', email: 'admin@siteflow.demo', role: 'admin'},
+      {id: 5, name: 'Mr. Gokhale', email: 'gokhale@siteflow.demo', role: 'client'},
+      {id: 6, name: 'Mrs. Kapoor', email: 'kapoor@siteflow.demo', role: 'client'}
+    ], projects: [], visits: [], reviews: [], audit: [], media: [], problems: [], flags: [], notifications: [],
+      signoffs: [], invites: [], updates: []};
+    const [arch, lead, eng, admin, gokhale, kapoor] = db.users;
     const at = days => { clockOffset = days * 864e5; };
+    const onboard = {start_stage: 'line_out', historical_confirmed_by: 'Parvez'};
     const applied = (p, d, ref) => { at(d); updateLegal(admin, p.id, {status: 'Applied', authority_name: 'Pune Municipal Corporation', application_reference: ref, application_date: ymd(d)}); };
     const approved = (p, d, ref) => { at(d); updateLegal(admin, p.id, {status: 'Approved', approval_date: ymd(d), document_reference: `PMC building permission ${ref}.pdf`}); };
-    const states = (stage, done) => Object.fromEntries(T.stages.find(s => s.name === stage).checklist.map((i, k) => [i.id, k < done ? 'Done' : k === done ? 'In progress' : 'Not started']));
+    const states = (stage, done) => Object.fromEntries(T.stages.find(x => x.name === stage).checklist.map((i, k) => [i.id, k < done ? 'Done' : k === done ? 'In progress' : 'Not started']));
     const visitBody = (stage, done, extra) => ({visit_at: now(), location: {gps: extra.gps, manual: extra.where}, weather: extra.weather,
       attendees: 'Farhan Shaikh (Civil Engineer), site contractor', current_stage: stage, checklist: states(stage, done),
       no_issues: !extra.problems, problems: extra.problems || [], summary: extra.summary, recommended_action: extra.action});
@@ -850,16 +1151,25 @@ const SiteFlowAPI = (() => {
       if (!mediaOf(v).length) addPhotos(v, eng, (problems || []).map((x, n) => ['High', 'Critical'].includes(x.severity) ? n : null).filter(n => n !== null), gps);
     };
 
-    // 1. Waiting on the authority, and the expected date has passed: Legal delay.
-    at(20); let p = createProject(arch, {name: 'Gokhale Residence', location: 'Plot 14, Baner Road, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(3)});
+    // 1. At the design freeze: all elevations sent to Mr. Gokhale; the authority is late (Legal delay).
+    at(30); let p = createProject(arch, {name: 'Gokhale Residence', location: 'Plot 14, Baner Road, Pune', civil_engineer_id: eng.id,
+      legal_expected_date: ymd(3), start_stage: 'design_freeze_signoff', historical_confirmed_by: 'Parvez'});
+    p.members.push(gokhale.id);
     applied(p, 18, 'PMC/BP/2026/0142');
+    at(2); let so = createSignoff(arch, p.id, {stage_key: 'design_freeze_signoff', title: 'All elevations, version 1',
+      summary: 'Front, rear and both side elevations with materials: exposed brick plinth, white plaster above, teak window frames.'});
+    ['Front elevation', 'Rear elevation', 'Side elevations'].forEach((t, i) => {
+      const data = sampleElevation(t, i);
+      so.attachments.push({id: nextId('attachment'), filename: `${t}.jpg`, content_type: 'image/jpeg', size: Math.round(data.length * 0.75), data, uploaded_at: now()});
+    });
+    sendSignoff(arch, so.id);
 
-    // 2. Approved and ready for the first site visit.
-    at(14); p = createProject(arch, {name: 'Patil Villa', location: 'Survey No. 52, Aundh, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(0)});
+    // 2. In construction with Legal Approval: ready for the first site visit.
+    at(14); p = createProject(arch, {name: 'Patil Villa', location: 'Survey No. 52, Aundh, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(0), ...onboard});
     applied(p, 12, 'PMC/BP/2026/0098'); approved(p, 2, 'PMC/BP/2026/0098');
 
     // 3. Site visit submitted, waiting for Parvez.
-    at(40); p = createProject(arch, {name: 'Deshmukh Residence', location: 'Karve Road, Kothrud, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(20)});
+    at(40); p = createProject(arch, {name: 'Deshmukh Residence', location: 'Karve Road, Kothrud, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(20), ...onboard});
     applied(p, 38, 'PMC/BP/2026/0051'); approved(p, 25, 'PMC/BP/2026/0051');
     at(0.3);
     const kothrud = {lat: 18.50741, lng: 73.80772};
@@ -872,8 +1182,9 @@ const SiteFlowAPI = (() => {
       summary: 'Columns and beams cast for the ground floor. Honeycombing found at column C4.',
       action: 'Structural engineer to inspect C4 before the first-floor slab is poured.'}));
 
-    // 4. Two approved visits. The second reports a Critical crack: Critical issue.
-    at(70); p = createProject(arch, {name: 'Kapoor House', location: 'ITI Road, Aundh, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(50)});
+    // 4. Two approved visits; the second reports a Critical crack (Critical issue). Mrs. Kapoor gets a shared update.
+    at(70); p = createProject(arch, {name: 'Kapoor House', location: 'ITI Road, Aundh, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(50), ...onboard});
+    p.members.push(kapoor.id);
     applied(p, 68, 'PMC/BP/2026/0017'); approved(p, 55, 'PMC/BP/2026/0017');
     const aundh = {lat: 18.56187, lng: 73.80734};
     at(24); photograph(p, null, aundh);
@@ -883,6 +1194,8 @@ const SiteFlowAPI = (() => {
     at(22); v = submitVisit(eng, p.id, visitBody('Masonry', 2, {where: 'ITI Road plot, Aundh', weather: 'Clear', gps: aundh,
       summary: 'External walls and partitions complete. Lintels in progress.', action: 'Cast remaining lintels; start internal plaster.'}));
     at(21); review(lead, v.id, {decision: 'approve'});
+    at(20); shareUpdate(arch, v.id, 'External walls and partitions are complete. Lintels are next, then internal plaster.',
+      mediaOf(v).filter(m => m.kind === 'photo').slice(0, 2).map(m => m.id));
     const crack = [{category: 'Structural', problem: 'Crack in beam, column or slab', other_text: null, severity: 'Critical',
       location: 'Lintel over the east window', responsible_party: 'Masonry contractor', target_date: ymd(-10)}];
     at(8); photograph(p, crack, aundh);
@@ -890,9 +1203,14 @@ const SiteFlowAPI = (() => {
       summary: 'Internal plaster done. A crack has opened over the east window lintel.', action: 'Stop external plaster on the east wall until the lintel is checked.'}));
     at(7); review(lead, v.id, {decision: 'approve'});
 
+    // 5. Early design: the Site and Studio pre-design branches running in parallel.
+    at(9); createProject(arch, {name: 'Sathe House', location: 'Pashan, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(-60),
+      start_stage: 'predesign_site_visit', historical_confirmed_by: 'Parvez'});
+
     clockOffset = 0;
     db.projects.forEach(syncFlags);
     db.notifications.forEach(n => { n.read_at = n.created_at; });  // sample history reads as seen
+    db.notifications.filter(n => n.kind === 'signoff_requested').forEach(n => { n.read_at = null; });  // Mr. Gokhale's is new
     save();
   }
 
@@ -916,33 +1234,34 @@ const SiteFlowAPI = (() => {
       {email: 'architect@siteflow.demo', label: 'Meera Joshi', role: 'Architect'},
       {email: 'admin@siteflow.demo', label: 'Office Coordinator', role: 'Admin'},
       {email: 'engineer@siteflow.demo', label: 'Farhan Shaikh', role: 'Civil Engineer'},
-      {email: 'parvez@siteflow.demo', label: 'Parvez', role: 'Team Lead'}
+      {email: 'parvez@siteflow.demo', label: 'Parvez', role: 'Team Lead'},
+      {email: 'gokhale@siteflow.demo', label: 'Mr. Gokhale', role: 'Client'}
     ],
     resetDemo(){ store.set(K_DB, null); load(); },
     login: (email, password) => run(() => {
       const u = db.users.find(x => x.email === String(email).trim().toLowerCase());
-      if (!u || password !== PASSWORD) fail(401, 'Incorrect email or password');
+      if (!u || u.active === false || password !== (u.password || PASSWORD)) fail(401, 'Incorrect email or password');
       store.set(K_TOKEN, String(u.id));
       return {id: u.id, name: u.name, email: u.email, role: u.role};
     }),
     logout(){ store.set(K_TOKEN, null); },
     me: () => run(() => { const u = current(); return {id: u.id, name: u.name, email: u.email, role: u.role}; }),
     template: () => run(() => T),
-    projects: () => run(() => visible(current()).map(summary)),
-    project: id => run(() => detail(project(current(), id))),
-    createProject: body => run(() => detail(createProject(current(), body))),
-    engineers: () => run(() => { role(current(), 'architect'); return db.users.filter(u => u.role === 'civil_engineer').map(brief); }),
-    updateLegal: (id, body) => run(() => detail(updateLegal(current(), id, body))),
-    submitVisit: (id, body) => run(() => visitOut(submitVisit(current(), id, body))),
-    visit: id => run(() => visitOut(visibleVisit(current(), id))),
-    visits: pid => run(() => submittedVisits(project(current(), pid)).slice().reverse().map(v => ({id: v.id, status: v.status,
+    projects: () => run(() => visible(staff()).map(summary)),
+    project: id => run(() => detail(project(staff(), id))),
+    createProject: body => run(() => detail(createProject(staff(), body))),
+    engineers: () => run(() => { role(staff(), 'architect'); return db.users.filter(u => u.role === 'civil_engineer').map(brief); }),
+    updateLegal: (id, body) => run(() => detail(updateLegal(staff(), id, body))),
+    submitVisit: (id, body) => run(() => visitOut(submitVisit(staff(), id, body))),
+    visit: id => run(() => visitOut(visibleVisit(staff(), id))),
+    visits: pid => run(() => submittedVisits(project(staff(), pid)).slice().reverse().map(v => ({id: v.id, status: v.status,
       current_stage: v.current_stage, computed_progress: v.computed_progress, submission_count: v.submission_count,
       submitted_at: v.submitted_at, approved_at: approvedAt(v), engineer: brief(user(v.engineer_id))}))),
-    reviewQueue: () => run(() => { const u = current(); role(u, 'team_lead'); return queueRows(visible(u).map(p => p.id)); }),
-    review: (id, body) => run(() => visitOut(review(current(), id, body))),
-    dashboard: filters => run(() => dashboard(current(), filters || {})),
+    reviewQueue: () => run(() => { const u = staff(); role(u, 'team_lead'); return queueRows(visible(u).map(p => p.id)); }),
+    review: (id, body) => run(() => visitOut(review(staff(), id, body))),
+    dashboard: filters => run(() => dashboard(staff(), filters || {})),
     clearFlag: (id, reason) => run(() => {
-      const u = current(); role(u, 'team_lead');
+      const u = staff(); role(u, 'team_lead');
       const f = byId(db.flags, id); if (!f) fail(404, 'Red flag not found');
       if (f.cleared_at) fail(409, 'This red flag is already cleared');
       reason = (reason || '').trim(); if (!reason) fail(422, 'Give a reason for clearing this red flag', {missing: ['reason']});
@@ -959,9 +1278,60 @@ const SiteFlowAPI = (() => {
     }),
     readNotification: id => run(() => { const u = current(), n = byId(db.notifications, id); if (!n || n.user_id !== u.id) fail(404, 'Notification not found'); n.read_at = n.read_at || now(); return n; }),
     readAllNotifications: () => run(() => { const u = current(); db.notifications.filter(n => n.user_id === u.id && !n.read_at).forEach(n => { n.read_at = now(); }); return {unread: 0}; }),
-    problems: pid => run(() => db.problems.filter(x => x.project_id === project(current(), pid).id).map(problemOut)),
-    resolveProblem: (id, note) => run(() => problemOut(resolveProblem(current(), id, note))),
-    openDraft: pid => run(() => visitOut(openDraft(current(), pid))),
+    problems: pid => run(() => db.problems.filter(x => x.project_id === project(staff(), pid).id).map(problemOut)),
+    resolveProblem: (id, note) => run(() => problemOut(resolveProblem(staff(), id, note))),
+    stages: pid => run(() => { const u = staff(); return stageView(project(u, pid), u); }),
+    completeStage: (pid, key, note) => run(() => completeStageOp(staff(), pid, key, note)),
+    projectClients: pid => run(() => clientsOf(project(staff(), pid)).map(clientOut)),
+    inviteClient: (pid, name, email) => run(() => invite(staff(), pid, {name, email})),
+    activate: (email, code, password) => run(() => activate(email, code, password)),
+    signoffs: pid => run(() => { const p = project(staff(), pid);
+      return db.signoffs.filter(r => r.project_id === p.id).sort((a, b) => a.stage_key.localeCompare(b.stage_key) || a.version - b.version).map(signoffOut); }),
+    createSignoff: (pid, body) => run(() => signoffOut(createSignoff(staff(), pid, body))),
+    sendSignoff: id => run(() => signoffOut(sendSignoff(staff(), id))),
+    removeSignoffAttachment: (id, aid) => run(() => { const u = staff(), r = editableSignoff(u, id);
+      r.attachments = r.attachments.filter(a => a.id !== +aid);
+      audit(byId(db.projects, r.project_id), u, 'signoff.attachment_removed', {version: r.version, filename: 'document'}); }),
+    async uploadSignoffAttachment(id, file){
+      if (!T.signoff.attachment_types.includes(file.type)) throw new ApiError(415, 'Attach a PDF, JPEG, PNG or WEBP file');
+      // The demo keeps files in browser storage, so it holds them to 2 MB each.
+      const limit = Math.min(T.signoff.max_attachment_mb, 2) * 1048576;
+      if (file.size > limit) throw new ApiError(413, `In the demo a document can be at most ${limit / 1048576} MB`);
+      const data = file.type === 'application/pdf' ? await fileAsDataUrl(file) : await readAsImage(file);
+      return run(() => {
+        const u = staff(), r = editableSignoff(u, id);
+        const a = {id: nextId('attachment'), filename: String(file.name || 'document').split(/[\/]/).pop().slice(0, 120),
+          content_type: file.type === 'application/pdf' ? 'application/pdf' : 'image/jpeg', size: file.size, data, uploaded_at: now()};
+        r.attachments.push(a);
+        audit(byId(db.projects, r.project_id), u, 'signoff.attachment_added', {version: r.version, filename: a.filename});
+        return {id: a.id, filename: a.filename, content_type: a.content_type, size: a.size, uploaded_at: a.uploaded_at};
+      });
+    },
+    sharedUpdates: pid => run(() => { const p = project(staff(), pid);
+      return db.updates.filter(x => x.project_id === p.id).slice().reverse().map(x => ({id: x.id, visit_id: x.visit_id, note: x.note,
+        shared_at: x.created_at, shared_by: brief(user(x.shared_by)), photo_ids: x.photo_ids})); }),
+    shareUpdate: (vid, note, ids) => run(() => shareUpdate(staff(), vid, note, ids)),
+
+    /* ---------- customer app ---------- */
+    clientProjects: () => run(() => { const u = clientUser(); return db.projects.filter(p => p.members.includes(u.id)).map(clientCard); }),
+    clientProject: id => run(() => { const u = clientUser(), p = byId(db.projects, id);
+      if (!p || !p.members.includes(u.id)) fail(404, 'Project not found'); return clientDetail(p, u); }),
+    clientSignoff: id => run(() => { const u = clientUser(); return clientSignoffOut(myRequest(u, id), u); }),
+    approveSignoff: (id, name) => run(() => { const u = clientUser(); return clientSignoffOut(approveSignoff(u, id, name), u); }),
+    requestChanges: (id, comment) => run(() => { const u = clientUser(); return clientSignoffOut(requestChanges(u, id, comment), u); }),
+    // Opening a document is what records the client's review of it.
+    clientDocumentUrl: (sid, aid) => run(() => {
+      const u = clientUser(), r = myRequest(u, sid), a = r.attachments.find(x => x.id === +aid);
+      if (!a) fail(404, 'Document not found');
+      if (!r.views.some(v => v.user_id === u.id && v.attachment_id === a.id)) r.views.push({attachment_id: a.id, user_id: u.id, viewed_at: now()});
+      return a.data;
+    }),
+    clientUpdatePhotoUrl: (uid, mid) => run(() => {
+      const u = clientUser(), x = byId(db.updates, uid);
+      if (!x || !myProjectIds(u).includes(x.project_id) || !x.photo_ids.includes(+mid)) fail(404, 'Photo not found');
+      return (byId(db.media, mid) || {}).data;
+    }),
+    openDraft: pid => run(() => visitOut(openDraft(staff(), pid))),
     async uploadMedia(visitId, file, meta, onProgress){
       const kind = meta.kind, types = kind === 'photo' ? T.photo_types : T.video_types;
       if (!types.includes(file.type)) throw new ApiError(415, `A ${kind} must be one of: ${types.join(', ')}`);
@@ -998,7 +1368,7 @@ const SiteFlowAPI = (() => {
     }),
     async mediaUrl(id){
       if (sessionFiles[id]) return sessionFiles[id];
-      load();
+      load(); staff();
       const m = byId(db.media, id);
       if (!m) throw new ApiError(404, 'Media not found');
       return m.data || samplePhoto(id, 'Video from an earlier session');
@@ -1210,8 +1580,8 @@ function demoPanel(){
     <div class="eyebrow">Demo accounts · password ${esc(API.demoPassword)}</div>
     <div class="demo-grid">${API.demoAccounts.map(a => `<button class="demo-acct" data-act="demo-login" data-email="${esc(a.email)}" data-testid="demo-${esc(a.email.split('@')[0])}"><b>${esc(a.label)}</b><span>${esc(a.role)}</span></button>`).join('')}</div>
     <ol class="demo-tour small">
-      <li><b>Meera Joshi</b> opens the dashboard: two red flags need attention.</li>
-      <li><b>Office Coordinator</b> approves the overdue Legal Approval on Gokhale Residence.</li>
+      <li><b>Meera Joshi</b> opens the dashboard: red flags, and Gokhale Residence waiting for the client.</li>
+      <li><b>Mr. Gokhale</b> (client) opens the elevations and signs off the design freeze.</li>
       <li><b>Farhan Shaikh</b> records a site visit with photos on Patil Villa.</li>
       <li><b>Parvez</b> reviews Deshmukh Residence with its photos, then clears or follows up on flags.</li>
     </ol>

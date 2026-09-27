@@ -202,8 +202,8 @@ function demoPanel(){
     <div class="eyebrow">Demo accounts · password ${esc(API.demoPassword)}</div>
     <div class="demo-grid">${API.demoAccounts.map(a => `<button class="demo-acct" data-act="demo-login" data-email="${esc(a.email)}" data-testid="demo-${esc(a.email.split('@')[0])}"><b>${esc(a.label)}</b><span>${esc(a.role)}</span></button>`).join('')}</div>
     <ol class="demo-tour small">
-      <li><b>Meera Joshi</b> opens the dashboard: two red flags need attention.</li>
-      <li><b>Office Coordinator</b> approves the overdue Legal Approval on Gokhale Residence.</li>
+      <li><b>Meera Joshi</b> opens the dashboard: red flags, and Gokhale Residence waiting for the client.</li>
+      <li><b>Mr. Gokhale</b> (client) opens the elevations and signs off the design freeze.</li>
       <li><b>Farhan Shaikh</b> records a site visit with photos on Patil Villa.</li>
       <li><b>Parvez</b> reviews Deshmukh Residence with its photos, then clears or follows up on flags.</li>
     </ol>

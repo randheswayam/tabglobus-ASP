@@ -14,7 +14,7 @@ async function as(page, who){
   await page.locator('[data-testid="signed-in-as"]:visible').first().waitFor();
 }
 
-test('demo walks the whole loop on sample data, with photos, the dashboard and red flags', async ({ page }) => {
+test('demo walks the whole loop on sample data: stages, client sign-off, photos, the dashboard and red flags', async ({ page }) => {
   await page.goto(DEMO);
   await expect(page.getByTestId('demo-accounts')).toBeVisible();
   await shot(page, 'demo-01-sign-in');
@@ -29,20 +29,38 @@ test('demo walks the whole loop on sample data, with photos, the dashboard and r
   await expect(page.getByTestId('panel-major')).toContainText('Crack in beam, column or slab');
   await expect(page.getByTestId('panel-major').locator('img').first()).toHaveAttribute('src', /^data:image\/jpeg/);
   await expect(page.getByTestId('panel-projects')).toContainText('56.3%');
+  await expect(page.getByTestId('panel-waiting-client')).toContainText('Gokhale Residence');
+  await expect(page.getByTestId('panel-waiting-client')).toContainText('Client sign-off: design freeze');
   await shot(page, 'demo-02-dashboard');
   await page.getByTestId('panel-projects').getByText('Kapoor House').click();
   await expect(page.getByTestId('visit-history')).toContainText('2 approved');
   await expect(page.getByTestId('visit-number')).toHaveText('Visit 3');
 
-  // Admin approves the overdue Legal Approval on Gokhale Residence.
-  await as(page, 'admin');
-  await page.getByTestId('projects-view').getByText('Gokhale Residence').click();
-  await page.getByTestId('legal-status').selectOption('Approved');
-  await page.getByTestId('legal-approval-date').fill(new Date().toISOString().slice(0, 10));
-  await page.getByTestId('legal-document').fill('PMC building permission PMC-BP-2026-0142.pdf');
-  await page.getByTestId('legal-save').click();
-  await expect(page.getByTestId('step-2')).toContainText('In progress');
-  await expect(page.getByTestId('audit-list')).toContainText('Red flag cleared: Legal delay');
+  // Mr. Gokhale opens his project, reviews the elevations and signs off the design freeze.
+  await as(page, 'gokhale');
+  await expect(page.getByTestId('nav-dashboard')).toHaveCount(0);
+  await page.getByTestId('client-home').locator('[data-testid^="client-card-"]', {hasText: 'Gokhale Residence'}).click();
+  await expect(page.getByTestId('client-waiting')).toContainText('All elevations, version 1');
+  await page.getByTestId('client-waiting').locator('[data-testid^="client-review-"]').first().click();
+  await page.getByTestId('client-signoff').waitFor();
+  await expect(page.getByTestId('signoff-checklist')).toContainText('0 of 3 opened');
+  const docs = page.locator('[data-testid^="signoff-open-"]');
+  for (let i = 0; i < 3; i++){ await docs.nth(i).click(); await expect(page.getByTestId('signoff-viewer')).toBeVisible(); }
+  await expect(page.getByTestId('signoff-checklist')).toContainText('3 of 3 opened');
+  await page.getByTestId('signoff-confirm').check();
+  await page.getByTestId('signoff-name').fill('Mr. Gokhale');
+  await expect(page.getByTestId('signoff-approve')).toBeEnabled();
+  await shot(page, 'demo-03-client-signoff');
+  await page.getByTestId('signoff-approve').click();
+  await expect(page.getByTestId('client-project')).toContainText('Signed by Mr. Gokhale');
+  await expect(page.getByTestId('client-stage-payment_gate')).toContainText('In progress');
+
+  // The architect sees the sign-off on the project; nothing waits for the client any more.
+  await as(page, 'architect');
+  await expect(page.getByTestId('panel-waiting-client')).not.toContainText('Gokhale Residence');
+  await page.getByTestId('panel-projects').getByText('Gokhale Residence').click();
+  await expect(page.getByTestId('stage-design_freeze_signoff')).toContainText('signed by the client');
+  await expect(page.getByTestId('stage-payment_gate')).toContainText('In progress');
 
   // Engineer records the first visit on Patil Villa, with five photos.
   await as(page, 'engineer');
@@ -67,11 +85,11 @@ test('demo walks the whole loop on sample data, with photos, the dashboard and r
   await expect(page.getByTestId('unread-count').first()).toBeVisible();
   await page.getByTestId('nav-queue').click();
   await expect(page.getByTestId('queue-view')).toContainText('Patil Villa');
-  await shot(page, 'demo-03-review-queue');
+  await shot(page, 'demo-04-review-queue');
   await page.getByTestId('queue-view').getByText('Deshmukh Residence').click();
   await expect(page.getByTestId('review-view')).toContainText('Honeycombing in concrete');
   await expect(page.getByTestId('review-media-problem-0').locator('img')).toHaveCount(1);
-  await shot(page, 'demo-04-review');
+  await shot(page, 'demo-05-review');
   await page.getByTestId('review-approve').click();
   await expect(page.getByTestId('official-progress')).toContainText('31.3%');
   await expect(page.getByTestId('visit-number')).toHaveText('Visit 2');
@@ -85,10 +103,11 @@ test('demo walks the whole loop on sample data, with photos, the dashboard and r
   await page.getByTestId(`flag-reason-${id}`).fill('Structural engineer inspected the lintel; repair booked.');
   await page.getByTestId(`flag-confirm-${id}`).click();
   await expect(page.getByTestId('panel-attention')).not.toContainText('Kapoor House');
-  await shot(page, 'demo-05-flag-cleared');
+  await shot(page, 'demo-06-flag-cleared');
 
   // Reset puts the sample data back.
   await page.locator('[data-testid="reset-demo"]:visible').first().click();
   await page.locator('[data-testid="reset-demo"]:visible').first().click();
   await expect(page.getByTestId('panel-attention')).toContainText('Kapoor House');
+  await expect(page.getByTestId('panel-waiting-client')).toContainText('Gokhale Residence');
 });

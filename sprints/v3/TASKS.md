@@ -1,6 +1,6 @@
 # Sprint v3 — Tasks
 
-## Status: In Progress
+## Status: Complete
 
 - [x] Task 1: v3 setup: reference documents, decision records, config and the TBD_PARVEZ marker (P0)
   - Acceptance:
@@ -207,10 +207,11 @@
   - Files: web-src/app.js, tests/e2e/v3-stages.spec.js
   - Completed: 2026-09-27. The New project form has a collapsible 'Already in progress?' section: a current stage picker grouped by phase (from the stage flow now served by GET /template) and 'Earlier stages confirmed by', required when a stage is picked (the message asks who confirmed). A note explains that historical stages are never shown as client sign-offs. The success message names the stage that opened. The E2E test onboards at stage 13 and checks the stage 11 design freeze shows Historical, not 'signed by the client', with the confirmer in the audit trail. 1 new backend test (409 in total), 1 new E2E test (28 in total).
 
-- [ ] Task 23: Client demo parity and republish (P2)
+- [x] Task 23: Client demo parity and republish (P2)
   - Acceptance:
     - `demo-api.js` implements stages, the stage engine, sign-offs, client invite and activation, the client view and shared updates with the same rules.
     - The sample data adds a client account ("Mr. Gokhale", in the demo accounts) whose project waits on a design-freeze sign-off.
     - The demo E2E test covers the client's approval.
     - The demo is republished to the same link.
   - Files: web-src/demo-api.js, web-src/app.js, web-src/build.py, tests/e2e/demo.spec.js, demo/
+  - Completed: 2026-09-28. demo-api.js mirrors the v3 rules: stage engine with gates, client invites, versioned sign-offs with the review-before-approve checks, the allow-listed client view, shared updates and the client decision overdue flag. Sample data adds Mr. Gokhale waiting on the design freeze, Mrs. Kapoor with a shared update, and Sathe House in the parallel pre-design branches. demo.spec.js covers the client sign-off. Demo republished to the same link.
