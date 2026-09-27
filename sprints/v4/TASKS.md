@@ -103,7 +103,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/stage_config.py, backend/app/services/stages.py, backend/tests/test_stage_completion.py, backend/tests/test_stage_config.py
   - Completed: 2026-09-28. structural_design and structural_package are owned by structural_consultant, mep by mep_consultant, and payment_gate by accounts; grid_freeze stays with team_lead. The mapping is marked TBD_PARVEZ (stage owners). The Architect and Team Lead can still complete ordinary stages. stage_ready already reaches project members with the owner role. The web app labels the new roles. Tests: owner mapping; a consultant who is a member completes structural_design while the civil engineer gets 403; a non-member consultant gets 404; Accounts completes the payment gate; the MEP consultant is notified when MEP opens.
 
-- [ ] Task 9: Sessions and refresh tokens (P0)
+- [x] Task 9: Sessions and refresh tokens (P0)
   - Acceptance:
     - A new `UserSession` model has user, refresh token hash, created, last used, expires, revoked, and user agent. It has a migration.
     - `/auth/login` and `/auth/activate` create a session and return `refresh_token` alongside `access_token`. The access token carries `sid`.
@@ -113,6 +113,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - `web-src/api.js` stores the refresh token and retries once on 401 through `/auth/refresh`.
     - Tests: `test_sessions.py` covers login, refresh, rotation, reuse detection, and an expired refresh token.
   - Files: backend/app/models.py, backend/migrations/versions/0011_user_sessions.py, backend/app/auth.py, backend/app/deps.py, backend/app/routers/auth.py, backend/app/config.py, web-src/api.js, backend/tests/test_sessions.py
+  - Completed: 2026-09-28. New UserSession model (migration 0010). Refresh tokens are 32-byte random values stored as SHA-256, plus the previous hash for reuse detection. Login and activate open a session and return refresh_token. Access tokens carry sid and last access_token_minutes (default 30); sessions last refresh_token_days (default 30); both are TAN GLOBUS AI settings to confirm. get_current_user rejects a revoked, expired or missing session. POST /auth/refresh rotates the refresh token; a reused old token revokes the session. modules/identity/sessions.py holds the logic. api.js stores the refresh token and authFetch renews once on 401, then retries (also for file fetches and XHR upload). Also: ruff now excludes migrations/, and the ten committed migrations Task 2 had reformatted are restored to their original content. Tests: test_sessions.py (7) and v4-sessions.spec.js (2). 459 pass on SQLite and PostgreSQL.
 
 - [ ] Task 10: Sign out and sign out everywhere (P0)
   - Acceptance:

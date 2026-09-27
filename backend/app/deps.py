@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.auth import InvalidToken, decode_access_token
 from app.db import get_db
-from app.models import Project, ProjectMember, Role, User
+from app.models import Project, ProjectMember, Role, User, UserSession
+from app.modules.identity.sessions import is_live
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -24,10 +25,13 @@ def get_current_user(
     if creds is None:
         raise _unauthorized()
     try:
-        user_id = decode_access_token(creds.credentials)
+        claims = decode_access_token(creds.credentials)
     except InvalidToken:
         raise _unauthorized() from None
-    user = db.get(User, user_id)
+    session = db.get(UserSession, claims.session_id)
+    if not is_live(session) or session.user_id != claims.user_id:
+        raise _unauthorized()
+    user = db.get(User, claims.user_id)
     if user is None or not user.is_active:
         raise _unauthorized()
     return user

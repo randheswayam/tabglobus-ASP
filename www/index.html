@@ -439,7 +439,7 @@ body.anon .side,body.anon .tabs{display:none}
 /* exported SiteFlowAPI */
 const SiteFlowAPI = (() => {
   'use strict';
-  const K_BASE = 'siteflow.api', K_TOKEN = 'siteflow.token';
+  const K_BASE = 'siteflow.api', K_TOKEN = 'siteflow.token', K_REFRESH = 'siteflow.refresh';
   const store = {
     get(k){ try { return localStorage.getItem(k); } catch (_) { return null; } },
     set(k, v){ try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (_) {} }
@@ -474,23 +474,53 @@ const SiteFlowAPI = (() => {
     return status ? `Request failed (${status})` : 'Request failed';
   }
 
+  function saveTokens(r){ store.set(K_TOKEN, r.access_token); store.set(K_REFRESH, r.refresh_token); }
+  function signedOut(){ store.set(K_TOKEN, null); store.set(K_REFRESH, null); if (onSignedOut) onSignedOut(); }
+
+  // One refresh at a time: requests that fail together wait for the same new token.
+  let refreshing = null;
+  function renew(){
+    const rt = store.get(K_REFRESH);
+    if (!rt) return Promise.resolve(false);
+    if (!refreshing){
+      refreshing = fetch(base() + '/auth/refresh', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({refresh_token: rt})})
+        .then(async r => { if (!r.ok) return false; saveTokens(await r.json()); return true; })
+        .catch(() => false)
+        .finally(() => { refreshing = null; });
+    }
+    return refreshing;
+  }
+
+  // fetch with the access token; on 401, renew the session once and retry, else sign out.
+  async function authFetch(url, opts = {}){
+    const go = () => {
+      const headers = {...(opts.headers || {})}, t = token();
+      if (t) headers.Authorization = 'Bearer ' + t;
+      return fetch(url, {...opts, headers});
+    };
+    let r = await go();
+    if (r.status === 401 && token()){
+      if (await renew()) r = await go();
+      if (r.status === 401) signedOut();
+    }
+    return r;
+  }
+
   async function request(method, path, body){
     const headers = {};
     if (body !== undefined) headers['Content-Type'] = 'application/json';
-    const t = token(); if (t) headers.Authorization = 'Bearer ' + t;
     let r;
-    try { r = await fetch(base() + path, {method, headers, body: body === undefined ? undefined : JSON.stringify(body)}); }
+    try { r = await authFetch(base() + path, {method, headers, body: body === undefined ? undefined : JSON.stringify(body)}); }
     catch (_) { throw new ApiError(0, `Cannot reach the SiteFlow server at ${base()}. Check your connection.`); }
     const data = await r.json().catch(() => null);
-    if (r.status === 401 && t){ store.set(K_TOKEN, null); if (onSignedOut) onSignedOut(); }
     if (!r.ok) throw new ApiError(r.status, messageOf(data, r.status), data && data.detail);
     return data;
   }
 
   async function requestForm(path, form){
-    const headers = {}, t = token(); if (t) headers.Authorization = 'Bearer ' + t;
     let r;
-    try { r = await fetch(base() + path, {method: 'POST', headers, body: form}); }
+    try { r = await authFetch(base() + path, {method: 'POST', body: form}); }
     catch (_) { throw new ApiError(0, `Cannot reach the SiteFlow server at ${base()}. Check your connection.`); }
     const data = await r.json().catch(() => null);
     if (!r.ok) throw new ApiError(r.status, messageOf(data, r.status), data && data.detail);
@@ -504,15 +534,15 @@ const SiteFlowAPI = (() => {
     onSignedOut(fn){ onSignedOut = fn; },
     async login(email, password){
       const r = await request('POST', '/auth/login', {email, password});
-      store.set(K_TOKEN, r.access_token);
+      saveTokens(r);
       return r.user;
     },
     async activate(email, code, password){
       const r = await request('POST', '/auth/activate', {email, code, password});
-      store.set(K_TOKEN, r.access_token);
+      saveTokens(r);
       return r.user;
     },
-    logout(){ store.set(K_TOKEN, null); },
+    logout(){ store.set(K_TOKEN, null); store.set(K_REFRESH, null); },
     me: () => request('GET', '/auth/me'),
     template: () => request('GET', '/template'),
     projects: () => request('GET', '/projects'),
@@ -535,8 +565,7 @@ const SiteFlowAPI = (() => {
     async clientUpdatePhotoUrl(uid, mid){
       const key = `u${uid}-${mid}`;
       if (mediaUrls[key]) return mediaUrls[key];
-      const t = token();
-      const r = await fetch(`${base()}/client/updates/${uid}/media/${mid}`, {headers: t ? {Authorization: 'Bearer ' + t} : {}});
+      const r = await authFetch(`${base()}/client/updates/${uid}/media/${mid}`);
       if (!r.ok) throw new ApiError(r.status, 'Could not load the photo');
       return (mediaUrls[key] = URL.createObjectURL(await r.blob()));
     },
@@ -550,8 +579,7 @@ const SiteFlowAPI = (() => {
     async clientDocumentUrl(sid, aid){
       const key = `c${sid}-${aid}`;
       if (mediaUrls[key]) return mediaUrls[key];
-      const t = token();
-      const r = await fetch(`${base()}/client/signoffs/${sid}/attachments/${aid}`, {headers: t ? {Authorization: 'Bearer ' + t} : {}});
+      const r = await authFetch(`${base()}/client/signoffs/${sid}/attachments/${aid}`);
       if (!r.ok) throw new ApiError(r.status, 'Could not open the document');
       return (mediaUrls[key] = URL.createObjectURL(await r.blob()));
     },
@@ -572,7 +600,7 @@ const SiteFlowAPI = (() => {
     deleteMedia: id => request('DELETE', `/media/${id}`),
     retagMedia: (id, problem_ref) => request('PATCH', `/media/${id}`, {problem_ref}),
     // XMLHttpRequest rather than fetch: only XHR reports upload progress.
-    uploadMedia(visitId, file, meta, onProgress){
+    uploadMedia(visitId, file, meta, onProgress, retried){
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest(), t = token();
         xhr.open('POST', `${base()}/site-visits/${visitId}/media`);
@@ -581,7 +609,14 @@ const SiteFlowAPI = (() => {
         xhr.onerror = () => reject(new ApiError(0, `Cannot reach the SiteFlow server at ${base()}. Check your connection.`));
         xhr.onload = () => {
           let data = null; try { data = JSON.parse(xhr.responseText); } catch (_) {}
-          if (xhr.status === 401 && t){ store.set(K_TOKEN, null); if (onSignedOut) onSignedOut(); }
+          if (xhr.status === 401 && t){
+            if (!retried){
+              renew().then(ok => ok ? this.uploadMedia(visitId, file, meta, onProgress, true).then(resolve, reject)
+                : (signedOut(), reject(new ApiError(401, messageOf(data, 401)))));
+              return;
+            }
+            signedOut();
+          }
           if (xhr.status >= 200 && xhr.status < 300) resolve(data);
           else reject(new ApiError(xhr.status, messageOf(data, xhr.status), data && data.detail));
         };
@@ -596,8 +631,7 @@ const SiteFlowAPI = (() => {
     // Files need the Bearer token, which an <img src> can't send, so fetch them as blobs.
     async mediaUrl(id){
       if (mediaUrls[id]) return mediaUrls[id];
-      const t = token();
-      const r = await fetch(`${base()}/media/${id}`, {headers: t ? {Authorization: 'Bearer ' + t} : {}});
+      const r = await authFetch(`${base()}/media/${id}`);
       if (!r.ok) throw new ApiError(r.status, 'Could not load the file');
       return (mediaUrls[id] = URL.createObjectURL(await r.blob()));
     }

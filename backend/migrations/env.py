@@ -1,6 +1,5 @@
 """Alembic environment. The database URL comes from app settings (DATABASE_URL), not alembic.ini.
 The app's migrate() passes its own connection in config.attributes["connection"]."""
-
 from alembic import context
 from sqlalchemy import create_engine
 

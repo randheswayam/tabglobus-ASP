@@ -5,8 +5,9 @@ from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
 from app import models as m
-from app.auth import create_access_token
+from app.auth import create_access_token, decode_access_token
 from app.deps import require_role, visible_projects
+from app.modules.identity.sessions import open_session
 from tests.conftest import TEST_PASSWORD
 
 # ---------- POST /auth/login ----------
@@ -72,8 +73,11 @@ def test_me_with_tampered_token_is_401(client, auth_headers):
     assert r.status_code == 401
 
 
-def test_me_with_expired_token_is_401(client, users):
-    token = create_access_token(users["architect"].id, expires_in=timedelta(seconds=-1))
+def test_me_with_expired_token_is_401(client, users, db):
+    access, _ = open_session(db, users["architect"], "pytest")
+    db.commit()
+    sid = decode_access_token(access).session_id
+    token = create_access_token(users["architect"].id, sid, expires_in=timedelta(seconds=-1))
     r = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 401
 
@@ -112,8 +116,9 @@ def role_client(users):
         ("admin", 403),
     ],
 )
-def test_require_role(role_client, users, role, expected):
-    token = create_access_token(users[role].id)
+def test_require_role(role_client, users, role, expected, db):
+    token, _ = open_session(db, users[role], "pytest")
+    db.commit()
     r = role_client.get("/leads-only", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == expected
 

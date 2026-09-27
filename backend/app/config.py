@@ -9,7 +9,10 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://siteflow:siteflow@localhost:5432/siteflow"
     jwt_secret: str = "change-me-in-env"
-    jwt_expire_minutes: int = 720
+    # Session lengths: TAN GLOBUS AI security settings, to confirm before the pilot. A short access token is
+    # renewed silently with the refresh token; the refresh token (and the session) ends after refresh_token_days.
+    access_token_minutes: int = 30
+    refresh_token_days: int = 30
     # Run Alembic migrations at startup. The test suite turns this off and uses create_all.
     auto_migrate: bool = True
     # Uploaded photos and video. "local" stores files under media_dir; S3 comes later.

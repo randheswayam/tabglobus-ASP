@@ -6,7 +6,7 @@ const INTERNAL = ['TBD', 'Audit', 'Red flag', 'rework', 'Rework', 'Legal Approva
 
 async function signInClient(page){
   await page.goto(APP);
-  await page.evaluate(() => { try { localStorage.removeItem('siteflow.token'); } catch (_) {} });
+  await page.evaluate(() => { try { localStorage.removeItem('siteflow.token'); localStorage.removeItem('siteflow.refresh'); } catch (_) {} });
   await page.goto(APP);
   await page.getByTestId('login-email').fill(CLIENT.email);
   await page.getByTestId('login-password').fill(CLIENT.password);

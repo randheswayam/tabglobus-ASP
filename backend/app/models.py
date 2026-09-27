@@ -438,6 +438,25 @@ class ClientInvite(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class UserSession(Base):
+    """One signed-in device. Only a hash of the refresh token is kept; revoking the session ends its access tokens."""
+
+    __tablename__ = "user_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    refresh_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    # The hash rotated out by the last refresh: presenting it again means the token was copied (reuse).
+    previous_hash: Mapped[str | None] = mapped_column(String(64), index=True)
+    user_agent: Mapped[str | None] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    last_used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped[User] = relationship()
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 
