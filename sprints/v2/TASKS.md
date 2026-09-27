@@ -62,13 +62,14 @@
   - Files: backend/app/routers/media.py, backend/app/main.py, backend/tests/test_media.py
   - Completed: 2026-09-27. Multipart upload (engineer only, visit in draft or rework). Returns 415 for a disallowed type or when the file signature doesn't match the Content-Type header, 413 when a chunked read passes the limit, and 422 for kind, problem_ref or GPS (lat and lng must come together). Stored under visits/<id>/<random hex>.<ext>. sha256, the uploader and the capture time (converted to UTC, server time by default) are recorded, and media.added is audited. CORS allows DELETE. Note for v3: Starlette spools multipart bodies before the limit check, so put a proxy-level request size cap in front of production. 17 new tests, 161 in total.
 
-- [ ] Task 7: Media download, listing and removal (P0)
+- [x] Task 7: Media download, listing and removal (P0)
   - Acceptance:
     - `GET /media/{id}` returns the file with its content type, and only to users who can see the project (404 otherwise).
     - `DELETE /media/{id}` works for the uploader while the visit is in draft or rework (409 after submission) and removes the stored file.
     - `visit_out` includes `media: [{id, kind, problem_ref, captured_at, lat, lng, uploader, size}]`.
     - Every upload and delete writes an audit event (`media.added`, `media.removed`).
   - Files: backend/app/routers/media.py, backend/app/schemas.py, backend/tests/test_media.py
+  - Completed: 2026-09-27. GET /media/{id} checks project visibility and returns the file inline with nosniff and private caching. DELETE /media/{id} is for the uploader only, while the visit is in draft or rework (409 after that). The stored file is deleted after the commit, and media.removed is audited. visit_out lists media. The app has to fetch files with its Bearer token (as blobs), because a plain img tag can't send the header. 6 new tests, 167 in total.
 
 - [ ] Task 8: Evidence rules at submission (P0)
   - Acceptance:

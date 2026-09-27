@@ -115,3 +115,64 @@ def test_missing_visit_is_404(upload):
 def test_submitted_visit_is_409(upload, draft, client, auth_headers, ready_project):
     client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
     assert upload(draft["id"]).status_code == 409
+
+
+# ---------- Task 7: download, listing, removal ----------
+
+def test_download_returns_the_file_to_anyone_who_can_see_the_project(upload, draft, client, auth_headers):
+    mid = upload(draft["id"], data=JPEG, content_type="image/jpeg").json()["id"]
+    for role in ("civil_engineer", "team_lead", "architect", "admin"):
+        r = client.get(f"/media/{mid}", headers=auth_headers(role))
+        assert r.status_code == 200
+        assert r.content == JPEG
+        assert r.headers["content-type"] == "image/jpeg"
+        assert r.headers["x-content-type-options"] == "nosniff"
+        assert "private" in r.headers["cache-control"]
+
+
+def test_download_needs_sign_in_and_visibility(upload, draft, client, db, auth_headers):
+    from app import models as m
+
+    mid = upload(draft["id"]).json()["id"]
+    assert client.get(f"/media/{mid}").status_code == 401
+    admin = db.query(m.User).filter_by(role=m.Role.admin).one()
+    db.query(m.ProjectMember).filter_by(user_id=admin.id).delete()
+    db.commit()
+    assert client.get(f"/media/{mid}", headers=auth_headers("admin")).status_code == 404
+    assert client.get("/media/9999", headers=auth_headers("team_lead")).status_code == 404
+
+
+def test_visit_lists_its_media(upload, draft, client, auth_headers):
+    upload(draft["id"], problem_ref="0")
+    upload(draft["id"], kind="video", data=MP4, content_type="video/mp4")
+    v = client.get(f"/site-visits/{draft['id']}", headers=auth_headers("civil_engineer")).json()
+    assert [(x["kind"], x["problem_ref"]) for x in v["media"]] == [("photo", 0), ("video", None)]
+    assert set(v["media"][0]) >= {"id", "kind", "problem_ref", "captured_at", "lat", "lng", "uploader", "size"}
+
+
+def test_uploader_removes_media_while_the_visit_is_open(upload, draft, client, auth_headers, db):
+    from app import models as m
+    from app.services.storage import get_storage
+
+    mid = upload(draft["id"]).json()["id"]
+    key = db.get(m.Media, mid).storage_key
+    r = client.delete(f"/media/{mid}", headers=auth_headers("civil_engineer"))
+    assert r.status_code == 204
+    db.expire_all()
+    assert db.get(m.Media, mid) is None
+    with pytest.raises(FileNotFoundError):
+        get_storage().open(key)
+
+
+def test_upload_and_removal_are_audited(upload, draft, client, auth_headers, ready_project):
+    mid = upload(draft["id"]).json()["id"]
+    client.delete(f"/media/{mid}", headers=auth_headers("civil_engineer"))
+    actions = [e["action"] for e in client.get(f"/projects/{ready_project['id']}", headers=auth_headers("architect")).json()["audit"]]
+    assert actions[-2:] == ["media.added", "media.removed"]
+
+
+def test_cannot_remove_after_submission_or_as_someone_else(upload, draft, client, auth_headers, ready_project):
+    mid = upload(draft["id"]).json()["id"]
+    assert client.delete(f"/media/{mid}", headers=auth_headers("team_lead")).status_code == 403
+    client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
+    assert client.delete(f"/media/{mid}", headers=auth_headers("civil_engineer")).status_code == 409

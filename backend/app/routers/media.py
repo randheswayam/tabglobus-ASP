@@ -2,12 +2,12 @@ import hashlib
 import secrets
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app import workflow_config as wc
 from app.db import get_db
-from app.deps import require_role, visible_projects
+from app.deps import get_current_user, require_role, visible_projects
 from app.models import Media, MediaKind, Project, Role, SiteVisit, User, VisitStatus
 from app.schemas import media_out
 from app.services import audit
@@ -91,3 +91,39 @@ async def upload_media(visit_id: int, file: UploadFile = File(...), kind: str = 
     db.commit()
     db.refresh(media)
     return media_out(media)
+
+
+def _visible_media(db: Session, user: User, media_id: int) -> Media:
+    media = db.get(Media, media_id)
+    if media is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Media not found")
+    visible_visit(db, user, media.site_visit_id)  # 404 when the project isn't visible
+    return media
+
+
+@router.get("/media/{media_id}")
+def download_media(media_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Response:
+    media = _visible_media(db, user, media_id)
+    return Response(get_storage().open(media.storage_key), media_type=media.content_type, headers={
+        "Content-Disposition": "inline",
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, max-age=3600",
+    })
+
+
+@router.delete("/media/{media_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_media(media_id: int, user: User = Depends(require_role(Role.civil_engineer)),
+                 db: Session = Depends(get_db)) -> Response:
+    media = _visible_media(db, user, media_id)
+    if media.uploader_id != user.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the person who added it can remove it")
+    visit = media.site_visit
+    if visit.status not in (VisitStatus.draft, VisitStatus.rework):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"Media can't be removed from a {visit.status.value} visit")
+    audit.record(db, user, "media.removed", project_id=visit.project_id, entity_type="media", entity_id=media.id,
+                 detail={"visit_id": visit.id, "kind": media.kind.value, "problem_ref": media.problem_ref})
+    key = media.storage_key
+    db.delete(media)
+    db.commit()
+    get_storage().delete(key)  # after the commit, so a failed commit never loses the file
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
