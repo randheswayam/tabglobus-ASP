@@ -1,6 +1,6 @@
 """Fixed residential template for the SiteFlow MVP.
 
-Values marked PLACEHOLDER are pending Parvez's sign-off (decisions D2 and D3 in the
+Values marked TBD_PARVEZ are pending Parvez's sign-off (decisions D2 and D3 in the
 implementation plan). Change them here; no code changes are needed elsewhere.
 """
 
@@ -11,8 +11,8 @@ WORKFLOW_STEPS = ["Legal Approval", "Site Visit", "Team Lead Review"]
 
 LEGAL_STATUSES = ["Not started", "Applied", "Approved", "Rejected"]
 
-# PLACEHOLDER: pending Parvez (D2/D3). Stage weights are an equal split and must sum to 100.
-# PLACEHOLDER: pending Parvez (D2/D3). Checklist items are drafts for the P1 workshop.
+# TBD_PARVEZ: pending Parvez (D2/D3). Stage weights are an equal split and must sum to 100.
+# TBD_PARVEZ: pending Parvez (D2/D3). Checklist items are drafts for the P1 workshop.
 STAGES = [
     {"name": "Foundation", "weight": 12.5, "checklist": [
         {"id": "fdn-excavation", "label": "Excavation to drawing depth"},
@@ -95,5 +95,5 @@ PROBLEMS = {
 
 SEVERITIES = ["Low", "Medium", "High", "Critical"]
 
-# PLACEHOLDER: pending Parvez (D2/D3). Enforced once media capture ships (v2).
+# TBD_PARVEZ: pending Parvez (D2/D3). Enforced once media capture ships (v2).
 MIN_PHOTOS = 5
