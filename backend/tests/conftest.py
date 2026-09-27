@@ -54,3 +54,18 @@ def auth_headers(client, users):
         return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
     return _headers
+
+
+@pytest.fixture
+def new_project(client, users, auth_headers):
+    """new_project(name=...) -> JSON of a project created through the API by the architect."""
+
+    def _create(name: str = "Villa A", **overrides) -> dict:
+        body = {"name": name, "location": "Baner, Pune",
+                "civil_engineer_id": users["civil_engineer"].id,
+                "legal_expected_date": "2026-11-30", **overrides}
+        r = client.post("/projects", json=body, headers=auth_headers("architect"))
+        assert r.status_code == 201, r.text
+        return r.json()
+
+    return _create

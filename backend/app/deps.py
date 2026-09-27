@@ -52,3 +52,12 @@ def visible_projects(user: User) -> Select:
         return stmt
     return stmt.where(Project.id.in_(
         select(ProjectMember.project_id).where(ProjectMember.user_id == user.id)))
+
+
+def get_visible_project(project_id: int, db: Session = Depends(get_db),
+                        user: User = Depends(get_current_user)) -> Project:
+    """The project, or 404 when it doesn't exist or the user may not see it (no existence leak)."""
+    project = db.scalars(visible_projects(user).where(Project.id == project_id)).first()
+    if project is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+    return project
