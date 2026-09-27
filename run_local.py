@@ -8,6 +8,7 @@ PostgreSQL. On first run the four users are created with one shared password: SE
 otherwise a random one that is printed once. Delete backend/local.db to start over. Stop with Ctrl+C.
 """
 import functools
+import json
 import http.server
 import os
 import secrets
@@ -19,7 +20,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 BACKEND = ROOT / "backend"
 WWW = ROOT / "www"
-API_PORT, WEB_PORT = 8000, 8080
+API_PORT = int(os.environ.get("API_PORT", "8000"))
+WEB_PORT = int(os.environ.get("WEB_PORT", "8080"))
+if WEB_PORT != 8080 and "CORS_ORIGINS" not in os.environ:
+    # Allow the chosen web port as well as the Android app's origins.
+    os.environ["CORS_ORIGINS"] = json.dumps([f"http://localhost:{WEB_PORT}", f"http://127.0.0.1:{WEB_PORT}",
+                                             "capacitor://localhost", "https://localhost", "http://localhost"])
 
 os.environ.setdefault("DATABASE_URL", f"sqlite+pysqlite:///{(BACKEND / 'local.db').as_posix()}")
 if "JWT_SECRET" not in os.environ:
@@ -54,7 +60,8 @@ def main() -> None:
     threading.Thread(target=web.serve_forever, daemon=True).start()
 
     print("\nSiteFlow v1 is running")
-    print(f"  App:  http://localhost:{WEB_PORT}/index.html")
+    api_param = "" if API_PORT == 8000 else f"?api=http://localhost:{API_PORT}"
+    print(f"  App:  http://localhost:{WEB_PORT}/index.html{api_param}")
     print(f"  API:  http://localhost:{API_PORT}/docs")
     print(f"  Data: {os.environ['DATABASE_URL']}")
     print("  Sign in as:")

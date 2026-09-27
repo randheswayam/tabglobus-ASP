@@ -177,7 +177,7 @@
   - Files: web-src/api.js, web-src/app.js, tests/e2e/v2-problems.spec.js
   - Completed: 2026-09-27. The project page has an Open problems panel with severity, category, location, owner, target date (overdue shown in red) and the problem photo, which opens in the in-page viewer. Resolve is inline with a required note, for the engineer and the team lead. Resolved problems sit in a collapsed list. Resolving clears the Critical issue or Overdue fix flag, checked on the dashboard. The problem list API now includes photo_id; the helper moved to services/problems.py and is shared with the dashboard. 1 new API test (234 in total), 1 new E2E test (15 in total).
 
-- [ ] Task 19: Run on PostgreSQL (P1)
+- [x] Task 19: Run on PostgreSQL (P1)
   - Acceptance:
     - With `docker compose up -d db`, `alembic upgrade head` succeeds on an empty PostgreSQL database.
     - `TEST_DATABASE_URL=postgresql+psycopg://... pytest` runs the full suite on PostgreSQL, with each test in a transaction that is rolled back, and passes.
@@ -185,6 +185,7 @@
     - The README section "Run on PostgreSQL" is written.
     - Any SQLite-only assumptions found are fixed and noted.
   - Files: backend/tests/conftest.py, backend/README.md, run_local.py
+  - Completed: 2026-09-27. Started Docker Desktop and the compose PostgreSQL 16. All five migrations apply on an empty database (revision 0005). With TEST_DATABASE_URL set, the whole suite of 234 tests passes on PostgreSQL: the schema is built once through the migrations, and each test runs in a rolled-back transaction with the app's commits as savepoints. No SQLite-only assumptions were found. Safety fix: the tests used to setdefault DATABASE_URL, so a shell pointing at a real database would have had its tables dropped. They now use only TEST_DATABASE_URL or in-memory SQLite. run_local.py gains API_PORT and WEB_PORT (with ?api= and CORS for the chosen port) and was checked against PostgreSQL. Wrote backend/README.md.
 
 - [ ] Task 20: Android debug build reaches the API (P1)
   - Acceptance:

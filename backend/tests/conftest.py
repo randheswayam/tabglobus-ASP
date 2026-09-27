@@ -4,21 +4,46 @@ import tempfile
 import pytest
 from fastapi.testclient import TestClient
 
-os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
+# Tests never touch DATABASE_URL from the shell: they drop tables. TEST_DATABASE_URL runs the suite on
+# PostgreSQL (e.g. the docker-compose db); otherwise an in-memory SQLite database is used.
+PG_URL = os.environ.get("TEST_DATABASE_URL")
+os.environ["DATABASE_URL"] = PG_URL or "sqlite+pysqlite:///:memory:"
 os.environ.setdefault("PASSWORD_HASH_ITERATIONS", "1000")
 os.environ.setdefault("AUTO_MIGRATE", "false")
 os.environ.setdefault("MEDIA_DIR", tempfile.mkdtemp(prefix="siteflow-test-media-"))
 
+from sqlalchemy import text  # noqa: E402
+
 from app import models  # noqa: E402,F401  (registers tables)
-from app.db import Base, SessionLocal, engine  # noqa: E402
+from app.db import Base, SessionLocal, engine, migrate  # noqa: E402
 from app.main import app  # noqa: E402
 
+if PG_URL:
+    @pytest.fixture(scope="session", autouse=True)
+    def _pg_schema():
+        """Build the schema once, through the real migrations."""
+        with engine.begin() as conn:
+            conn.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public"))
+        migrate(engine)
+        yield
 
-@pytest.fixture(autouse=True)
-def fresh_schema():
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-    yield
+    @pytest.fixture(autouse=True)
+    def fresh_schema():
+        """Each test runs in one outer transaction that is rolled back. The app's own commits become
+        savepoints inside it, so endpoints behave exactly as in production."""
+        conn = engine.connect()
+        outer = conn.begin()
+        SessionLocal.configure(bind=conn, join_transaction_mode="create_savepoint")
+        yield
+        SessionLocal.configure(bind=engine, join_transaction_mode="conservative_savepoint")
+        outer.rollback()
+        conn.close()
+else:
+    @pytest.fixture(autouse=True)
+    def fresh_schema():
+        Base.metadata.drop_all(engine)
+        Base.metadata.create_all(engine)
+        yield
 
 
 @pytest.fixture
