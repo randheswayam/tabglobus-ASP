@@ -77,6 +77,9 @@ const SiteFlowAPI = (() => {
     visits: pid => request('GET', `/projects/${pid}/visits`),
     dashboard: filters => request('GET', '/dashboard' + (Object.keys(filters || {}).length ? '?' + new URLSearchParams(filters) : '')),
     clearFlag: (id, reason) => request('POST', `/red-flags/${id}/clear`, {reason}),
+    notifications: () => request('GET', '/notifications'),
+    readNotification: id => request('POST', `/notifications/${id}/read`),
+    readAllNotifications: () => request('POST', '/notifications/read-all'),
     deleteMedia: id => request('DELETE', `/media/${id}`),
     retagMedia: (id, problem_ref) => request('PATCH', `/media/${id}`, {problem_ref}),
     // XMLHttpRequest rather than fetch: only XHR reports upload progress.

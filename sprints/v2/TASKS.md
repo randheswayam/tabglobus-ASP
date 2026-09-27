@@ -161,12 +161,13 @@
   - Files: backend/app/models.py, backend/migrations/versions/0005_notifications.py, backend/app/services/notify.py, backend/app/routers/notifications.py, backend/app/routers/legal.py, backend/app/routers/site_visits.py, backend/app/routers/reviews.py, backend/app/services/red_flags.py, backend/app/main.py, backend/tests/test_notifications.py
   - Completed: 2026-09-27. Notification model and migration 0005. notify.py adds rows in the same transaction as the change: legal approved goes to the engineer, submitted to the team leads, approved to the engineer and the creating architect, rework (with the comment) to the engineer, and a red flag raised to the architect and the team leads. Nobody is notified about their own action. GET /notifications returns the newest 50 with an unread count. read and read-all touch only the user's own rows (404 otherwise). 6 new tests, 233 in total.
 
-- [ ] Task 17: UI: notifications list and unread badge (P1)
+- [x] Task 17: UI: notifications list and unread badge (P1)
   - Acceptance:
     - A bell in the sidebar and in the mobile tabs shows the unread count, refreshed on each navigation.
     - The Notifications view lists items. Opening one marks it read and goes to its project, and "Mark all read" works.
     - The Playwright test has Parvez see a submission notification after the engineer submits.
   - Files: web-src/api.js, web-src/app.js, tests/e2e/v2-notifications.spec.js
+  - Completed: 2026-09-27. The Notifications nav item (sidebar and mobile tabs) shows the unread count, refreshed after each navigation. The list has an icon per kind and marks new items. Opening one marks it read and goes to its project. Mark all read works. Hidden when the API has no notifications (the demo, until Task 21). 1 new E2E test (14 in total).
 
 - [ ] Task 18: UI: resolve open problems (P1)
   - Acceptance:

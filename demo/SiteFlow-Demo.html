@@ -262,6 +262,8 @@ button.ph{padding:0;cursor:zoom-in}
 .major-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .major-row.fi{grid-template-columns:44px minmax(0,1fr)}
 .overdue-text{color:var(--bad);font-weight:600}
+button.note{width:100%;border:0;border-bottom:1px solid var(--line-2);background:none;text-align:left}
+button.note:hover{background:var(--surface-2)}
 .lightbox{position:fixed;inset:0;z-index:60;background:rgba(10,16,18,.82);display:grid;place-items:center;padding:16px}
 .lb-body{max-width:min(960px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px}
 .lb-body img,.lb-body video{max-width:100%;max-height:78vh;object-fit:contain;border-radius:8px;background:#000}
@@ -768,6 +770,7 @@ async function go(route, p = {}){
   }
   render(); window.scrollTo(0, 0);
   if (can.review() && route !== 'queue') API.reviewQueue().then(q => { ui.queueCount = q.length; shell(); }).catch(() => {});
+  if (API.notifications && route !== 'alerts') API.notifications().then(n => { ui.unread = n.unread; shell(); }).catch(() => {});
 }
 function showLogin(msg){ ui.me = null; ui.route = 'login'; ui.error = msg || null; render(); }
 API.onSignedOut(() => showLogin('Your session has ended. Sign in again.'));
@@ -777,9 +780,10 @@ function shell(){
   if (!ui.me) return '';
   const u = ui.me;
   const nav = [...(home() === 'dashboard' ? [['dashboard', 'home', 'Dashboard']] : []), ['projects', 'folder', 'Projects'],
-    ...(can.review() ? [['queue', 'eye', 'Review queue']] : [])];
+    ...(can.review() ? [['queue', 'eye', 'Review queue']] : []), ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : [])];
   const cur = ui.route === 'review' ? 'queue' : ['project', 'new-project', 'visit'].includes(ui.route) ? 'projects' : ui.route;
-  const count = r => r === 'queue' && ui.queueCount ? `<span class="count" data-testid="queue-count">${ui.queueCount}</span>` : '';
+  const count = r => r === 'queue' && ui.queueCount ? `<span class="count" data-testid="queue-count">${ui.queueCount}</span>`
+    : r === 'alerts' && ui.unread ? `<span class="count" data-testid="unread-count">${ui.unread}</span>` : '';
   const who = `<span data-testid="signed-in-as"><b>${esc(u.name)}</b> <span class="muted small">· ${ROLES[u.role]}</span></span>`;
   $('#side').innerHTML = `
     <div class="brand"><span class="brand-mark">${ico('logo')}</span><div><b>SiteFlow</b><small>Residential · MVP</small></div></div>
@@ -970,6 +974,22 @@ async function applyFilter(el){
   render(); window.scrollTo(0, y);
   const again = document.getElementById(el.id); if (again && el.type !== 'date' && el.tagName !== 'SELECT'){ again.focus(); try { again.setSelectionRange(v.length, v.length); } catch (_) {} }
 }
+
+/* ---------- notifications ---------- */
+const NOTE_ICON = {step_unlocked: 'flow', submitted: 'eye', approved: 'check', rework: 'alert', red_flag: 'flag'};
+const NOTE_CLASS = {approved: 'ok', rework: 'warn', red_flag: 'warn', submitted: '', step_unlocked: 'ms'};
+V.alerts = {
+  load: async () => { ui.data.notes = await API.notifications(); ui.unread = ui.data.notes.unread; },
+  html: () => {
+    const n = ui.data.notes;
+    return `<div data-testid="alerts-view"><div class="head"><div><h1>Notifications</h1><div class="sub">${n.unread ? `${n.unread} unread` : 'All caught up'}</div></div>
+      ${n.unread ? `<button class="btn" data-act="read-all" data-testid="read-all">${ico('check')}Mark all read</button>` : ''}</div>
+      <section class="panel"><div class="feed">${n.items.length ? n.items.map(x => `<button class="fi note ${NOTE_CLASS[x.kind] || ''} ${x.read_at ? '' : 'unread'}" data-act="open-note" data-id="${x.id}" data-pid="${x.project ? x.project.id : ''}" data-testid="note-${x.id}">
+        <span class="fic">${ico(NOTE_ICON[x.kind] || 'bell')}</span>
+        <div><div>${esc(x.text)}</div><div class="when"><span>${fmtStamp(x.created_at)}</span>${x.read_at ? '' : '<span class="ch">New</span>'}</div></div></button>`).join('')
+        : '<div class="empty">No notifications yet. You will see step changes, reviews and red flags here.</div>'}</div></section></div>`;
+  }
+};
 
 V.projects = {
   load: async () => { ui.data.projects = await API.projects(); },
@@ -1466,6 +1486,13 @@ document.addEventListener('click', async e => {
       } catch (err){ toast(err.message); break; }
       ui.data.draft.problems.splice(n, 1); saveDraft(); rerenderKeepScroll(); break; }
     case 'open-media': ui.lightbox = +a.dataset.id; rerenderKeepScroll(); break;
+    case 'open-note':
+      try { await API.readNotification(+a.dataset.id); } catch (_) {}
+      if (a.dataset.pid) await go('project', {pid: +a.dataset.pid}); else await go('alerts');
+      break;
+    case 'read-all':
+      try { await API.readAllNotifications(); ui.unread = 0; toast('All notifications marked read.'); } catch (err){ toast(err.message); }
+      await go('alerts'); break;
     case 'flag-clear': ui.p.clearing = +a.dataset.id; rerenderKeepScroll(); { const i = $('#fr-' + a.dataset.id); if (i) i.focus(); } break;
     case 'flag-cancel': ui.p.clearing = null; rerenderKeepScroll(); break;
     case 'flag-confirm': {
