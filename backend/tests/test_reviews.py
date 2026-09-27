@@ -6,8 +6,9 @@ from tests.conftest import valid_visit, workflow_actions
 @pytest.fixture
 def submitted(client, auth_headers, ready_project, evidence):
     evidence(ready_project["id"])
-    r = client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(),
-                    headers=auth_headers("civil_engineer"))
+    r = client.post(
+        f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer")
+    )
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -48,7 +49,12 @@ def test_approve_makes_progress_official(client, auth_headers, submitted):
     assert p["official_progress"] == 16.7
     assert [s["status"] for s in p["steps"]] == ["completed", "active", "locked"]
     assert p["current_step"] == "Site Visit"  # the next visit opens (recurring visits, v2)
-    assert workflow_actions(p["audit"])[-4:] == ["site_visit.approved", "step.completed", "step.activated", "step.locked"]
+    assert workflow_actions(p["audit"])[-4:] == [
+        "site_visit.approved",
+        "step.completed",
+        "step.activated",
+        "step.locked",
+    ]
     assert client.get("/reviews/queue", headers=lead).json() == []
 
 

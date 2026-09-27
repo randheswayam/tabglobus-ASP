@@ -1,5 +1,6 @@
 """Where uploaded site media lives. LocalStorage writes under MEDIA_DIR; an S3-compatible
 backend can implement the same three methods and be selected with STORAGE_BACKEND."""
+
 import re
 from pathlib import Path
 from typing import Protocol

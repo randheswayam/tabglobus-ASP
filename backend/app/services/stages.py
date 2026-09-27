@@ -4,8 +4,9 @@ Pure functions decide which stages open and why a stage is blocked; the database
 that to a project. Stored statuses are locked, active, completed and historical. The engine reports
 two more views of an active stage: blocked (a gate is unmet, with reasons) or active (work can finish).
 """
+
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -29,8 +30,11 @@ class GateFacts:
 
 def to_release(statuses: dict[str, str], config=sc.STAGES) -> list[str]:
     """Locked stages whose predecessors are all done, in flow order. Parallel branches release together."""
-    return [s["key"] for s in config
-            if statuses[s["key"]] == "locked" and all(statuses[p] in DONE for p in s["predecessors"])]
+    return [
+        s["key"]
+        for s in config
+        if statuses[s["key"]] == "locked" and all(statuses[p] in DONE for p in s["predecessors"])
+    ]
 
 
 def _date(iso: str | None) -> str:
@@ -74,8 +78,14 @@ def evaluate(statuses: dict[str, str], facts: GateFacts, config=sc.STAGES) -> di
 
 # ---------- database helpers ----------
 
-def create_stages(db: Session, project: Project, start_stage: str | None = None,
-                  confirmed_by: str | None = None, note: str | None = None) -> None:
+
+def create_stages(
+    db: Session,
+    project: Project,
+    start_stage: str | None = None,
+    confirmed_by: str | None = None,
+    note: str | None = None,
+) -> None:
     """All stages for a new project. With start_stage, earlier stages are historical (PRD 7.19)."""
     cut = [s["key"] for s in sc.STAGES].index(start_stage) if start_stage else 0
     for i, s in enumerate(sc.STAGES):
@@ -95,11 +105,20 @@ def stage_rows(db: Session, project: Project) -> dict[str, ProjectStage]:
 
 def facts(db: Session, project: Project, signoffs: dict | None = None) -> GateFacts:
     la = project.legal_approval
-    major = db.scalar(select(func.count()).select_from(Problem).where(
-        Problem.project_id == project.id, Problem.status == ProblemStatus.open,
-        Problem.severity.in_(("High", "Critical"))))
-    return GateFacts(legal_status=la.status.value if la else LegalStatus.not_started.value,
-                     open_major_problems=major or 0, signoffs=signoffs or {})
+    major = db.scalar(
+        select(func.count())
+        .select_from(Problem)
+        .where(
+            Problem.project_id == project.id,
+            Problem.status == ProblemStatus.open,
+            Problem.severity.in_(("High", "Critical")),
+        )
+    )
+    return GateFacts(
+        legal_status=la.status.value if la else LegalStatus.not_started.value,
+        open_major_problems=major or 0,
+        signoffs=signoffs or {},
+    )
 
 
 HISTORICAL_LABEL = "Historical — completed before SiteFlow"
@@ -128,13 +147,27 @@ def project_view(db: Session, project: Project, user: User) -> dict:
         r, v = rows[s["key"]], view[s["key"]]
         req = signoffs.get(s["key"])
         return {
-            "key": s["key"], "number": s["number"], "label": s["label"], "detail": s["detail"],
-            "workstream": s["workstream"], "owner_role": s["owner_role"], "gate": s["gate"],
-            "state": v["state"], "reasons": v["reasons"], "can_complete": can_complete(user, s, v["state"]),
-            "started_at": iso_utc(r.started_at), "completed_at": iso_utc(r.completed_at),
-            "completed_by": user_brief(r.completed_by), "completion_note": r.completion_note,
-            "historical": {"label": HISTORICAL_LABEL, "confirmed_by": r.historical_confirmed_by,
-                           "note": r.historical_note} if r.status == StageStatus.historical else None,
+            "key": s["key"],
+            "number": s["number"],
+            "label": s["label"],
+            "detail": s["detail"],
+            "workstream": s["workstream"],
+            "owner_role": s["owner_role"],
+            "gate": s["gate"],
+            "state": v["state"],
+            "reasons": v["reasons"],
+            "can_complete": can_complete(user, s, v["state"]),
+            "started_at": iso_utc(r.started_at),
+            "completed_at": iso_utc(r.completed_at),
+            "completed_by": user_brief(r.completed_by),
+            "completion_note": r.completion_note,
+            "historical": {
+                "label": HISTORICAL_LABEL,
+                "confirmed_by": r.historical_confirmed_by,
+                "note": r.historical_note,
+            }
+            if r.status == StageStatus.historical
+            else None,
             "signed_by_client": bool(req and req["status"] == "approved" and r.status == StageStatus.completed),
         }
 
@@ -150,11 +183,18 @@ def release(db: Session, project: Project, actor: User | None) -> list[str]:
     """Activate every stage whose predecessors are done; audit each one. Returns the keys activated."""
     rows = stage_rows(db, project)
     opened = to_release({k: r.status.value for k, r in rows.items()})
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for key in opened:
         rows[key].status, rows[key].started_at = StageStatus.active, now
-        audit.record(db, actor, "stage.activated", project_id=project.id, entity_type="project_stage",
-                     entity_id=rows[key].id, detail={"stage": sc.BY_KEY[key]["label"], "key": key})
+        audit.record(
+            db,
+            actor,
+            "stage.activated",
+            project_id=project.id,
+            entity_type="project_stage",
+            entity_id=rows[key].id,
+            detail={"stage": sc.BY_KEY[key]["label"], "key": key},
+        )
         notify.stage_ready(db, project, sc.BY_KEY[key], actor)
     db.flush()
     return opened
@@ -176,9 +216,16 @@ def visit_approved(db: Session, project: Project, actor: User) -> None:
 def complete(db: Session, project: Project, key: str, actor: User | None, note: str | None) -> list[str]:
     """Mark a stage completed, audit it and release its successors. The caller has checked the rules."""
     row = stage_rows(db, project)[key]
-    row.status, row.completed_at = StageStatus.completed, datetime.now(timezone.utc)
+    row.status, row.completed_at = StageStatus.completed, datetime.now(UTC)
     row.completed_by_id, row.completion_note = (actor.id if actor else None), note
-    audit.record(db, actor, "stage.completed", project_id=project.id, entity_type="project_stage", entity_id=row.id,
-                 detail={"stage": sc.BY_KEY[key]["label"], "key": key, "note": note})
+    audit.record(
+        db,
+        actor,
+        "stage.completed",
+        project_id=project.id,
+        entity_type="project_stage",
+        entity_id=row.id,
+        detail={"stage": sc.BY_KEY[key]["label"], "key": key, "note": note},
+    )
     db.flush()
     return release(db, project, actor)

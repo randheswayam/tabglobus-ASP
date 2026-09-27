@@ -1,4 +1,5 @@
 """Site visit media: the server-side draft visit, uploads, downloads and removal."""
+
 import pytest
 
 from tests.conftest import valid_visit
@@ -13,9 +14,12 @@ def draft(client, auth_headers, ready_project):
 
 # ---------- Task 5: draft visit ----------
 
+
 def test_draft_is_created_once_and_reused(client, auth_headers, ready_project, draft):
     assert draft["status"] == "draft" and draft["submission_count"] == 0 and draft["media"] == []
-    again = client.post(f"/projects/{ready_project['id']}/site-visits/draft", headers=auth_headers("civil_engineer")).json()
+    again = client.post(
+        f"/projects/{ready_project['id']}/site-visits/draft", headers=auth_headers("civil_engineer")
+    ).json()
     assert again["id"] == draft["id"]
 
 
@@ -29,7 +33,9 @@ def test_draft_is_hidden_from_project_latest_visit_queue_and_history(client, aut
 
 def test_submission_fills_in_the_draft(client, auth_headers, ready_project, draft, evidence):
     evidence(ready_project["id"])
-    r = client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
+    r = client.post(
+        f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer")
+    )
     assert r.status_code == 201, r.text
     assert r.json()["id"] == draft["id"] and r.json()["status"] == "submitted" and r.json()["submission_count"] == 1
 
@@ -38,16 +44,24 @@ def test_draft_returns_the_rework_visit(client, auth_headers, ready_project, evi
     eng = auth_headers("civil_engineer")
     evidence(ready_project["id"])
     v = client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=eng).json()
-    client.post(f"/site-visits/{v['id']}/review", json={"decision": "rework", "comment": "Add photos"},
-                headers=auth_headers("team_lead"))
+    client.post(
+        f"/site-visits/{v['id']}/review",
+        json={"decision": "rework", "comment": "Add photos"},
+        headers=auth_headers("team_lead"),
+    )
     d = client.post(f"/projects/{ready_project['id']}/site-visits/draft", headers=eng).json()
     assert d["id"] == v["id"] and d["status"] == "rework"
 
 
 def test_draft_needs_step2_open_and_the_assigned_engineer(client, auth_headers, new_project, ready_project):
     p = new_project("Not yet approved")
-    assert client.post(f"/projects/{p['id']}/site-visits/draft", headers=auth_headers("civil_engineer")).status_code == 409
-    assert client.post(f"/projects/{ready_project['id']}/site-visits/draft", headers=auth_headers("team_lead")).status_code == 403
+    assert (
+        client.post(f"/projects/{p['id']}/site-visits/draft", headers=auth_headers("civil_engineer")).status_code == 409
+    )
+    assert (
+        client.post(f"/projects/{ready_project['id']}/site-visits/draft", headers=auth_headers("team_lead")).status_code
+        == 403
+    )
 
 
 # ---------- Task 6: upload ----------
@@ -81,12 +95,15 @@ def test_stored_under_random_key_not_the_filename(upload, draft, db):
     assert len(row.sha256) == 64
 
 
-@pytest.mark.parametrize("kind,data,ctype", [
-    ("photo", PNG, "image/gif"),        # type not allowed
-    ("photo", MP4, "video/mp4"),        # video sent as a photo
-    ("video", PNG, "image/png"),        # photo sent as a video
-    ("photo", b"not an image at all", "image/png"),  # header says PNG, bytes don't
-])
+@pytest.mark.parametrize(
+    "kind,data,ctype",
+    [
+        ("photo", PNG, "image/gif"),  # type not allowed
+        ("photo", MP4, "video/mp4"),  # video sent as a photo
+        ("video", PNG, "image/png"),  # photo sent as a video
+        ("photo", b"not an image at all", "image/png"),  # header says PNG, bytes don't
+    ],
+)
 def test_wrong_type_is_415(upload, draft, kind, data, ctype):
     assert upload(draft["id"], kind=kind, data=data, content_type=ctype).status_code == 415
 
@@ -116,11 +133,14 @@ def test_missing_visit_is_404(upload):
 
 def test_submitted_visit_is_409(upload, draft, client, auth_headers, ready_project, evidence):
     evidence(ready_project["id"])
-    client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
+    client.post(
+        f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer")
+    )
     assert upload(draft["id"]).status_code == 409
 
 
 # ---------- Task 7: download, listing, removal ----------
+
 
 def test_download_returns_the_file_to_anyone_who_can_see_the_project(upload, draft, client, auth_headers):
     mid = upload(draft["id"], data=JPEG, content_type="image/jpeg").json()["id"]
@@ -170,19 +190,27 @@ def test_uploader_removes_media_while_the_visit_is_open(upload, draft, client, a
 def test_upload_and_removal_are_audited(upload, draft, client, auth_headers, ready_project):
     mid = upload(draft["id"]).json()["id"]
     client.delete(f"/media/{mid}", headers=auth_headers("civil_engineer"))
-    actions = [e["action"] for e in client.get(f"/projects/{ready_project['id']}", headers=auth_headers("architect")).json()["audit"]]
+    actions = [
+        e["action"]
+        for e in client.get(f"/projects/{ready_project['id']}", headers=auth_headers("architect")).json()["audit"]
+    ]
     assert actions[-2:] == ["media.added", "media.removed"]
 
 
-def test_cannot_remove_after_submission_or_as_someone_else(upload, draft, client, auth_headers, ready_project, evidence):
+def test_cannot_remove_after_submission_or_as_someone_else(
+    upload, draft, client, auth_headers, ready_project, evidence
+):
     mid = upload(draft["id"]).json()["id"]
     evidence(ready_project["id"])
     assert client.delete(f"/media/{mid}", headers=auth_headers("team_lead")).status_code == 403
-    client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
+    client.post(
+        f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer")
+    )
     assert client.delete(f"/media/{mid}", headers=auth_headers("civil_engineer")).status_code == 409
 
 
 # ---------- retagging (supports removing a problem in the form) ----------
+
 
 def test_uploader_retags_or_untags_a_photo(upload, draft, client, auth_headers):
     mid = upload(draft["id"], problem_ref="2").json()["id"]
@@ -198,5 +226,10 @@ def test_uploader_retags_or_untags_a_photo(upload, draft, client, auth_headers):
 def test_retag_is_closed_after_submission(upload, draft, client, auth_headers, ready_project, evidence):
     mid = upload(draft["id"]).json()["id"]
     evidence(ready_project["id"])
-    client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
-    assert client.patch(f"/media/{mid}", json={"problem_ref": 0}, headers=auth_headers("civil_engineer")).status_code == 409
+    client.post(
+        f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer")
+    )
+    assert (
+        client.patch(f"/media/{mid}", json={"problem_ref": 0}, headers=auth_headers("civil_engineer")).status_code
+        == 409
+    )

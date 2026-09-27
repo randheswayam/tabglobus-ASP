@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -31,8 +31,11 @@ def _open_visit(project: Project) -> SiteVisit | None:
 
 
 @router.post("/projects/{project_id}/site-visits/draft")
-def open_draft(user: User = Depends(require_role(Role.civil_engineer)),
-               project: Project = Depends(get_visible_project), db: Session = Depends(get_db)) -> dict:
+def open_draft(
+    user: User = Depends(require_role(Role.civil_engineer)),
+    project: Project = Depends(get_visible_project),
+    db: Session = Depends(get_db),
+) -> dict:
     """The server-side visit that photos and video attach to before submission. Form fields stay on the device."""
     _require_site_visit_open(db, project)
     visit = _open_visit(project)
@@ -45,16 +48,22 @@ def open_draft(user: User = Depends(require_role(Role.civil_engineer)),
 
 
 @router.post("/projects/{project_id}/site-visits", status_code=status.HTTP_201_CREATED)
-def submit_site_visit(body: SiteVisitIn, user: User = Depends(require_role(Role.civil_engineer)),
-                      project: Project = Depends(get_visible_project), db: Session = Depends(get_db)) -> dict:
+def submit_site_visit(
+    body: SiteVisitIn,
+    user: User = Depends(require_role(Role.civil_engineer)),
+    project: Project = Depends(get_visible_project),
+    db: Session = Depends(get_db),
+) -> dict:
     _require_site_visit_open(db, project)
 
     missing, invalid = validate_site_visit(body)
     open_visit = _open_visit(project)
     missing += missing_evidence(body, open_visit.media if open_visit else [])
     if missing or invalid:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            {"message": "Site visit is incomplete", "missing": missing, "invalid": invalid})
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            {"message": "Site visit is incomplete", "missing": missing, "invalid": invalid},
+        )
 
     visit = _open_visit(project)
     if visit is None:
@@ -77,16 +86,22 @@ def submit_site_visit(body: SiteVisitIn, user: User = Depends(require_role(Role.
     visit.computed_progress = derive_progress(body.current_stage, body.checklist)
     visit.status = VisitStatus.submitted
     visit.submission_count += 1
-    visit.submitted_at = datetime.now(timezone.utc)
+    visit.submitted_at = datetime.now(UTC)
     db.flush()
 
-    audit.record(db, user, "site_visit.submitted", project_id=project.id, entity_type="site_visit",
-                 entity_id=visit.id, detail={"submission": visit.submission_count,
-                                             "computed_progress": visit.computed_progress})
+    audit.record(
+        db,
+        user,
+        "site_visit.submitted",
+        project_id=project.id,
+        entity_type="site_visit",
+        entity_id=visit.id,
+        detail={"submission": visit.submission_count, "computed_progress": visit.computed_progress},
+    )
     workflow.complete(db, project, workflow.SITE_VISIT, user)
     workflow.activate(db, project, workflow.REVIEW, user)
     notify.submitted(db, project, user)
-    red_flags.sync_red_flags(db, project, datetime.now(timezone.utc))
+    red_flags.sync_red_flags(db, project, datetime.now(UTC))
     db.commit()
     db.refresh(visit)
     return visit_out(visit)
@@ -95,8 +110,10 @@ def submit_site_visit(body: SiteVisitIn, user: User = Depends(require_role(Role.
 @router.get("/site-visits/{visit_id}")
 def get_site_visit(visit_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
     visit = db.get(SiteVisit, visit_id)
-    visible = visit is not None and db.scalars(
-        visible_projects(user).where(Project.id == visit.project_id)).first() is not None
+    visible = (
+        visit is not None
+        and db.scalars(visible_projects(user).where(Project.id == visit.project_id)).first() is not None
+    )
     if not visible:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Site visit not found")
     return visit_out(visit)

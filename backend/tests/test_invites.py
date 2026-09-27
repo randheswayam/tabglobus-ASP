@@ -1,5 +1,6 @@
 """Inviting a client: the Architect gets a one-time code to share; the client sets a password with it."""
-from datetime import datetime, timedelta, timezone
+
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -23,8 +24,12 @@ def test_architect_invites_a_client_and_gets_a_one_time_code(client, auth_header
     r = _invite(client, auth_headers, pid)
     assert r.status_code == 201, r.text
     body = r.json()
-    assert body["client"] == {"id": body["client"]["id"], "name": "Mr. Gokhale", "email": "gokhale@client.example",
-                              "status": "invited"}
+    assert body["client"] == {
+        "id": body["client"]["id"],
+        "name": "Mr. Gokhale",
+        "email": "gokhale@client.example",
+        "status": "invited",
+    }
     assert len(body["code"]) == 8 and body["code"].isalnum() and body["expires_at"].endswith("+00:00")
     user = db.get(m.User, body["client"]["id"])
     assert user.role == m.Role.client and user.is_active is False
@@ -62,7 +67,7 @@ def test_wrong_codes_lock_the_invite(client, auth_headers, new_project):
 def test_expired_code_is_refused(client, auth_headers, new_project, db):
     code = _invite(client, auth_headers, new_project()["id"]).json()["code"]
     inv = db.query(m.ClientInvite).one()
-    inv.expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+    inv.expires_at = datetime.now(UTC) - timedelta(minutes=1)
     db.commit()
     assert _activate(client, code).status_code == 400
 

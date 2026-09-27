@@ -1,4 +1,5 @@
 """The Client role reaches only the customer app's API. Every staff route rejects it."""
+
 import re
 
 import pytest

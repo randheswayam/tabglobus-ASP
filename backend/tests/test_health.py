@@ -19,8 +19,14 @@ def test_cors_allows_web_and_capacitor_origins(client):
 def test_residential_template_stages_and_weights():
     names = [s["name"] for s in tc.STAGES]
     assert names == [
-        "Foundation", "Plinth", "Superstructure", "Masonry",
-        "Plastering", "Services", "Finishes", "Handover",
+        "Foundation",
+        "Plinth",
+        "Superstructure",
+        "Masonry",
+        "Plastering",
+        "Services",
+        "Finishes",
+        "Handover",
     ]
     assert sum(s["weight"] for s in tc.STAGES) == 100
     for s in tc.STAGES:

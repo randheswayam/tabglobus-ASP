@@ -51,5 +51,6 @@ SIGNOFF_ATTACHMENT_TYPES = ["application/pdf", "image/jpeg", "image/png", "image
 MAX_SIGNOFF_ATTACHMENT_MB = 20
 
 # TBD_PARVEZ: wording the client confirms when signing off; needs legal review before the pilot.
-SIGNOFF_CONFIRMATION_TEXT = ("I have reviewed every document in this package and I approve this version "
-                             "on behalf of the client.")
+SIGNOFF_CONFIRMATION_TEXT = (
+    "I have reviewed every document in this package and I approve this version on behalf of the client."
+)

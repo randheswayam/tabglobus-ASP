@@ -1,5 +1,6 @@
 """Client sign-off packages: a versioned title, summary and attachments for one milestone stage.
 A version is editable only as a draft; once sent it is frozen, and once the client responds it is immutable."""
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -26,8 +27,13 @@ def latest_by_stage(db: Session, project: Project) -> dict:
 
 
 def attachment_out(a, viewed_by_client: bool | None = None) -> dict:
-    out = {"id": a.id, "filename": a.filename, "content_type": a.content_type, "size": a.size,
-           "uploaded_at": iso_utc(a.created_at)}
+    out = {
+        "id": a.id,
+        "filename": a.filename,
+        "content_type": a.content_type,
+        "size": a.size,
+        "uploaded_at": iso_utc(a.created_at),
+    }
     if viewed_by_client is not None:
         out["viewed"] = viewed_by_client
     return out
@@ -36,11 +42,22 @@ def attachment_out(a, viewed_by_client: bool | None = None) -> dict:
 def signoff_out(r: SignoffRequest) -> dict:
     """The staff view of a package: everything, including the client's response."""
     return {
-        "id": r.id, "project_id": r.project_id, "stage_key": r.stage_key, "stage": sc.BY_KEY[r.stage_key]["label"],
-        "version": r.version, "status": r.status.value, "title": r.title, "summary": r.summary,
-        "created_by": user_brief(r.created_by), "created_at": iso_utc(r.created_at), "sent_at": iso_utc(r.sent_at),
-        "responded_at": iso_utc(r.responded_at), "response_comment": r.response_comment,
-        "signer_name": r.signer_name, "signed_by": user_brief(r.signer), "method": r.method,
+        "id": r.id,
+        "project_id": r.project_id,
+        "stage_key": r.stage_key,
+        "stage": sc.BY_KEY[r.stage_key]["label"],
+        "version": r.version,
+        "status": r.status.value,
+        "title": r.title,
+        "summary": r.summary,
+        "created_by": user_brief(r.created_by),
+        "created_at": iso_utc(r.created_at),
+        "sent_at": iso_utc(r.sent_at),
+        "responded_at": iso_utc(r.responded_at),
+        "response_comment": r.response_comment,
+        "signer_name": r.signer_name,
+        "signed_by": user_brief(r.signer),
+        "method": r.method,
         "supersedes_id": r.supersedes_id,
         "attachments": [attachment_out(a) for a in r.attachments],
     }

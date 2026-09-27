@@ -46,8 +46,16 @@ def test_valid_submission_moves_to_review(submit, client, auth_headers):
 
 def test_empty_submission_lists_every_missing_field(submit):
     missing = _missing(submit({}))
-    assert set(missing) == {"visit_at", "location", "weather", "attendees", "current_stage",
-                            "problems", "summary", "recommended_action"}
+    assert set(missing) == {
+        "visit_at",
+        "location",
+        "weather",
+        "attendees",
+        "current_stage",
+        "problems",
+        "summary",
+        "recommended_action",
+    }
 
 
 def test_blank_strings_count_as_missing(submit):
@@ -71,8 +79,7 @@ def test_every_checklist_item_needs_a_state(submit):
 
 
 def test_checklist_rejects_unknown_items_and_states(submit):
-    body = valid_visit(checklist={"pln-beam": "Finished", "pln-filling": "Done", "pln-dpc": "Done",
-                                  "fdn-pcc": "Done"})
+    body = valid_visit(checklist={"pln-beam": "Finished", "pln-filling": "Done", "pln-dpc": "Done", "fdn-pcc": "Done"})
     assert set(_invalid(submit(body))) == {"checklist.pln-beam", "checklist.fdn-pcc"}
 
 
@@ -93,8 +100,12 @@ def test_no_issues_and_problems_together_is_invalid(submit):
 def test_each_problem_needs_severity_location_party_and_date(submit):
     problem = {"category": "Water", "problem": "Seepage or dampness"}
     missing = _missing(submit(valid_visit(problems=[problem])))
-    assert set(missing) == {"problems[0].severity", "problems[0].location",
-                            "problems[0].responsible_party", "problems[0].target_date"}
+    assert set(missing) == {
+        "problems[0].severity",
+        "problems[0].location",
+        "problems[0].responsible_party",
+        "problems[0].target_date",
+    }
 
 
 def test_problem_must_come_from_config_list(submit):
@@ -121,8 +132,14 @@ def test_unassigned_engineer_gets_404(submit, client, db):
     from app import models as m
     from app.passwords import hash_password
 
-    db.add(m.User(name="Other Eng", email="other@siteflow.local", role=m.Role.civil_engineer,
-                  password_hash=hash_password(TEST_PASSWORD)))
+    db.add(
+        m.User(
+            name="Other Eng",
+            email="other@siteflow.local",
+            role=m.Role.civil_engineer,
+            password_hash=hash_password(TEST_PASSWORD),
+        )
+    )
     db.commit()
     token = client.post("/auth/login", json={"email": "other@siteflow.local", "password": TEST_PASSWORD}).json()
     r = submit(valid_visit(), headers={"Authorization": f"Bearer {token['access_token']}"})
@@ -179,11 +196,16 @@ def test_get_visit_returns_full_submission(submit, client, auth_headers):
 
 # ---------- evidence rules (v2) ----------
 
+
 @pytest.fixture
 def bare(client, auth_headers, ready_project):
     """Submit with no photos arranged in advance."""
+
     def _post(body):
-        return client.post(f"/projects/{ready_project['id']}/site-visits", json=body, headers=auth_headers("civil_engineer"))
+        return client.post(
+            f"/projects/{ready_project['id']}/site-visits", json=body, headers=auth_headers("civil_engineer")
+        )
+
     return _post
 
 
@@ -225,12 +247,24 @@ def test_template_exposes_media_limits(client, auth_headers):
 
 # ---------- construction-stage gate (v3) ----------
 
+
 def _approve_legal(client, auth_headers, pid):
     admin = auth_headers("admin")
-    client.patch(f"/projects/{pid}/legal", headers=admin, json={"status": "Applied", "authority_name": "PMC",
-                 "application_reference": "BP-7", "application_date": "2026-09-01"})
-    client.patch(f"/projects/{pid}/legal", headers=admin, json={"status": "Approved", "approval_date": "2026-09-20",
-                 "document_reference": "doc://bp-7"})
+    client.patch(
+        f"/projects/{pid}/legal",
+        headers=admin,
+        json={
+            "status": "Applied",
+            "authority_name": "PMC",
+            "application_reference": "BP-7",
+            "application_date": "2026-09-01",
+        },
+    )
+    client.patch(
+        f"/projects/{pid}/legal",
+        headers=admin,
+        json={"status": "Approved", "approval_date": "2026-09-20", "document_reference": "doc://bp-7"},
+    )
 
 
 def test_site_visits_wait_for_the_construction_stages(client, auth_headers, new_project):

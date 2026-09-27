@@ -1,4 +1,5 @@
 """The standing instructions point at documents that exist, and the module package for new domain code is in place."""
+
 import re
 from pathlib import Path
 
@@ -7,8 +8,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_claude_md_references_existing_docs():
     text = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
-    for doc in ["docs/SiteFlow-PRD-v3.2.md", "docs/SiteFlow-PRD-V4.md", "docs/IMPLEMENTATION_PLAN.md",
-                "docs/V4_IMPLEMENTATION_PLAN.md", "docs/V4_EXECUTION_PLAN.md"]:
+    for doc in [
+        "docs/SiteFlow-PRD-v3.2.md",
+        "docs/SiteFlow-PRD-V4.md",
+        "docs/IMPLEMENTATION_PLAN.md",
+        "docs/V4_IMPLEMENTATION_PLAN.md",
+        "docs/V4_EXECUTION_PLAN.md",
+    ]:
         assert doc in text, doc
     for ref in set(re.findall(r"`(docs/[^`*]+\.md)`", text)):
         assert (ROOT / ref).exists(), ref

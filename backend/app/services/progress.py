@@ -6,6 +6,7 @@ project progress = Σ stage weight × stage progress
 A visit records the checklist for its current stage only, so stages before it count as
 complete and stages after it as zero. This reading is pending Parvez's confirmation (D2).
 """
+
 from decimal import ROUND_HALF_UP, Decimal
 
 from app import template_config as tc

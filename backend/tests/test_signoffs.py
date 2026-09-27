@@ -1,4 +1,5 @@
 """Sign-off packages the Architect prepares for the client at the four milestones."""
+
 import pytest
 
 from app import models as m
@@ -17,14 +18,21 @@ def at_signoff(client, auth_headers, new_project, client_user, db):
 
 
 def _create(client, auth_headers, pid, stage_key="requirements_signoff", role="architect"):
-    return client.post(f"/projects/{pid}/signoffs", headers=auth_headers(role),
-                       json={"stage_key": stage_key, "title": "Requirements baseline v1",
-                             "summary": "4 BHK, home office, courtyard; budget band as discussed."})
+    return client.post(
+        f"/projects/{pid}/signoffs",
+        headers=auth_headers(role),
+        json={
+            "stage_key": stage_key,
+            "title": "Requirements baseline v1",
+            "summary": "4 BHK, home office, courtyard; budget band as discussed.",
+        },
+    )
 
 
 def _attach(client, auth_headers, sid, data=PDF, ctype="application/pdf", name="Requirements baseline.pdf"):
-    return client.post(f"/signoffs/{sid}/attachments", headers=auth_headers("architect"),
-                       files={"file": (name, data, ctype)})
+    return client.post(
+        f"/signoffs/{sid}/attachments", headers=auth_headers("architect"), files={"file": (name, data, ctype)}
+    )
 
 
 def test_architect_prepares_and_sends_a_package(client, auth_headers, at_signoff):
@@ -36,7 +44,10 @@ def test_architect_prepares_and_sends_a_package(client, auth_headers, at_signoff
     a = _attach(client, auth_headers, s["id"])
     assert a.status_code == 201, a.text
     assert a.json()["filename"] == "Requirements baseline.pdf" and a.json()["content_type"] == "application/pdf"
-    assert _attach(client, auth_headers, s["id"], PNG, "image/png", "../../site plan.png").json()["filename"] == "site plan.png"
+    assert (
+        _attach(client, auth_headers, s["id"], PNG, "image/png", "../../site plan.png").json()["filename"]
+        == "site plan.png"
+    )
     sent = client.post(f"/signoffs/{s['id']}/send", headers=arch)
     assert sent.status_code == 200 and sent.json()["status"] == "sent" and sent.json()["sent_at"].endswith("+00:00")
     history = client.get(f"/projects/{at_signoff}/signoffs", headers=arch).json()

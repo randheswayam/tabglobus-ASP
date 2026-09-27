@@ -19,7 +19,9 @@ def test_open_missing_key_raises(tmp_path):
         LocalStorage(tmp_path).open("nope.png")
 
 
-@pytest.mark.parametrize("key", ["../escape.png", "a/../../escape.png", "/etc/passwd", "C:/Windows/x", "", "a\\..\\..\\x"])
+@pytest.mark.parametrize(
+    "key", ["../escape.png", "a/../../escape.png", "/etc/passwd", "C:/Windows/x", "", "a\\..\\..\\x"]
+)
 def test_keys_cannot_escape_media_dir(tmp_path, key):
     s = LocalStorage(tmp_path / "media")
     with pytest.raises(StorageKeyError):

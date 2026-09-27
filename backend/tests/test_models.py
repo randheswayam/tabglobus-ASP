@@ -10,8 +10,14 @@ from app.seed import seed
 STAFF = [r for r in m.Role if r != m.Role.client]
 
 EXPECTED_TABLES = {
-    "users", "projects", "project_members", "workflow_steps", "legal_approvals",
-    "site_visits", "reviews", "audit_events",
+    "users",
+    "projects",
+    "project_members",
+    "workflow_steps",
+    "legal_approvals",
+    "site_visits",
+    "reviews",
+    "audit_events",
 }
 
 
@@ -58,12 +64,19 @@ def test_project_relationships_and_json_columns(db):
     eng = db.query(m.User).filter_by(role=m.Role.civil_engineer).one()
     db.add(m.ProjectMember(project_id=p.id, user_id=eng.id))
     for i, name in enumerate(["Legal Approval", "Site Visit", "Team Lead Review"], start=1):
-        db.add(m.WorkflowStep(project_id=p.id, order=i, name=name,
-                              status=m.StepStatus.active if i == 1 else m.StepStatus.locked))
+        db.add(
+            m.WorkflowStep(
+                project_id=p.id, order=i, name=name, status=m.StepStatus.active if i == 1 else m.StepStatus.locked
+            )
+        )
     db.add(m.LegalApproval(project_id=p.id))
-    visit = m.SiteVisit(project_id=p.id, engineer_id=eng.id,
-                        form={"weather": "Clear"}, checklist={"fdn-pcc": "Done"},
-                        problems=[{"category": "Water", "problem": "Seepage or dampness"}])
+    visit = m.SiteVisit(
+        project_id=p.id,
+        engineer_id=eng.id,
+        form={"weather": "Clear"},
+        checklist={"fdn-pcc": "Done"},
+        problems=[{"category": "Water", "problem": "Seepage or dampness"}],
+    )
     db.add(visit)
     db.commit()
     db.refresh(p)
@@ -87,8 +100,9 @@ def test_workflow_step_order_unique_per_project(db):
 
 def test_audit_events_cannot_be_edited_or_deleted(db):
     p, arch = _project(db)
-    ev = m.AuditEvent(project_id=p.id, actor_id=arch.id, action="project.created",
-                      entity_type="project", entity_id=p.id)
+    ev = m.AuditEvent(
+        project_id=p.id, actor_id=arch.id, action="project.created", entity_type="project", entity_id=p.id
+    )
     db.add(ev)
     db.commit()
     ev.action = "tampered"

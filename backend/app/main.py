@@ -5,8 +5,24 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db import create_all, migrate
-from app.routers import (auth, client, dashboard, invites, legal, media, notifications, problems, projects, red_flags, reviews,
-                         signoffs, site_visits, stages, template, updates)
+from app.routers import (
+    auth,
+    client,
+    dashboard,
+    invites,
+    legal,
+    media,
+    notifications,
+    problems,
+    projects,
+    red_flags,
+    reviews,
+    signoffs,
+    site_visits,
+    stages,
+    template,
+    updates,
+)
 
 
 @asynccontextmanager

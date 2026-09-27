@@ -14,8 +14,7 @@ ALL_PROJECTS_ROLES = {Role.architect, Role.team_lead}
 
 
 def _unauthorized() -> HTTPException:
-    return HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated",
-                         headers={"WWW-Authenticate": "Bearer"})
+    return HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated", headers={"WWW-Authenticate": "Bearer"})
 
 
 def get_current_user(
@@ -27,7 +26,7 @@ def get_current_user(
     try:
         user_id = decode_access_token(creds.credentials)
     except InvalidToken:
-        raise _unauthorized()
+        raise _unauthorized() from None
     user = db.get(User, user_id)
     if user is None or not user.is_active:
         raise _unauthorized()
@@ -37,7 +36,9 @@ def get_current_user(
 def require_staff(user: User = Depends(get_current_user)) -> User:
     """Router-level guard for every staff API. Clients use /client/* only."""
     if user.role == Role.client:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "This area is for the SiteFlow team. Clients use the client app.")
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "This area is for the SiteFlow team. Clients use the client app."
+        )
     return user
 
 
@@ -57,12 +58,12 @@ def visible_projects(user: User) -> Select:
     stmt = select(Project).order_by(Project.id)
     if user.role in ALL_PROJECTS_ROLES:
         return stmt
-    return stmt.where(Project.id.in_(
-        select(ProjectMember.project_id).where(ProjectMember.user_id == user.id)))
+    return stmt.where(Project.id.in_(select(ProjectMember.project_id).where(ProjectMember.user_id == user.id)))
 
 
-def get_visible_project(project_id: int, db: Session = Depends(get_db),
-                        user: User = Depends(get_current_user)) -> Project:
+def get_visible_project(
+    project_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> Project:
     """The project, or 404 when it doesn't exist or the user may not see it (no existence leak)."""
     project = db.scalars(visible_projects(user).where(Project.id == project_id)).first()
     if project is None:

@@ -59,8 +59,7 @@ def test_create_requires_non_blank_name_and_location(client, users, auth_headers
 def test_list_and_detail_respect_visibility(client, db, users, auth_headers, new_project):
     mine = new_project("Villa A")
     # A project the engineer is not a member of.
-    other_eng = m.User(name="Other Eng", email="other@siteflow.local", role=m.Role.civil_engineer,
-                       password_hash="x")
+    other_eng = m.User(name="Other Eng", email="other@siteflow.local", role=m.Role.civil_engineer, password_hash="x")
     db.add(other_eng)
     db.commit()
     theirs = new_project("Villa B", civil_engineer_id=other_eng.id)
@@ -79,8 +78,15 @@ def test_list_and_detail_respect_visibility(client, db, users, auth_headers, new
 def test_list_item_summary_fields(client, auth_headers, new_project):
     new_project()
     item = client.get("/projects", headers=auth_headers("team_lead")).json()[0]
-    assert set(item) >= {"id", "name", "location", "current_step", "official_progress",
-                         "latest_visit_status", "civil_engineer"}
+    assert set(item) >= {
+        "id",
+        "name",
+        "location",
+        "current_step",
+        "official_progress",
+        "latest_visit_status",
+        "civil_engineer",
+    }
     assert item["current_step"] == "Legal Approval"
     assert item["latest_visit_status"] is None
 

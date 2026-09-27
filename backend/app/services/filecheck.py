@@ -1,11 +1,18 @@
 """Upload checks shared by site media and sign-off packages. The Content-Type header comes from the client,
 so the file's own leading bytes are checked too, and reading stops as soon as the size limit is passed."""
+
 from fastapi import HTTPException, UploadFile, status
 
 _CHUNK = 1024 * 1024
 
-EXTENSIONS = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "video/mp4": ".mp4",
-              "video/webm": ".webm", "application/pdf": ".pdf"}
+EXTENSIONS = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
+    "application/pdf": ".pdf",
+}
 
 
 def signature_matches(content_type: str, head: bytes) -> bool:

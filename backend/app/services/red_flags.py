@@ -2,15 +2,25 @@
 
 evaluate_flags() is a pure function over plain state, so every rule is testable with a fixed clock.
 Thresholds come from workflow_config (placeholders pending Parvez, D4 and D5)."""
+
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import func, select
 
 from app import workflow_config as wc
 from app.clock import business_date
-from app.models import (Problem, ProblemStatus, RedFlag, Review, ReviewDecision, SignoffRequest, SignoffStatus, SiteVisit,
-                        StepStatus)
+from app.models import (
+    Problem,
+    ProblemStatus,
+    RedFlag,
+    Review,
+    ReviewDecision,
+    SignoffRequest,
+    SignoffStatus,
+    SiteVisit,
+    StepStatus,
+)
 from app.schemas import iso_utc, user_brief
 from app.services import audit, notify
 
@@ -80,8 +90,9 @@ def evaluate_flags(s: ProjectState, now: datetime, cfg=wc) -> set[tuple[str, str
 
 # ---------- persistence ----------
 
+
 def _utc(t: datetime | None) -> datetime | None:
-    return None if t is None else (t.replace(tzinfo=timezone.utc) if t.tzinfo is None else t)
+    return None if t is None else (t.replace(tzinfo=UTC) if t.tzinfo is None else t)
 
 
 def project_state(db, project) -> ProjectState:
@@ -89,14 +100,20 @@ def project_state(db, project) -> ProjectState:
     transaction are seen (the caller flushes first)."""
     steps = {s.order: s for s in project.steps}
     visits = db.scalars(select(SiteVisit).where(SiteVisit.project_id == project.id).order_by(SiteVisit.id)).all()
-    reviews = db.execute(select(Review.site_visit_id, Review.decision, func.max(Review.created_at), func.count())
-                         .join(SiteVisit).where(SiteVisit.project_id == project.id)
-                         .group_by(Review.site_visit_id, Review.decision)).all()
+    reviews = db.execute(
+        select(Review.site_visit_id, Review.decision, func.max(Review.created_at), func.count())
+        .join(SiteVisit)
+        .where(SiteVisit.project_id == project.id)
+        .group_by(Review.site_visit_id, Review.decision)
+    ).all()
     reworks = {vid: n for vid, d, _, n in reviews if d == ReviewDecision.rework}
     approvals = [_utc(t) for _, d, t, _ in reviews if d == ReviewDecision.approve]
     problems = db.scalars(select(Problem).where(Problem.project_id == project.id)).all()
-    pending = db.execute(select(SignoffRequest.id, SignoffRequest.sent_at).where(
-        SignoffRequest.project_id == project.id, SignoffRequest.status == SignoffStatus.sent)).all()
+    pending = db.execute(
+        select(SignoffRequest.id, SignoffRequest.sent_at).where(
+            SignoffRequest.project_id == project.id, SignoffRequest.status == SignoffStatus.sent
+        )
+    ).all()
     la = project.legal_approval
     return ProjectState(
         legal_status=la.status.value if la else "Not started",
@@ -104,10 +121,16 @@ def project_state(db, project) -> ProjectState:
         legal_approved_at=_utc(steps[1].completed_at) if steps[1].status == StepStatus.completed else None,
         site_visit_open=steps[2].status == StepStatus.active,
         last_approved_visit_at=max(approvals) if approvals else None,
-        visits=[VisitState(id=v.id, status=v.status.value, submitted_at=_utc(v.submitted_at),
-                           rework_count=reworks.get(v.id, 0)) for v in visits],
-        problems=[ProblemState(id=p.id, severity=p.severity, target_date=p.target_date,
-                               open=p.status == ProblemStatus.open) for p in problems],
+        visits=[
+            VisitState(
+                id=v.id, status=v.status.value, submitted_at=_utc(v.submitted_at), rework_count=reworks.get(v.id, 0)
+            )
+            for v in visits
+        ],
+        problems=[
+            ProblemState(id=p.id, severity=p.severity, target_date=p.target_date, open=p.status == ProblemStatus.open)
+            for p in problems
+        ],
         pending_signoffs=[(i, _utc(t)) for i, t in pending],
     )
 
@@ -122,8 +145,15 @@ def sync_red_flags(db, project, now: datetime) -> None:
         latest[(f.rule, f.key)] = f
 
     def log(action, f, **detail):
-        audit.record(db, None, action, project_id=project.id, entity_type="red_flag", entity_id=f.id,
-                     detail={"rule": f.rule, "key": f.key, "label": RULES[f.rule]["label"], **detail})
+        audit.record(
+            db,
+            None,
+            action,
+            project_id=project.id,
+            entity_type="red_flag",
+            entity_id=f.id,
+            detail={"rule": f.rule, "key": f.key, "label": RULES[f.rule]["label"], **detail},
+        )
 
     for rule, key in sorted(holding):
         f = latest.get((rule, key))
@@ -143,7 +173,16 @@ def sync_red_flags(db, project, now: datetime) -> None:
 
 
 def flag_out(f) -> dict:
-    return {"id": f.id, "project_id": f.project_id, "rule": f.rule, "label": RULES[f.rule]["label"],
-            "rank": RULES[f.rule]["rank"], "key": f.key, "raised_at": iso_utc(f.raised_at),
-            "cleared_at": iso_utc(f.cleared_at), "clear_kind": f.clear_kind, "clear_reason": f.clear_reason,
-            "cleared_by": user_brief(f.cleared_by)}
+    return {
+        "id": f.id,
+        "project_id": f.project_id,
+        "rule": f.rule,
+        "label": RULES[f.rule]["label"],
+        "rank": RULES[f.rule]["rank"],
+        "key": f.key,
+        "raised_at": iso_utc(f.raised_at),
+        "cleared_at": iso_utc(f.cleared_at),
+        "clear_kind": f.clear_kind,
+        "clear_reason": f.clear_reason,
+        "cleared_by": user_brief(f.cleared_by),
+    }

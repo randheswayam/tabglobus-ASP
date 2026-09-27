@@ -16,8 +16,14 @@ def get_template(_: User = Depends(get_current_user)) -> dict:
         "id": tc.TEMPLATE_ID,
         "version": tc.TEMPLATE_VERSION,
         "steps": tc.WORKFLOW_STEPS,
-        "stages": [{"name": s["name"], "weight": s["weight"],
-                    "checklist": [{"id": i["id"], "label": i["label"]} for i in s["checklist"]]} for s in tc.STAGES],
+        "stages": [
+            {
+                "name": s["name"],
+                "weight": s["weight"],
+                "checklist": [{"id": i["id"], "label": i["label"]} for i in s["checklist"]],
+            }
+            for s in tc.STAGES
+        ],
         "checklist_states": tc.CHECKLIST_STATES,
         "problems": tc.PROBLEMS,
         "severities": tc.SEVERITIES,

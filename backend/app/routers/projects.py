@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -15,8 +15,9 @@ router = APIRouter(tags=["projects"], dependencies=[Depends(require_staff)])
 
 
 @router.post("/projects", status_code=status.HTTP_201_CREATED)
-def create_project(body: ProjectIn, db: Session = Depends(get_db),
-                   user: User = Depends(require_role(Role.architect))) -> dict:
+def create_project(
+    body: ProjectIn, db: Session = Depends(get_db), user: User = Depends(require_role(Role.architect))
+) -> dict:
     engineer = db.get(User, body.civil_engineer_id)
     if engineer is None or engineer.role != Role.civil_engineer or not engineer.is_active:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "civil_engineer_id must be an active Civil Engineer")
@@ -29,17 +30,32 @@ def create_project(body: ProjectIn, db: Session = Depends(get_db),
     for member_id in {user.id, engineer.id, *(a.id for a in admins)}:
         db.add(ProjectMember(project_id=project.id, user_id=member_id))
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for order, name in enumerate(tc.WORKFLOW_STEPS, start=1):
         first = order == 1
-        db.add(WorkflowStep(project_id=project.id, order=order, name=name,
-                            status=StepStatus.active if first else StepStatus.locked,
-                            activated_at=now if first else None))
+        db.add(
+            WorkflowStep(
+                project_id=project.id,
+                order=order,
+                name=name,
+                status=StepStatus.active if first else StepStatus.locked,
+                activated_at=now if first else None,
+            )
+        )
     db.add(LegalApproval(project_id=project.id, expected_date=body.legal_expected_date))
-    audit.record(db, user, "project.created", project_id=project.id, entity_type="project",
-                 entity_id=project.id, detail={"civil_engineer_id": engineer.id,
-                                               "start_stage": body.start_stage,
-                                               "historical_confirmed_by": body.historical_confirmed_by})
+    audit.record(
+        db,
+        user,
+        "project.created",
+        project_id=project.id,
+        entity_type="project",
+        entity_id=project.id,
+        detail={
+            "civil_engineer_id": engineer.id,
+            "start_stage": body.start_stage,
+            "historical_confirmed_by": body.historical_confirmed_by,
+        },
+    )
     stages.create_stages(db, project, body.start_stage, body.historical_confirmed_by)
     stages.release(db, project, user)
     db.commit()
@@ -64,8 +80,9 @@ def list_visits(project: Project = Depends(get_visible_project)) -> list[dict]:
 
 
 @router.get("/users")
-def list_users(role: Role | None = None, db: Session = Depends(get_db),
-               _: User = Depends(require_role(Role.architect))) -> list[dict]:
+def list_users(
+    role: Role | None = None, db: Session = Depends(get_db), _: User = Depends(require_role(Role.architect))
+) -> list[dict]:
     stmt = select(User).where(User.is_active.is_(True)).order_by(User.id)
     if role is not None:
         stmt = stmt.where(User.role == role)

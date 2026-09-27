@@ -2,10 +2,17 @@ import pytest
 
 from tests.conftest import workflow_actions
 
-APPLIED = {"status": "Applied", "authority_name": "Pune Municipal Corporation",
-           "application_reference": "PMC/BP/2026/0142", "application_date": "2026-09-01"}
-APPROVED = {"status": "Approved", "approval_date": "2026-09-20",
-            "document_reference": "https://files.example/pmc-approval-0142.pdf"}
+APPLIED = {
+    "status": "Applied",
+    "authority_name": "Pune Municipal Corporation",
+    "application_reference": "PMC/BP/2026/0142",
+    "application_date": "2026-09-01",
+}
+APPROVED = {
+    "status": "Approved",
+    "approval_date": "2026-09-20",
+    "document_reference": "https://files.example/pmc-approval-0142.pdf",
+}
 
 
 @pytest.fixture
@@ -43,8 +50,13 @@ def test_admin_applies_then_approves_and_step2_unlocks(legal):
 def test_each_change_writes_audit_events(legal):
     legal(APPLIED)
     p = legal(APPROVED).json()
-    assert workflow_actions(p["audit"]) == ["project.created", "legal.updated", "legal.updated",
-                                            "step.completed", "step.activated"]
+    assert workflow_actions(p["audit"]) == [
+        "project.created",
+        "legal.updated",
+        "legal.updated",
+        "step.completed",
+        "step.activated",
+    ]
     approved = [e for e in p["audit"] if e["action"] == "legal.updated"][1]
     assert approved["detail"]["from"] == "Applied"
     assert approved["detail"]["to"] == "Approved"
@@ -113,7 +125,9 @@ def test_only_admin_can_update(legal, auth_headers, role):
 
 def test_admin_not_member_gets_404(client, db, auth_headers, legal):
     from app import models as m
+
     db.query(m.ProjectMember).filter_by(project_id=legal.project_id).filter(
-        m.ProjectMember.user_id == db.query(m.User).filter_by(role=m.Role.admin).one().id).delete()
+        m.ProjectMember.user_id == db.query(m.User).filter_by(role=m.Role.admin).one().id
+    ).delete()
     db.commit()
     assert legal(APPLIED).status_code == 404

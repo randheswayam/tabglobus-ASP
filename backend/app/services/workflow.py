@@ -1,5 +1,6 @@
 """Step transitions for the three-step workflow. Each change is audited; the caller commits."""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -21,14 +22,15 @@ def _set(db: Session, project: Project, order: int, new: StepStatus, actor: User
     s = step(project, order)
     if s.status == new:
         return
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     s.status = new
     if new == StepStatus.active:
         s.activated_at, s.completed_at = now, None
     elif new == StepStatus.completed:
         s.completed_at = now
-    audit.record(db, actor, action, project_id=project.id, entity_type="workflow_step",
-                 entity_id=s.id, detail={"step": s.name})
+    audit.record(
+        db, actor, action, project_id=project.id, entity_type="workflow_step", entity_id=s.id, detail={"step": s.name}
+    )
 
 
 def activate(db: Session, project: Project, order: int, actor: User) -> None:

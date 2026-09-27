@@ -1,4 +1,5 @@
 """Completing stages: owners finish ordinary stages with a note; gate stages only open when the gate is met."""
+
 import pytest
 
 from tests.conftest import valid_visit
@@ -76,11 +77,14 @@ def test_civil_completion_is_blocked_by_open_major_problems(client, auth_headers
     assert _state(client, lead, pid, "interiors_signoff")["state"] == "blocked"
 
 
-@pytest.mark.parametrize("role,key,expected", [
-    ("civil_engineer", "setup", 403),       # the Architect's stage
-    ("admin", "setup", 403),
-    ("team_lead", "setup", 200),            # Team Lead may complete staff stages
-])
+@pytest.mark.parametrize(
+    "role,key,expected",
+    [
+        ("civil_engineer", "setup", 403),  # the Architect's stage
+        ("admin", "setup", 403),
+        ("team_lead", "setup", 200),  # Team Lead may complete staff stages
+    ],
+)
 def test_roles_that_may_complete(client, auth_headers, new_project, role, key, expected):
     assert _complete(client, auth_headers(role), new_project()["id"], key).status_code == expected
 

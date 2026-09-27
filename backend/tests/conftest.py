@@ -19,6 +19,7 @@ from app.db import Base, SessionLocal, engine, migrate  # noqa: E402
 from app.main import app  # noqa: E402
 
 if PG_URL:
+
     @pytest.fixture(scope="session", autouse=True)
     def _pg_schema():
         """Build the schema once, through the real migrations."""
@@ -39,6 +40,7 @@ if PG_URL:
         outer.rollback()
         conn.close()
 else:
+
     @pytest.fixture(autouse=True)
     def fresh_schema():
         Base.metadata.drop_all(engine)
@@ -89,9 +91,13 @@ def new_project(client, users, auth_headers):
     """new_project(name=...) -> JSON of a project created through the API by the architect."""
 
     def _create(name: str = "Villa A", **overrides) -> dict:
-        body = {"name": name, "location": "Baner, Pune",
-                "civil_engineer_id": users["civil_engineer"].id,
-                "legal_expected_date": "2026-11-30", **overrides}
+        body = {
+            "name": name,
+            "location": "Baner, Pune",
+            "civil_engineer_id": users["civil_engineer"].id,
+            "legal_expected_date": "2026-11-30",
+            **overrides,
+        }
         r = client.post("/projects", json=body, headers=auth_headers("architect"))
         assert r.status_code == 201, r.text
         return r.json()
@@ -105,9 +111,15 @@ def ready_project(client, auth_headers, new_project):
     approved, so the Site Visit step is open."""
     p = new_project(start_stage="line_out", historical_confirmed_by="Parvez")
     admin = auth_headers("admin")
-    for body in ({"status": "Applied", "authority_name": "PMC", "application_reference": "BP-1",
-                  "application_date": "2026-09-01"},
-                 {"status": "Approved", "approval_date": "2026-09-20", "document_reference": "doc://approval-1"}):
+    for body in (
+        {
+            "status": "Applied",
+            "authority_name": "PMC",
+            "application_reference": "BP-1",
+            "application_date": "2026-09-01",
+        },
+        {"status": "Approved", "approval_date": "2026-09-20", "document_reference": "doc://approval-1"},
+    ):
         r = client.patch(f"/projects/{p['id']}/legal", json=body, headers=admin)
         assert r.status_code == 200, r.text
     return r.json()
@@ -123,11 +135,17 @@ def valid_visit(**overrides) -> dict:
         "current_stage": "Plinth",
         "checklist": {"pln-beam": "Done", "pln-filling": "In progress", "pln-dpc": "Not started"},
         "no_issues": False,
-        "problems": [{
-            "category": "Water", "problem": "Seepage or dampness", "other_text": None,
-            "severity": "High", "location": "North-east corner", "responsible_party": "Contractor",
-            "target_date": "2026-10-05",
-        }],
+        "problems": [
+            {
+                "category": "Water",
+                "problem": "Seepage or dampness",
+                "other_text": None,
+                "severity": "High",
+                "location": "North-east corner",
+                "responsible_party": "Contractor",
+                "target_date": "2026-10-05",
+            }
+        ],
         "summary": "Plinth beam cast; filling under way.",
         "recommended_action": "Fix seepage before DPC.",
     }
@@ -148,8 +166,12 @@ def upload(client, auth_headers):
     def _upload(visit_id, kind="photo", data=PNG, content_type="image/png", headers=None, **form):
         files = {"file": ("site.bin", data, content_type)}
         fields = {"kind": kind, **{k: str(v) for k, v in form.items()}}
-        return client.post(f"/site-visits/{visit_id}/media", files=files, data=fields,
-                           headers=headers or auth_headers("civil_engineer"))
+        return client.post(
+            f"/site-visits/{visit_id}/media",
+            files=files,
+            data=fields,
+            headers=headers or auth_headers("civil_engineer"),
+        )
 
     return _upload
 
@@ -190,8 +212,12 @@ def client_user(db):
     from app import models as m
     from app.passwords import hash_password
 
-    u = m.User(name="Mr. Gokhale", email="gokhale@client.example", role=m.Role.client,
-               password_hash=hash_password(TEST_PASSWORD))
+    u = m.User(
+        name="Mr. Gokhale",
+        email="gokhale@client.example",
+        role=m.Role.client,
+        password_hash=hash_password(TEST_PASSWORD),
+    )
     db.add(u)
     db.commit()
     return u

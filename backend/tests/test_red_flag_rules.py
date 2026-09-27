@@ -1,18 +1,26 @@
 """The six red flag rules (plan section 5.3), evaluated on plain in-memory state with a fixed clock."""
-from datetime import date, datetime, timedelta, timezone
+
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
 
 from app.services.red_flags import RULES, ProblemState, ProjectState, VisitState, evaluate_flags
 
-NOW = datetime(2026, 10, 15, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
 CFG = SimpleNamespace(REVIEW_SLA_HOURS=48, VISIT_INTERVAL_DAYS=14, REWORK_LIMIT=2, CLIENT_SIGNOFF_SLA_DAYS=7)
 
 
 def state(**kw) -> ProjectState:
-    base = dict(legal_status="Approved", legal_expected_date=date(2026, 9, 30), legal_approved_at=NOW - timedelta(days=3),
-                site_visit_open=True, last_approved_visit_at=None, visits=[], problems=[])
+    base = dict(
+        legal_status="Approved",
+        legal_expected_date=date(2026, 9, 30),
+        legal_approved_at=NOW - timedelta(days=3),
+        site_visit_open=True,
+        last_approved_visit_at=None,
+        visits=[],
+        problems=[],
+    )
     return ProjectState(**{**base, **kw})
 
 
@@ -38,7 +46,9 @@ def test_resolved_problems_raise_nothing():
 def test_legal_delay_when_not_approved_past_expected_date():
     assert ("legal_delay", "project") in flags(state(legal_status="Applied", legal_expected_date=date(2026, 10, 14)))
     assert ("legal_delay", "project") in flags(state(legal_status="Rejected", legal_expected_date=date(2026, 10, 14)))
-    assert flags(state(legal_status="Applied", legal_expected_date=date(2026, 10, 15))) == set()  # due today is not late
+    assert (
+        flags(state(legal_status="Applied", legal_expected_date=date(2026, 10, 15))) == set()
+    )  # due today is not late
     assert flags(state(legal_status="Applied", legal_expected_date=None)) == set()
     assert flags(state(legal_status="Approved", legal_expected_date=date(2026, 9, 1))) == set()
 
@@ -62,16 +72,24 @@ def test_repeated_rework_at_the_limit():
 def test_no_recent_visit_counts_from_last_approval_or_legal_approval():
     assert ("no_recent_visit", "project") in flags(state(legal_approved_at=NOW - timedelta(days=15)))
     assert flags(state(legal_approved_at=NOW - timedelta(days=13))) == set()
-    assert ("no_recent_visit", "project") in flags(state(legal_approved_at=NOW - timedelta(days=90),
-                                                         last_approved_visit_at=NOW - timedelta(days=15)))
-    assert flags(state(legal_approved_at=NOW - timedelta(days=90), last_approved_visit_at=NOW - timedelta(days=2))) == set()
+    assert ("no_recent_visit", "project") in flags(
+        state(legal_approved_at=NOW - timedelta(days=90), last_approved_visit_at=NOW - timedelta(days=15))
+    )
+    assert (
+        flags(state(legal_approved_at=NOW - timedelta(days=90), last_approved_visit_at=NOW - timedelta(days=2)))
+        == set()
+    )
     # Only while a site visit is due: not before Legal Approval, not while waiting for review.
     assert flags(state(legal_approved_at=NOW - timedelta(days=30), site_visit_open=False)) == set()
 
 
 def test_overdue_fix_after_target_date():
-    s = state(problems=[ProblemState(id=9, severity="Low", target_date=date(2026, 10, 14), open=True),
-                        ProblemState(id=10, severity="Low", target_date=date(2026, 10, 15), open=True)])
+    s = state(
+        problems=[
+            ProblemState(id=9, severity="Low", target_date=date(2026, 10, 14), open=True),
+            ProblemState(id=10, severity="Low", target_date=date(2026, 10, 15), open=True),
+        ]
+    )
     assert flags(s) == {("overdue_fix", "problem-9")}
 
 
@@ -81,15 +99,22 @@ def test_one_problem_can_raise_two_rules():
 
 
 def test_every_rule_has_a_label_and_rank():
-    assert set(RULES) == {"critical_issue", "legal_delay", "review_overdue", "repeated_rework", "no_recent_visit", "overdue_fix",
-                          "client_decision_overdue"}
+    assert set(RULES) == {
+        "critical_issue",
+        "legal_delay",
+        "review_overdue",
+        "repeated_rework",
+        "no_recent_visit",
+        "overdue_fix",
+        "client_decision_overdue",
+    }
     assert all(r["label"] and isinstance(r["rank"], int) for r in RULES.values())
     assert RULES["critical_issue"]["rank"] > RULES["no_recent_visit"]["rank"]
 
 
 def test_dates_use_the_office_timezone_not_utc():
     """Just after midnight in Pune it is still the previous day in UTC; 'overdue' must follow Pune's date."""
-    just_after_midnight_ist = datetime(2026, 10, 14, 19, 0, tzinfo=timezone.utc)  # 15 Oct 00:30 in Asia/Kolkata
+    just_after_midnight_ist = datetime(2026, 10, 14, 19, 0, tzinfo=UTC)  # 15 Oct 00:30 in Asia/Kolkata
     s = state(problems=[ProblemState(id=12, severity="Low", target_date=date(2026, 10, 14), open=True)])
     assert evaluate_flags(s, just_after_midnight_ist, CFG) == {("overdue_fix", "problem-12")}
 

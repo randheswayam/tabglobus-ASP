@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -65,21 +65,30 @@ _INVALID_INVITE = "This invite code is not valid. Ask your architect for a new o
 
 
 def _aware(t: datetime) -> datetime:
-    return t.replace(tzinfo=timezone.utc) if t.tzinfo is None else t
+    return t.replace(tzinfo=UTC) if t.tzinfo is None else t
 
 
 @router.post("/activate", response_model=TokenOut)
 def activate(body: ActivateIn, db: Session = Depends(get_db)) -> TokenOut:
     """A client sets their password with the one-time invite code. Every failure looks the same."""
     if len(body.password) < 10:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            {"message": "Choose a password of at least 10 characters", "missing": ["password"]})
-    now = datetime.now(timezone.utc)
-    user = db.scalars(select(User).where(func.lower(User.email) == body.email.strip().lower(),
-                                         User.role == Role.client)).first()
-    invite = None if user is None else db.scalars(
-        select(ClientInvite).where(ClientInvite.user_id == user.id, ClientInvite.used_at.is_(None),
-                                   ClientInvite.revoked_at.is_(None)).order_by(ClientInvite.id.desc())).first()
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            {"message": "Choose a password of at least 10 characters", "missing": ["password"]},
+        )
+    now = datetime.now(UTC)
+    user = db.scalars(
+        select(User).where(func.lower(User.email) == body.email.strip().lower(), User.role == Role.client)
+    ).first()
+    invite = (
+        None
+        if user is None
+        else db.scalars(
+            select(ClientInvite)
+            .where(ClientInvite.user_id == user.id, ClientInvite.used_at.is_(None), ClientInvite.revoked_at.is_(None))
+            .order_by(ClientInvite.id.desc())
+        ).first()
+    )
     code = body.code.strip().upper()
     usable = invite is not None and invite.attempts < wc.INVITE_MAX_ATTEMPTS and _aware(invite.expires_at) > now
     if not usable:

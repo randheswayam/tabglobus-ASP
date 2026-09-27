@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -19,8 +19,13 @@ _NEXT = {
 }
 _REQUIRED = {
     LegalStatus.applied: ["authority_name", "application_reference", "application_date"],
-    LegalStatus.approved: ["authority_name", "application_reference", "application_date",
-                           "approval_date", "document_reference"],
+    LegalStatus.approved: [
+        "authority_name",
+        "application_reference",
+        "application_date",
+        "approval_date",
+        "document_reference",
+    ],
 }
 _FIELDS = ["authority_name", "application_reference", "application_date", "approval_date", "document_reference"]
 
@@ -39,15 +44,21 @@ def _unprocessable(message: str, missing: list[str] | None = None) -> HTTPExcept
 
 
 @router.patch("/projects/{project_id}/legal")
-def update_legal(body: LegalIn, user: User = Depends(require_role(Role.admin)),
-                 project: Project = Depends(get_visible_project), db: Session = Depends(get_db)) -> dict:
+def update_legal(
+    body: LegalIn,
+    user: User = Depends(require_role(Role.admin)),
+    project: Project = Depends(get_visible_project),
+    db: Session = Depends(get_db),
+) -> dict:
     la = project.legal_approval
     current = la.status
     target = body.status or current
     if current not in _NEXT:
         raise HTTPException(status.HTTP_409_CONFLICT, f"Legal Approval is {current.value} and can no longer change")
     if target != current and target not in _NEXT[current]:
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Cannot move Legal Approval from {current.value} to {target.value}")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, f"Cannot move Legal Approval from {current.value} to {target.value}"
+        )
 
     changes = body.model_dump(exclude_unset=True, exclude={"status"})
     for k, v in changes.items():
@@ -64,15 +75,22 @@ def update_legal(body: LegalIn, user: User = Depends(require_role(Role.admin)),
     for f, v in changes.items():
         setattr(la, f, v)
     la.status = target
-    audit.record(db, user, "legal.updated", project_id=project.id, entity_type="legal_approval",
-                 entity_id=la.id, detail={"from": current.value, "to": target.value, "fields": sorted(changes)})
+    audit.record(
+        db,
+        user,
+        "legal.updated",
+        project_id=project.id,
+        entity_type="legal_approval",
+        entity_id=la.id,
+        detail={"from": current.value, "to": target.value, "fields": sorted(changes)},
+    )
 
     if target == LegalStatus.approved:
         workflow.complete(db, project, workflow.LEGAL, user)
         workflow.activate(db, project, workflow.SITE_VISIT, user)
         notify.legal_approved(db, project, user)
 
-    red_flags.sync_red_flags(db, project, datetime.now(timezone.utc))
+    red_flags.sync_red_flags(db, project, datetime.now(UTC))
     db.commit()
     db.refresh(project)
     return project_detail(db, project)

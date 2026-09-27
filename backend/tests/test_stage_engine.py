@@ -1,4 +1,5 @@
 """Stage engine: which stages open, which are blocked and why. Pure functions over plain state."""
+
 from app import stage_config as sc
 from app.services.stages import GateFacts, evaluate, to_release
 
@@ -11,10 +12,10 @@ def statuses(done_until: str | None = None, historical_until: str | None = None,
     for k in KEYS:
         out[k] = "locked"
     if historical_until:
-        for k in KEYS[:KEYS.index(historical_until)]:
+        for k in KEYS[: KEYS.index(historical_until)]:
             out[k] = "historical"
     if done_until:
-        for k in KEYS[:KEYS.index(done_until)]:
+        for k in KEYS[: KEYS.index(done_until)]:
             out[k] = "completed"
     for k in active:
         out[k] = "active"
@@ -64,11 +65,23 @@ def test_locked_stage_names_what_it_waits_for():
 def test_client_signoff_stage_is_blocked_with_the_request_state():
     s = statuses(done_until="requirements_signoff", active=["requirements_signoff"])
     assert evaluate(s, FACTS)["requirements_signoff"] == {
-        "state": "blocked", "reasons": ["Sign-off package not sent to the client yet"]}
-    sent = GateFacts("Approved", 0, {"requirements_signoff": {"status": "sent", "version": 2, "sent_at": "2026-09-24T10:00:00+00:00"}})
-    assert evaluate(s, sent)["requirements_signoff"]["reasons"] == ["Waiting for client sign-off on version 2, sent 24 Sep 2026"]
-    changes = GateFacts("Approved", 0, {"requirements_signoff": {"status": "changes_requested", "version": 1, "sent_at": None}})
-    assert evaluate(s, changes)["requirements_signoff"]["reasons"] == ["The client asked for changes on version 1; prepare version 2"]
+        "state": "blocked",
+        "reasons": ["Sign-off package not sent to the client yet"],
+    }
+    sent = GateFacts(
+        "Approved",
+        0,
+        {"requirements_signoff": {"status": "sent", "version": 2, "sent_at": "2026-09-24T10:00:00+00:00"}},
+    )
+    assert evaluate(s, sent)["requirements_signoff"]["reasons"] == [
+        "Waiting for client sign-off on version 2, sent 24 Sep 2026"
+    ]
+    changes = GateFacts(
+        "Approved", 0, {"requirements_signoff": {"status": "changes_requested", "version": 1, "sent_at": None}}
+    )
+    assert evaluate(s, changes)["requirements_signoff"]["reasons"] == [
+        "The client asked for changes on version 1; prepare version 2"
+    ]
 
 
 def test_line_out_needs_legal_approval():
@@ -80,8 +93,12 @@ def test_line_out_needs_legal_approval():
 
 def test_civil_completion_needs_no_open_major_problems():
     s = statuses(historical_until="civil_completion", active=["civil_completion"])
-    assert evaluate(s, GateFacts("Approved", 2, {}))["civil_completion"]["reasons"] == ["2 open High or Critical problems"]
-    assert evaluate(s, GateFacts("Approved", 1, {}))["civil_completion"]["reasons"] == ["1 open High or Critical problem"]
+    assert evaluate(s, GateFacts("Approved", 2, {}))["civil_completion"]["reasons"] == [
+        "2 open High or Critical problems"
+    ]
+    assert evaluate(s, GateFacts("Approved", 1, {}))["civil_completion"]["reasons"] == [
+        "1 open High or Critical problem"
+    ]
     assert evaluate(s, FACTS)["civil_completion"]["state"] == "active"
 
 

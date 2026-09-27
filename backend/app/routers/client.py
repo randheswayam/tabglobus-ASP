@@ -1,8 +1,9 @@
 """The customer app's API. Only the Client role reaches it, and every response is built from an allow-list:
 no internal notes, audit, review comments, red flags or problems (decision 0002)."""
+
 import hashlib
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
@@ -13,7 +14,17 @@ from app import stage_config as sc
 from app import workflow_config as wc
 from app.db import get_db
 from app.deps import get_current_user
-from app.models import Project, ProjectMember, Role, SharedUpdate, SignoffAttachment, SignoffRequest, SignoffStatus, SignoffView, User
+from app.models import (
+    Project,
+    ProjectMember,
+    Role,
+    SharedUpdate,
+    SignoffAttachment,
+    SignoffRequest,
+    SignoffStatus,
+    SignoffView,
+    User,
+)
 from app.routers.signoffs import file_response
 from app.schemas import iso_utc
 from app.services import audit, client_view, notify, red_flags, stages
@@ -42,19 +53,30 @@ def _my_request(db: Session, user: User, signoff_id: int) -> SignoffRequest:
 
 
 def _viewed(db: Session, user: User, req: SignoffRequest) -> set[int]:
-    return set(db.scalars(select(SignoffView.attachment_id).where(SignoffView.request_id == req.id,
-                                                                  SignoffView.user_id == user.id)))
+    return set(
+        db.scalars(
+            select(SignoffView.attachment_id).where(SignoffView.request_id == req.id, SignoffView.user_id == user.id)
+        )
+    )
 
 
 def client_signoff_out(db: Session, user: User, req: SignoffRequest) -> dict:
     viewed = _viewed(db, user, req)
     return {
-        "id": req.id, "project": {"id": req.project_id, "name": req.project.name},
-        "stage_key": req.stage_key, "stage": sc.BY_KEY[req.stage_key]["label"], "version": req.version,
-        "status": req.status.value, "title": req.title, "summary": req.summary,
-        "sent_at": iso_utc(req.sent_at), "responded_at": iso_utc(req.responded_at),
-        "response_comment": req.response_comment, "signer_name": req.signer_name,
-        "confirmation_text": wc.SIGNOFF_CONFIRMATION_TEXT, "can_respond": req.status == SignoffStatus.sent,
+        "id": req.id,
+        "project": {"id": req.project_id, "name": req.project.name},
+        "stage_key": req.stage_key,
+        "stage": sc.BY_KEY[req.stage_key]["label"],
+        "version": req.version,
+        "status": req.status.value,
+        "title": req.title,
+        "summary": req.summary,
+        "sent_at": iso_utc(req.sent_at),
+        "responded_at": iso_utc(req.responded_at),
+        "response_comment": req.response_comment,
+        "signer_name": req.signer_name,
+        "confirmation_text": wc.SIGNOFF_CONFIRMATION_TEXT,
+        "can_respond": req.status == SignoffStatus.sent,
         "attachments": [attachment_out(a, a.id in viewed) for a in req.attachments],
     }
 
@@ -98,23 +120,37 @@ def my_project(project_id: int, user: User = Depends(require_client), db: Sessio
 
 
 @router.get("/updates/{update_id}/media/{media_id}")
-def shared_photo(update_id: int, media_id: int, user: User = Depends(require_client), db: Session = Depends(get_db)) -> Response:
+def shared_photo(
+    update_id: int, media_id: int, user: User = Depends(require_client), db: Session = Depends(get_db)
+) -> Response:
     """Only photos the Architect put in this update, on one of the client's projects."""
     update = db.get(SharedUpdate, update_id)
-    photo = None if update is None or update.project_id not in _member_project_ids(db, user) else next(
-        (ph.media for ph in update.photos if ph.media_id == media_id), None)
+    photo = (
+        None
+        if update is None or update.project_id not in _member_project_ids(db, user)
+        else next((ph.media for ph in update.photos if ph.media_id == media_id), None)
+    )
     if photo is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo not found")
-    return Response(get_storage().open(photo.storage_key), media_type=photo.content_type, headers={
-        "Content-Disposition": "inline", "X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=3600"})
+    return Response(
+        get_storage().open(photo.storage_key),
+        media_type=photo.content_type,
+        headers={
+            "Content-Disposition": "inline",
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, max-age=3600",
+        },
+    )
 
 
 @router.get("/signoffs")
 def my_signoffs(user: User = Depends(require_client), db: Session = Depends(get_db)) -> list[dict]:
     ids = _member_project_ids(db, user)
-    rows = db.scalars(select(SignoffRequest).where(SignoffRequest.project_id.in_(ids),
-                                                   SignoffRequest.status != SignoffStatus.draft)
-                      .order_by(SignoffRequest.id.desc())).all()
+    rows = db.scalars(
+        select(SignoffRequest)
+        .where(SignoffRequest.project_id.in_(ids), SignoffRequest.status != SignoffStatus.draft)
+        .order_by(SignoffRequest.id.desc())
+    ).all()
     return [client_signoff_out(db, user, r) for r in rows]
 
 
@@ -124,8 +160,9 @@ def my_signoff(signoff_id: int, user: User = Depends(require_client), db: Sessio
 
 
 @router.get("/signoffs/{signoff_id}/attachments/{attachment_id}")
-def open_attachment(signoff_id: int, attachment_id: int, user: User = Depends(require_client),
-                    db: Session = Depends(get_db)) -> Response:
+def open_attachment(
+    signoff_id: int, attachment_id: int, user: User = Depends(require_client), db: Session = Depends(get_db)
+) -> Response:
     req = _my_request(db, user, signoff_id)
     att = db.get(SignoffAttachment, attachment_id)
     if att is None or att.request_id != req.id:
@@ -137,8 +174,13 @@ def open_attachment(signoff_id: int, attachment_id: int, user: User = Depends(re
 
 
 @router.post("/signoffs/{signoff_id}/approve")
-def approve(signoff_id: int, body: ApproveIn, request: Request, user: User = Depends(require_client),
-            db: Session = Depends(get_db)) -> dict:
+def approve(
+    signoff_id: int,
+    body: ApproveIn,
+    request: Request,
+    user: User = Depends(require_client),
+    db: Session = Depends(get_db),
+) -> dict:
     req = _my_request(db, user, signoff_id)
     _respond(db, req)
     viewed = _viewed(db, user, req)
@@ -146,18 +188,38 @@ def approve(signoff_id: int, body: ApproveIn, request: Request, user: User = Dep
     missing = (["attachments"] if unviewed else []) + ([] if body.confirm else ["confirm"])
     invalid = [] if body.signer_name.strip() and _norm(body.signer_name) == _norm(user.name) else ["signer_name"]
     if missing or invalid:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, {
-            "message": "Open every document, tick the confirmation and type your full name to sign off",
-            "missing": missing, "invalid": invalid, "unviewed": unviewed})
-    now = datetime.now(timezone.utc)
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            {
+                "message": "Open every document, tick the confirmation and type your full name to sign off",
+                "missing": missing,
+                "invalid": invalid,
+                "unviewed": unviewed,
+            },
+        )
+    now = datetime.now(UTC)
     req.status, req.responded_at, req.signer_id = SignoffStatus.approved, now, user.id
     req.signer_name, req.method = body.signer_name.strip(), "client_app"
     req.confirmation_text, req.fingerprint = wc.SIGNOFF_CONFIRMATION_TEXT, _fingerprint(request)
-    audit.record(db, user, "signoff.approved", project_id=req.project_id, entity_type="signoff", entity_id=req.id,
-                 detail={"stage": sc.BY_KEY[req.stage_key]["label"], "version": req.version, "signer": req.signer_name})
-    stages.complete(db, req.project, req.stage_key, user,
-                    f"Signed off by {req.signer_name} in the client app (version {req.version}).")
-    notify.signoff_answered(db, req.project, sc.BY_KEY[req.stage_key]["label"], req.version, user, req.signer_name, None)
+    audit.record(
+        db,
+        user,
+        "signoff.approved",
+        project_id=req.project_id,
+        entity_type="signoff",
+        entity_id=req.id,
+        detail={"stage": sc.BY_KEY[req.stage_key]["label"], "version": req.version, "signer": req.signer_name},
+    )
+    stages.complete(
+        db,
+        req.project,
+        req.stage_key,
+        user,
+        f"Signed off by {req.signer_name} in the client app (version {req.version}).",
+    )
+    notify.signoff_answered(
+        db, req.project, sc.BY_KEY[req.stage_key]["label"], req.version, user, req.signer_name, None
+    )
     red_flags.sync_red_flags(db, req.project, now)
     db.commit()
     db.refresh(req)
@@ -165,19 +227,28 @@ def approve(signoff_id: int, body: ApproveIn, request: Request, user: User = Dep
 
 
 @router.post("/signoffs/{signoff_id}/request-changes")
-def request_changes(signoff_id: int, body: ChangesIn, user: User = Depends(require_client),
-                    db: Session = Depends(get_db)) -> dict:
+def request_changes(
+    signoff_id: int, body: ChangesIn, user: User = Depends(require_client), db: Session = Depends(get_db)
+) -> dict:
     req = _my_request(db, user, signoff_id)
     _respond(db, req)
     comment = (body.comment or "").strip()
     if not comment:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            {"message": "Say what should change", "missing": ["comment"], "invalid": []})
-    req.status, req.responded_at, req.signer_id = SignoffStatus.changes_requested, datetime.now(timezone.utc), user.id
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            {"message": "Say what should change", "missing": ["comment"], "invalid": []},
+        )
+    req.status, req.responded_at, req.signer_id = SignoffStatus.changes_requested, datetime.now(UTC), user.id
     req.response_comment, req.method = comment, "client_app"
-    audit.record(db, user, "signoff.changes_requested", project_id=req.project_id, entity_type="signoff",
-                 entity_id=req.id, detail={"stage": sc.BY_KEY[req.stage_key]["label"], "version": req.version,
-                                           "comment": comment})
+    audit.record(
+        db,
+        user,
+        "signoff.changes_requested",
+        project_id=req.project_id,
+        entity_type="signoff",
+        entity_id=req.id,
+        detail={"stage": sc.BY_KEY[req.stage_key]["label"], "version": req.version, "comment": comment},
+    )
     notify.signoff_answered(db, req.project, sc.BY_KEY[req.stage_key]["label"], req.version, user, None, comment)
     red_flags.sync_red_flags(db, req.project, req.responded_at)
     db.commit()

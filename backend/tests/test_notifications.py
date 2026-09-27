@@ -1,4 +1,5 @@
 """In-app notifications: who hears about what (plan F10)."""
+
 from tests.conftest import valid_visit
 
 
@@ -24,14 +25,20 @@ def test_legal_approval_tells_the_engineer_the_visit_is_open(client, auth_header
 
 def test_submission_tells_the_team_lead(client, auth_headers, ready_project, evidence):
     evidence(ready_project["id"])
-    client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
+    client.post(
+        f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer")
+    )
     items = _inbox(client, auth_headers("team_lead"))["items"]
     assert items[0]["kind"] == "submitted" and "Farhan Shaikh" in items[0]["text"]
 
 
-def test_approval_tells_engineer_and_architect_and_flags_reach_architect_and_team_lead(client, auth_headers, ready_project, evidence):
+def test_approval_tells_engineer_and_architect_and_flags_reach_architect_and_team_lead(
+    client, auth_headers, ready_project, evidence
+):
     evidence(ready_project["id"])
-    v = client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer")).json()
+    v = client.post(
+        f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer")
+    ).json()
     client.post(f"/site-visits/{v['id']}/review", json={"decision": "approve"}, headers=auth_headers("team_lead"))
     assert "approved" in _kinds(client, auth_headers("civil_engineer"))
     arch = _kinds(client, auth_headers("architect"))
@@ -44,9 +51,14 @@ def test_approval_tells_engineer_and_architect_and_flags_reach_architect_and_tea
 
 def test_rework_tells_the_engineer_with_the_comment(client, auth_headers, ready_project, evidence):
     evidence(ready_project["id"])
-    v = client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer")).json()
-    client.post(f"/site-visits/{v['id']}/review", json={"decision": "rework", "comment": "Photograph the DPC edge."},
-                headers=auth_headers("team_lead"))
+    v = client.post(
+        f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer")
+    ).json()
+    client.post(
+        f"/site-visits/{v['id']}/review",
+        json={"decision": "rework", "comment": "Photograph the DPC edge."},
+        headers=auth_headers("team_lead"),
+    )
     n = _inbox(client, auth_headers("civil_engineer"))["items"][0]
     assert n["kind"] == "rework" and "Photograph the DPC edge." in n["text"]
 

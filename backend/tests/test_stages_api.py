@@ -1,4 +1,5 @@
 """Stage tracker API: every project runs the 18-stage flow; in-progress projects join mid-way (PRD 7.19)."""
+
 import pytest
 
 from app import stage_config as sc
@@ -42,8 +43,11 @@ def test_onboarding_mid_way_marks_earlier_stages_historical(client, auth_headers
     view = _stages(client, auth_headers("architect"), p["id"])
     s = _flat(view)
     assert s["grid_freeze"]["state"] == "historical"
-    assert s["grid_freeze"]["historical"] == {"label": "Historical — completed before SiteFlow", "confirmed_by": "Parvez",
-                                              "note": "Completed before SiteFlow."}
+    assert s["grid_freeze"]["historical"] == {
+        "label": "Historical — completed before SiteFlow",
+        "confirmed_by": "Parvez",
+        "note": "Completed before SiteFlow.",
+    }
     assert s["requirements_signoff"]["state"] == "historical"
     assert s["requirements_signoff"]["signed_by_client"] is False  # never shown as a client sign-off
     assert s["structural_design"]["state"] == "active" and s["structural_design"]["historical"] is None
@@ -52,14 +56,20 @@ def test_onboarding_mid_way_marks_earlier_stages_historical(client, auth_headers
     assert p["phase"]["number"] == 3
 
 
-@pytest.mark.parametrize("body,field", [
-    ({"start_stage": "roofing", "historical_confirmed_by": "Parvez"}, "start_stage"),
-    ({"start_stage": "grid"}, "historical_confirmed_by"),
-    ({"start_stage": "grid", "historical_confirmed_by": "  "}, "historical_confirmed_by"),
-])
+@pytest.mark.parametrize(
+    "body,field",
+    [
+        ({"start_stage": "roofing", "historical_confirmed_by": "Parvez"}, "start_stage"),
+        ({"start_stage": "grid"}, "historical_confirmed_by"),
+        ({"start_stage": "grid", "historical_confirmed_by": "  "}, "historical_confirmed_by"),
+    ],
+)
 def test_onboarding_validation(client, auth_headers, users, body, field):
-    r = client.post("/projects", headers=auth_headers("architect"),
-                    json={"name": "X", "location": "Y", "civil_engineer_id": users["civil_engineer"].id, **body})
+    r = client.post(
+        "/projects",
+        headers=auth_headers("architect"),
+        json={"name": "X", "location": "Y", "civil_engineer_id": users["civil_engineer"].id, **body},
+    )
     assert r.status_code == 422 and field in r.text
 
 

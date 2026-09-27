@@ -6,11 +6,11 @@ from fastapi.testclient import TestClient
 
 from app import models as m
 from app.auth import create_access_token
-from app.deps import get_current_user, require_role, visible_projects
+from app.deps import require_role, visible_projects
 from tests.conftest import TEST_PASSWORD
 
-
 # ---------- POST /auth/login ----------
+
 
 def test_login_returns_jwt_and_user(client, users):
     r = client.post("/auth/login", json={"email": users["team_lead"].email, "password": TEST_PASSWORD})
@@ -18,8 +18,12 @@ def test_login_returns_jwt_and_user(client, users):
     body = r.json()
     assert body["token_type"] == "bearer"
     assert body["access_token"].count(".") == 2
-    assert body["user"] == {"id": users["team_lead"].id, "name": "Parvez",
-                            "email": "parvez@siteflow.local", "role": "team_lead"}
+    assert body["user"] == {
+        "id": users["team_lead"].id,
+        "name": "Parvez",
+        "email": "parvez@siteflow.local",
+        "role": "team_lead",
+    }
 
 
 def test_login_email_is_case_insensitive(client, users):
@@ -27,10 +31,13 @@ def test_login_email_is_case_insensitive(client, users):
     assert r.status_code == 200
 
 
-@pytest.mark.parametrize("email,password", [
-    ("parvez@siteflow.local", "wrong-password"),
-    ("nobody@siteflow.local", TEST_PASSWORD),
-])
+@pytest.mark.parametrize(
+    "email,password",
+    [
+        ("parvez@siteflow.local", "wrong-password"),
+        ("nobody@siteflow.local", TEST_PASSWORD),
+    ],
+)
 def test_login_rejects_bad_credentials_with_same_message(client, users, email, password):
     r = client.post("/auth/login", json={"email": email, "password": password})
     assert r.status_code == 401
@@ -46,6 +53,7 @@ def test_login_rejects_inactive_user(client, users, db):
 
 
 # ---------- GET /auth/me ----------
+
 
 def test_me_returns_current_user_and_role(client, auth_headers):
     r = client.get("/auth/me", headers=auth_headers("civil_engineer"))
@@ -80,6 +88,7 @@ def test_me_for_deactivated_user_is_401(client, users, auth_headers, db):
 
 # ---------- require_role ----------
 
+
 @pytest.fixture
 def role_client(users):
     from app.main import app as real_app
@@ -94,9 +103,15 @@ def role_client(users):
     return TestClient(probe)
 
 
-@pytest.mark.parametrize("role,expected", [
-    ("team_lead", 200), ("architect", 200), ("civil_engineer", 403), ("admin", 403),
-])
+@pytest.mark.parametrize(
+    "role,expected",
+    [
+        ("team_lead", 200),
+        ("architect", 200),
+        ("civil_engineer", 403),
+        ("admin", 403),
+    ],
+)
 def test_require_role(role_client, users, role, expected):
     token = create_access_token(users[role].id)
     r = role_client.get("/leads-only", headers={"Authorization": f"Bearer {token}"})
@@ -109,6 +124,7 @@ def test_require_role_without_token_is_401(role_client):
 
 # ---------- visible_projects ----------
 
+
 @pytest.fixture
 def two_projects(db, users):
     a = m.Project(name="Villa A", location="Pune", created_by_id=users["architect"].id)
@@ -120,12 +136,15 @@ def two_projects(db, users):
     return a, b
 
 
-@pytest.mark.parametrize("role,expected", [
-    ("architect", {"Villa A", "Villa B"}),
-    ("team_lead", {"Villa A", "Villa B"}),
-    ("civil_engineer", {"Villa A"}),
-    ("admin", set()),
-])
+@pytest.mark.parametrize(
+    "role,expected",
+    [
+        ("architect", {"Villa A", "Villa B"}),
+        ("team_lead", {"Villa A", "Villa B"}),
+        ("civil_engineer", {"Villa A"}),
+        ("admin", set()),
+    ],
+)
 def test_visible_projects(db, users, two_projects, role, expected):
     names = {p.name for p in db.scalars(visible_projects(users[role]))}
     assert names == expected

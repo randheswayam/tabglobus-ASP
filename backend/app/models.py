@@ -1,7 +1,21 @@
 import enum
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, Enum, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, event, inspect
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    event,
+    inspect,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
@@ -12,7 +26,7 @@ Json = JSON().with_variant(JSONB(), "postgresql")
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _enum(cls):
@@ -90,11 +104,13 @@ class Project(Base):
 
     members: Mapped[list["ProjectMember"]] = relationship(back_populates="project", cascade="all, delete-orphan")
     steps: Mapped[list["WorkflowStep"]] = relationship(
-        back_populates="project", order_by="WorkflowStep.order", cascade="all, delete-orphan")
+        back_populates="project", order_by="WorkflowStep.order", cascade="all, delete-orphan"
+    )
     legal_approval: Mapped["LegalApproval | None"] = relationship(back_populates="project", uselist=False)
     site_visits: Mapped[list["SiteVisit"]] = relationship(back_populates="project", order_by="SiteVisit.id")
-    stages: Mapped[list["ProjectStage"]] = relationship(back_populates="project", order_by="ProjectStage.id",
-                                                       cascade="all, delete-orphan")
+    stages: Mapped[list["ProjectStage"]] = relationship(
+        back_populates="project", order_by="ProjectStage.id", cascade="all, delete-orphan"
+    )
 
 
 class ProjectMember(Base):
@@ -182,6 +198,7 @@ class Review(Base):
 
 class Media(Base):
     """A photo or video attached to a site visit. The file itself lives in storage under storage_key."""
+
     __tablename__ = "media"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -204,6 +221,7 @@ class Media(Base):
 
 class Problem(Base):
     """A problem from an approved site visit, tracked until someone resolves it."""
+
     __tablename__ = "problems"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -231,6 +249,7 @@ class RedFlag(Base):
 
     Cleared automatically when the rule stops holding, or by Parvez with a reason. A manual clear keeps the
     flag down while the rule keeps holding; condition_ended_at records when it stopped, which re-arms it."""
+
     __tablename__ = "red_flags"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -250,6 +269,7 @@ class RedFlag(Base):
 
 class Notification(Base):
     """An in-app notification for one person (plan F10). Push and email come later."""
+
     __tablename__ = "notifications"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -264,14 +284,15 @@ class Notification(Base):
 
 
 class StageStatus(str, enum.Enum):
-    locked = "locked"          # predecessors not done yet
-    active = "active"          # open for work; the stage engine says whether a gate still blocks it
+    locked = "locked"  # predecessors not done yet
+    active = "active"  # open for work; the stage engine says whether a gate still blocks it
     completed = "completed"
     historical = "historical"  # completed before SiteFlow tracked stages (PRD 7.19); never a system sign-off
 
 
 class ProjectStage(Base):
     """One stage of the residential flow (stage_config.STAGES) for one project."""
+
     __tablename__ = "project_stages"
     __table_args__ = (UniqueConstraint("project_id", "key"),)
 
@@ -300,6 +321,7 @@ class SignoffStatus(str, enum.Enum):
 class SignoffRequest(Base):
     """One version of a client sign-off package for a milestone stage (4, 11, 17 or 18).
     Frozen once sent; immutable once the client responds (see the guard at the end of this module)."""
+
     __tablename__ = "signoff_requests"
     __table_args__ = (UniqueConstraint("project_id", "stage_key", "version"),)
 
@@ -322,7 +344,9 @@ class SignoffRequest(Base):
     fingerprint: Mapped[str | None] = mapped_column(String(64))
     supersedes_id: Mapped[int | None] = mapped_column(ForeignKey("signoff_requests.id"))
 
-    attachments: Mapped[list["SignoffAttachment"]] = relationship(back_populates="request", order_by="SignoffAttachment.id")
+    attachments: Mapped[list["SignoffAttachment"]] = relationship(
+        back_populates="request", order_by="SignoffAttachment.id"
+    )
     project: Mapped[Project] = relationship()
     created_by: Mapped[User] = relationship(foreign_keys=[created_by_id])
     signer: Mapped["User | None"] = relationship(foreign_keys=[signer_id])
@@ -346,6 +370,7 @@ class SignoffAttachment(Base):
 
 class SignoffView(Base):
     """The client opened an attachment. Approval needs a view of every attachment in the version."""
+
     __tablename__ = "signoff_views"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -358,6 +383,7 @@ class SignoffView(Base):
 class SharedUpdate(Base):
     """A site update the Architect chose to show the client: a note and selected photos from an approved visit.
     Nothing about a visit reaches the client unless it is shared this way."""
+
     __tablename__ = "shared_updates"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -367,7 +393,9 @@ class SharedUpdate(Base):
     shared_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
-    photos: Mapped[list["SharedUpdatePhoto"]] = relationship(order_by="SharedUpdatePhoto.id", cascade="all, delete-orphan")
+    photos: Mapped[list["SharedUpdatePhoto"]] = relationship(
+        order_by="SharedUpdatePhoto.id", cascade="all, delete-orphan"
+    )
     site_visit: Mapped[SiteVisit] = relationship()
     shared_by: Mapped[User] = relationship()
 
@@ -385,6 +413,7 @@ class SharedUpdatePhoto(Base):
 
 class ClientInvite(Base):
     """A one-time code the Architect shares with a client to set their password. Only a hash is stored."""
+
     __tablename__ = "client_invites"
 
     id: Mapped[int] = mapped_column(primary_key=True)

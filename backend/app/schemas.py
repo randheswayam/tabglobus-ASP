@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from pydantic import BaseModel, field_validator, model_validator
 from sqlalchemy import select
@@ -40,11 +40,12 @@ class ProjectIn(BaseModel):
 
 # ---------- serializers ----------
 
+
 def iso_utc(t: datetime | None) -> str | None:
     """ISO 8601 with an explicit UTC offset. SQLite returns naive datetimes; they are stored as UTC."""
     if t is None:
         return None
-    return (t.replace(tzinfo=timezone.utc) if t.tzinfo is None else t.astimezone(timezone.utc)).isoformat()
+    return (t.replace(tzinfo=UTC) if t.tzinfo is None else t.astimezone(UTC)).isoformat()
 
 
 def user_brief(u: User | None) -> dict | None:
@@ -67,9 +68,17 @@ def latest_visit(project: Project) -> SiteVisit | None:
 
 
 def media_out(m) -> dict:
-    return {"id": m.id, "kind": m.kind.value, "problem_ref": m.problem_ref, "content_type": m.content_type,
-            "size": m.size, "captured_at": iso_utc(m.captured_at), "lat": m.lat, "lng": m.lng,
-            "uploader": user_brief(m.uploader)}
+    return {
+        "id": m.id,
+        "kind": m.kind.value,
+        "problem_ref": m.problem_ref,
+        "content_type": m.content_type,
+        "size": m.size,
+        "captured_at": iso_utc(m.captured_at),
+        "lat": m.lat,
+        "lng": m.lng,
+        "uploader": user_brief(m.uploader),
+    }
 
 
 def approved_at(v: SiteVisit) -> str | None:
@@ -123,8 +132,15 @@ def visit_out(v: SiteVisit) -> dict:
         "no_issues": v.no_issues,
         "problems": v.problems,
         "media": [media_out(m) for m in v.media],
-        "reviews": [{"decision": r.decision.value, "comment": r.comment, "reviewer": user_brief(r.reviewer),
-                     "at": iso_utc(r.created_at)} for r in v.reviews],
+        "reviews": [
+            {
+                "decision": r.decision.value,
+                "comment": r.comment,
+                "reviewer": user_brief(r.reviewer),
+                "at": iso_utc(r.created_at),
+            }
+            for r in v.reviews
+        ],
     }
 
 
@@ -167,13 +183,15 @@ def stage_summary(project: Project) -> dict:
     done = sum(1 for v in status.values() if v in ("completed", "historical"))
     number = min(s["phase"] for s in open_) if open_ else (sc.PHASES[-1]["number"] if done == len(sc.STAGES) else None)
     phase = next((p for p in sc.PHASES if p["number"] == number), None)
-    return {"phase": dict(phase) if phase else None, "current_stages": [s["label"] for s in open_],
-            "stage_progress": {"done": done, "total": len(sc.STAGES)}}
+    return {
+        "phase": dict(phase) if phase else None,
+        "current_stages": [s["label"] for s in open_],
+        "stage_progress": {"done": done, "total": len(sc.STAGES)},
+    }
 
 
 def project_detail(db: Session, project: Project) -> dict:
-    events = db.scalars(select(AuditEvent).where(AuditEvent.project_id == project.id)
-                        .order_by(AuditEvent.id)).all()
+    events = db.scalars(select(AuditEvent).where(AuditEvent.project_id == project.id).order_by(AuditEvent.id)).all()
     actors = {u.id: u.name for u in db.scalars(select(User).where(User.id.in_({e.actor_id for e in events})))}
     return {
         **project_summary(project),
@@ -183,6 +201,8 @@ def project_detail(db: Session, project: Project) -> dict:
         "latest_visit": visit_brief(latest_visit(project)),
         "approved_visits": visit_numbers(project)[0],
         "visit_number": visit_numbers(project)[1],
-        "audit": [{"action": e.action, "actor": actors.get(e.actor_id), "at": iso_utc(e.created_at),
-                   "detail": e.detail} for e in events],
+        "audit": [
+            {"action": e.action, "actor": actors.get(e.actor_id), "at": iso_utc(e.created_at), "detail": e.detail}
+            for e in events
+        ],
     }

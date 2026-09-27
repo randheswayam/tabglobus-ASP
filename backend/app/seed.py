@@ -2,6 +2,7 @@
 
 Password comes from SEED_PASSWORD; if unset, a random one is generated and printed once.
 """
+
 import os
 import secrets
 

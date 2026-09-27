@@ -18,7 +18,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: CLAUDE.md, docs/decisions/0003-module-layout.md, backend/app/modules/__init__.py
   - Completed: 2026-09-28. CLAUDE.md now points to PRD v3.2, PRD V4, both plans and the execution plan, carries the V4 integration and AI rules, and names backend/app/modules for new code. Decision 0003 records the module layout, integer ids until before V08, and the role mapping. test_repo_docs.py checks the references resolve.
 
-- [ ] Task 2: ruff and pre-commit for the backend (P0)
+- [x] Task 2: ruff and pre-commit for the backend (P0)
   - Acceptance:
     - `ruff check backend` and `ruff format --check backend` pass, with the config in `backend/pyproject.toml` (line length 120, rules E, F, I, B, UP).
     - Existing findings are fixed without behaviour changes.
@@ -26,6 +26,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - `ruff` is added to a new `backend/requirements-dev.txt`.
     - Tests still pass.
   - Files: backend/pyproject.toml, backend/requirements-dev.txt, .pre-commit-config.yaml, backend/app/**
+  - Completed: 2026-09-28. ruff config in backend/pyproject.toml (line 120; E, F, I, B, UP). UP042 is ignored, because the str Enums are stored by value and StrEnum changes str() output. FastAPI Depends and require_role are treated as immutable defaults. Autofixes (datetime.UTC, import order), five manual fixes (raise from None, lambda, loop variable, two long SQL strings) and ruff format across the backend; no behaviour change. .pre-commit-config.yaml runs ruff and ruff-format. backend/requirements-dev.txt added. test_lint.py runs both checks.
 
 - [ ] Task 3: eslint for web-src and the E2E tests (P0)
   - Acceptance:

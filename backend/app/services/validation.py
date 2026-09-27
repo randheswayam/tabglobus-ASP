@@ -3,6 +3,7 @@
 Every problem is collected rather than stopping at the first, so the app can show the
 engineer one complete list of what is missing or wrong.
 """
+
 from datetime import date, datetime
 
 from pydantic import BaseModel
@@ -53,8 +54,11 @@ def missing_evidence(v: SiteVisitIn, media: list) -> list[str]:
     photos = [m for m in media if m.kind.value == "photo"]
     missing = ["photos"] if len(photos) < tc.MIN_PHOTOS else []
     tagged = {m.problem_ref for m in photos}
-    missing += [f"problems[{n}].photo" for n, p in enumerate(v.problems)
-                if p.severity in ("High", "Critical") and n not in tagged]
+    missing += [
+        f"problems[{n}].photo"
+        for n, p in enumerate(v.problems)
+        if p.severity in ("High", "Critical") and n not in tagged
+    ]
     return missing
 
 
@@ -81,8 +85,11 @@ def validate_site_visit(v: SiteVisitIn) -> tuple[list[str], list[str]]:
         else:
             item_ids = [i["id"] for i in stage["checklist"]]
             missing += [f"checklist.{i}" for i in item_ids if i not in v.checklist]
-            invalid += [f"checklist.{k}" for k, state in v.checklist.items()
-                        if k not in item_ids or state not in tc.CHECKLIST_STATES]
+            invalid += [
+                f"checklist.{k}"
+                for k, state in v.checklist.items()
+                if k not in item_ids or state not in tc.CHECKLIST_STATES
+            ]
 
     if v.no_issues and v.problems:
         invalid.append("no_issues")
