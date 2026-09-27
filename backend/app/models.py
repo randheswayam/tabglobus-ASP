@@ -47,6 +47,11 @@ class VisitStatus(str, enum.Enum):
     approved = "approved"
 
 
+class MediaKind(str, enum.Enum):
+    photo = "photo"
+    video = "video"
+
+
 class ProblemStatus(str, enum.Enum):
     open = "open"
     resolved = "resolved"
@@ -155,6 +160,7 @@ class SiteVisit(Base):
     project: Mapped[Project] = relationship(back_populates="site_visits")
     engineer: Mapped[User] = relationship()
     reviews: Mapped[list["Review"]] = relationship(back_populates="site_visit", order_by="Review.id")
+    media: Mapped[list["Media"]] = relationship(back_populates="site_visit", order_by="Media.id")
 
 
 class Review(Base):
@@ -169,6 +175,28 @@ class Review(Base):
 
     site_visit: Mapped[SiteVisit] = relationship(back_populates="reviews")
     reviewer: Mapped[User] = relationship()
+
+
+class Media(Base):
+    """A photo or video attached to a site visit. The file itself lives in storage under storage_key."""
+    __tablename__ = "media"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    site_visit_id: Mapped[int] = mapped_column(ForeignKey("site_visits.id"), index=True)
+    kind: Mapped[MediaKind] = mapped_column(_enum(MediaKind))
+    problem_ref: Mapped[int | None] = mapped_column(Integer)  # index into the visit's problem list
+    content_type: Mapped[str] = mapped_column(String(60))
+    size: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64))
+    storage_key: Mapped[str] = mapped_column(String(200), unique=True)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    lat: Mapped[float | None] = mapped_column(Float)
+    lng: Mapped[float | None] = mapped_column(Float)
+    uploader_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    site_visit: Mapped[SiteVisit] = relationship(back_populates="media")
+    uploader: Mapped[User] = relationship()
 
 
 class Problem(Base):

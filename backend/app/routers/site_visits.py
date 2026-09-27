@@ -18,6 +18,26 @@ def _clean(s: str | None) -> str | None:
     return s.strip() if isinstance(s, str) else s
 
 
+def _open_visit(project: Project) -> SiteVisit | None:
+    """The visit the engineer is working on: one sent back for rework, or an unsubmitted draft."""
+    return next((v for v in project.site_visits if v.status in (VisitStatus.rework, VisitStatus.draft)), None)
+
+
+@router.post("/projects/{project_id}/site-visits/draft")
+def open_draft(user: User = Depends(require_role(Role.civil_engineer)),
+               project: Project = Depends(get_visible_project), db: Session = Depends(get_db)) -> dict:
+    """The server-side visit that photos and video attach to before submission. Form fields stay on the device."""
+    if not workflow.is_active(project, workflow.SITE_VISIT):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Site Visit step is not open for this project")
+    visit = _open_visit(project)
+    if visit is None:
+        visit = SiteVisit(project_id=project.id, engineer_id=user.id, status=VisitStatus.draft, submission_count=0)
+        db.add(visit)
+        db.commit()
+        db.refresh(visit)
+    return visit_out(visit)
+
+
 @router.post("/projects/{project_id}/site-visits", status_code=status.HTTP_201_CREATED)
 def submit_site_visit(body: SiteVisitIn, user: User = Depends(require_role(Role.civil_engineer)),
                       project: Project = Depends(get_visible_project), db: Session = Depends(get_db)) -> dict:
@@ -29,7 +49,7 @@ def submit_site_visit(body: SiteVisitIn, user: User = Depends(require_role(Role.
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
                             {"message": "Site visit is incomplete", "missing": missing, "invalid": invalid})
 
-    visit = next((v for v in project.site_visits if v.status == VisitStatus.rework), None)
+    visit = _open_visit(project)
     if visit is None:
         visit = SiteVisit(project_id=project.id, engineer_id=user.id, submission_count=0)
         db.add(visit)

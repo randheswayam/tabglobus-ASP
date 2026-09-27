@@ -46,7 +46,15 @@ def current_step_name(project: Project) -> str | None:
 
 
 def latest_visit(project: Project) -> SiteVisit | None:
-    return project.site_visits[-1] if project.site_visits else None
+    """The most recent visit that has been submitted at least once. Drafts are private to the engineer."""
+    visits = [v for v in project.site_visits if v.status.value != "draft"]
+    return visits[-1] if visits else None
+
+
+def media_out(m) -> dict:
+    return {"id": m.id, "kind": m.kind.value, "problem_ref": m.problem_ref, "content_type": m.content_type,
+            "size": m.size, "captured_at": iso_utc(m.captured_at), "lat": m.lat, "lng": m.lng,
+            "uploader": user_brief(m.uploader)}
 
 
 def approved_at(v: SiteVisit) -> str | None:
@@ -99,6 +107,7 @@ def visit_out(v: SiteVisit) -> dict:
         "checklist": v.checklist,
         "no_issues": v.no_issues,
         "problems": v.problems,
+        "media": [media_out(m) for m in v.media],
         "reviews": [{"decision": r.decision.value, "comment": r.comment, "reviewer": user_brief(r.reviewer),
                      "at": iso_utc(r.created_at)} for r in v.reviews],
     }

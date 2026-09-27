@@ -43,13 +43,14 @@
   - Files: backend/app/models.py, backend/migrations/versions/0002_problems.py, backend/app/routers/problems.py, backend/app/routers/reviews.py, backend/app/main.py, backend/tests/test_problems.py
   - Completed: 2026-09-27. Problem model and migration 0002. Approval turns each reported problem into an open item (Other stores its free text as the problem). Added GET /projects/{id}/problems?status= and POST /problems/{id}/resolve (engineer or team lead, a note required, 409 if already resolved, 404 when not visible), audited as problem.resolved. 11 new tests, 139 in total.
 
-- [ ] Task 5: Media model and the server-side draft visit (P0)
+- [x] Task 5: Media model and the server-side draft visit (P0)
   - Acceptance:
     - A `Media` model and migration `0003_media` are added.
     - `POST /projects/{id}/site-visits/draft` (the assigned engineer, with Step 2 active) returns the project's current rework visit or draft visit, creating a `draft` if there is none. Calling it twice returns the same visit.
     - Submission (`POST /projects/{id}/site-visits`) now fills in and submits that draft or rework visit, and still creates one if none exists, so v1 clients keep working.
     - Draft visits are left out of the review queue and of `latest_visit` until they are submitted.
   - Files: backend/app/models.py, backend/migrations/versions/0003_media.py, backend/app/routers/site_visits.py, backend/app/schemas.py, backend/tests/test_media.py
+  - Completed: 2026-09-27. Media model and migration 0003. POST /projects/{id}/site-visits/draft returns the rework or draft visit, or creates one (engineer only, Step 2 open). Submission now fills in that visit. latest_visit, the project list, the queue and the history all leave drafts out. visit_out includes media. 5 new tests, 144 in total.
 
 - [ ] Task 6: Media upload endpoint with validation and capture metadata (P0)
   - Acceptance:
