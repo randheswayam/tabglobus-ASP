@@ -92,6 +92,8 @@ class Project(Base):
         back_populates="project", order_by="WorkflowStep.order", cascade="all, delete-orphan")
     legal_approval: Mapped["LegalApproval | None"] = relationship(back_populates="project", uselist=False)
     site_visits: Mapped[list["SiteVisit"]] = relationship(back_populates="project", order_by="SiteVisit.id")
+    stages: Mapped[list["ProjectStage"]] = relationship(back_populates="project", order_by="ProjectStage.id",
+                                                       cascade="all, delete-orphan")
 
 
 class ProjectMember(Base):
@@ -258,6 +260,33 @@ class Notification(Base):
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     project: Mapped["Project | None"] = relationship()
+
+
+class StageStatus(str, enum.Enum):
+    locked = "locked"          # predecessors not done yet
+    active = "active"          # open for work; the stage engine says whether a gate still blocks it
+    completed = "completed"
+    historical = "historical"  # completed before SiteFlow tracked stages (PRD 7.19); never a system sign-off
+
+
+class ProjectStage(Base):
+    """One stage of the residential flow (stage_config.STAGES) for one project."""
+    __tablename__ = "project_stages"
+    __table_args__ = (UniqueConstraint("project_id", "key"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    key: Mapped[str] = mapped_column(String(40))
+    status: Mapped[StageStatus] = mapped_column(_enum(StageStatus), default=StageStatus.locked)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    completion_note: Mapped[str | None] = mapped_column(Text)
+    historical_confirmed_by: Mapped[str | None] = mapped_column(String(120))
+    historical_note: Mapped[str | None] = mapped_column(Text)
+
+    project: Mapped[Project] = relationship(back_populates="stages")
+    completed_by: Mapped["User | None"] = relationship()
 
 
 class AuditEvent(Base):

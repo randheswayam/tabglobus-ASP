@@ -22,12 +22,13 @@
   - Files: backend/app/stage_config.py, backend/tests/test_stage_config.py
   - Completed: 2026-09-27. stage_config.py holds 23 entries: 19 numbered (8 splits into 8A and 8B) plus 4 pre-design activities, in 10 phases, with the Site and Studio pre-design branches after stage 4, 8A and 8B after 7, and 9 after both. Gates: client_signoff on 4, 11, 17 and 18, legal_approval on 14 (D-01, assumed) and no_open_major_problems on 16. Roles that don't exist yet (Structural Consultant, Accounts) are owned by Architect, Team Lead or Admin. 6 tests (well-formed, one start, no cycles or orphans, parallel branches, gates, phase order). 242 tests in total.
 
-- [ ] Task 3: ProjectStage model, migration, and backfill of existing projects (P0)
+- [x] Task 3: ProjectStage model, migration, and backfill of existing projects (P0)
   - Acceptance:
     - The `ProjectStage` model has project, key, status (`locked`, `ready`, `active`, `completed` or `historical`), started_at, completed_at, completed_by, a completion note, and a historical confirmer and note.
     - Migration 0006 creates it and backfills existing projects. For v2 projects, stages 1 to 13 become `historical` ("completed before SiteFlow stage tracking"). Stage 14 becomes `completed` or `active`, depending on Legal Approval, and stage 15 becomes `active` when a site visit already exists.
     - The migration test still matches the models, and a backfill test runs on a seeded v2-style database.
   - Files: backend/app/models.py, backend/migrations/versions/0006_project_stages.py, backend/tests/test_migrations.py
+  - Completed: 2026-09-27. The ProjectStage model stores locked, active, completed or historical; ready and blocked are computed by the engine (Task 4). Migration 0006 creates the table and backfills v2 projects from a frozen key list. Stages before Site line-out become historical (confirmed by 'SiteFlow v2 migration'). Line-out is completed when submitted visits exist, otherwise active. Construction is active once line-out is done. 1 new test, 243 in total.
 
 - [ ] Task 4: Stage engine: readiness, gates and "why blocked" (P0)
   - Acceptance:
