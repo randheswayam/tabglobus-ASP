@@ -100,3 +100,45 @@ def test_site_engineer_completes_site_stages_and_is_notified_when_they_open(clie
 
 def test_unknown_stage_is_404(client, auth_headers, new_project):
     assert _complete(client, auth_headers("architect"), new_project()["id"], "roofing").status_code == 404
+
+
+def _add_member(db, pid, user):
+    from app.models import ProjectMember
+
+    db.add(ProjectMember(project_id=pid, user_id=user.id))
+    db.commit()
+
+
+def test_structural_consultant_member_completes_structural_design(client, auth_headers, new_project, users, db):
+    pid = new_project(start_stage="structural_design", historical_confirmed_by="Parvez")["id"]
+    _add_member(db, pid, users["structural_consultant"])
+    scon = auth_headers("structural_consultant")
+    assert _complete(client, auth_headers("civil_engineer"), pid, "structural_design").status_code == 403
+    assert _complete(client, scon, pid, "structural_design").status_code == 200
+    assert _state(client, scon, pid, "structural_package")["state"] == "active"
+    assert _state(client, scon, pid, "structural_package")["can_complete"] is True
+
+
+def test_consultant_who_is_not_a_member_cannot_see_the_project(client, auth_headers, new_project):
+    pid = new_project(start_stage="structural_design", historical_confirmed_by="Parvez")["id"]
+    assert _complete(client, auth_headers("structural_consultant"), pid, "structural_design").status_code == 404
+
+
+def test_accounts_member_completes_the_payment_gate(client, auth_headers, new_project, users, db):
+    acc = auth_headers("accounts")
+    pid = new_project(start_stage="payment_gate", historical_confirmed_by="Parvez")["id"]
+    _add_member(db, pid, users["accounts"])
+    assert _state(client, acc, pid, "payment_gate")["can_complete"] is True
+    assert _complete(client, acc, pid, "payment_gate").status_code == 200
+    assert _state(client, acc, pid, "detailed_drawings")["state"] == "active"
+
+
+def test_stage_ready_reaches_the_member_with_the_owner_role(client, auth_headers, new_project, users, db):
+    pid = new_project(start_stage="structural_design", historical_confirmed_by="Parvez")["id"]
+    _add_member(db, pid, users["mep_consultant"])
+    arch = auth_headers("architect")
+    _complete(client, arch, pid, "structural_design")
+    _complete(client, arch, pid, "architectural_package")
+    _complete(client, arch, pid, "structural_package")
+    notes = client.get("/notifications", headers=auth_headers("mep_consultant")).json()["items"]
+    assert any("MEP and coordination is open" in n["text"] for n in notes)

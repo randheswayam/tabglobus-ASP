@@ -89,7 +89,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/models.py, backend/app/seed.py, backend/migrations/versions/0010_*.py (if needed), backend/tests/test_roles.py
   - Completed: 2026-09-28. Role gains structural_consultant, mep_consultant, interior_designer, accounts and office_coordinator, with the PRD mapping documented on the Role class and in decision 0003. No migration is needed: the column is a 32-character string with no check constraint, confirmed on PostgreSQL. The seed adds one user per new role. test_roles.py (18 cases) covers sign-in and /auth/me, member-only project visibility, and refusal by the client app. test_models' enum test now includes the new values.
 
-- [ ] Task 8: Assign stages to the new roles (P0)
+- [x] Task 8: Assign stages to the new roles (P0)
   - Acceptance:
     - In `stage_config.py`:
       - `structural_design` and `structural_package` are owned by `structural_consultant`;
@@ -101,6 +101,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - `notify.stage_ready` reaches project members with the owner role.
     - `test_stage_config.py` and `test_stage_completion.py` gain a case: a structural consultant who is a project member completes `structural_design`, while a civil engineer gets 403.
   - Files: backend/app/stage_config.py, backend/app/services/stages.py, backend/tests/test_stage_completion.py, backend/tests/test_stage_config.py
+  - Completed: 2026-09-28. structural_design and structural_package are owned by structural_consultant, mep by mep_consultant, and payment_gate by accounts; grid_freeze stays with team_lead. The mapping is marked TBD_PARVEZ (stage owners). The Architect and Team Lead can still complete ordinary stages. stage_ready already reaches project members with the owner role. The web app labels the new roles. Tests: owner mapping; a consultant who is a member completes structural_design while the civil engineer gets 403; a non-member consultant gets 404; Accounts completes the payment gate; the MEP consultant is notified when MEP opens.
 
 - [ ] Task 9: Sessions and refresh tokens (P0)
   - Acceptance:

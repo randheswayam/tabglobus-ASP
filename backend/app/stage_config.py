@@ -8,8 +8,8 @@ Gates add a condition on top:
   legal_approval          Legal Approval must be Approved (D-01: assumed to gate Site line-out; TBD_PARVEZ)
   no_open_major_problems  no open High or Critical problems (PRD 7.15: open critical issues equal zero)
 
-Owner roles use the roles that exist today. Structural Consultant, MEP, Interior Designer and Accounts
-(PRD section 5) arrive in a later sprint; until then an Architect, Team Lead or Admin records their stages.
+Owner roles follow PRD v3.2 section 5 (TBD_PARVEZ: stage owners, to confirm with Parvez). The Architect and Team Lead
+can also complete any ordinary stage (services/stages.py STAFF_COMPLETERS).
 """
 
 PHASES = [
@@ -148,7 +148,7 @@ STAGES = [
         "Structural design package",
         3,
         "Studio",
-        "architect",
+        "structural_consultant",
         ["grid_freeze"],
         detail="Structural consultant: RCC design, foundation, columns and beams.",
     ),
@@ -168,7 +168,7 @@ STAGES = [
         "Structural package",
         4,
         "Studio",
-        "architect",
+        "structural_consultant",
         ["structural_design"],
         detail="Final structural drawings.",
     ),
@@ -178,7 +178,7 @@ STAGES = [
         "MEP and coordination",
         4,
         "Studio",
-        "architect",
+        "mep_consultant",
         ["architectural_package", "structural_package"],
         detail="Electrical, plumbing and HVAC drawings; clash check across disciplines.",
     ),
@@ -210,7 +210,7 @@ STAGES = [
         "50% upfront gate",
         5,
         "Both",
-        "admin",
+        "accounts",
         ["design_freeze_signoff"],
         detail="Payment milestone cleared before detailed drawings.",
     ),

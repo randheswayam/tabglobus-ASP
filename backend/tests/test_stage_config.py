@@ -1,6 +1,7 @@
 """The 18-stage residential flow from the workflow diagram (docs/reference/workflow-diagram.jpeg)."""
 
 from app import stage_config as sc
+from app.models import Role
 
 
 def by_key():
@@ -58,7 +59,7 @@ def test_every_stage_is_well_formed():
     assert len(keys) == len(sc.STAGES)
     for s in sc.STAGES:
         assert s["label"] and s["workstream"] in ("Studio", "Site", "Both")
-        assert s["owner_role"] in ("architect", "team_lead", "civil_engineer", "admin", "client")
+        assert s["owner_role"] in {r.value for r in Role}
         assert s["gate"] in (None, "client_signoff", "legal_approval", "no_open_major_problems")
         assert set(s["predecessors"]) <= keys, s["key"]
 
@@ -128,3 +129,15 @@ def test_client_facing_text_has_no_planning_markers():
     for s in sc.STAGES:
         for text in (s["label"], s["detail"]):
             assert "TBD" not in text and "D-0" not in text, s["key"]
+
+
+def test_stage_owners_use_the_prd_roles():
+    owners = {s["key"]: s["owner_role"] for s in sc.STAGES}
+    assert owners["structural_design"] == "structural_consultant"
+    assert owners["structural_package"] == "structural_consultant"
+    assert owners["mep"] == "mep_consultant"
+    assert owners["payment_gate"] == "accounts"
+    assert owners["grid_freeze"] == "team_lead"
+    from app.models import Role
+
+    assert set(owners.values()) <= {r.value for r in Role}
