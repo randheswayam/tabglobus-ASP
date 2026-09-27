@@ -5,3 +5,7 @@ android/.gradle/
 android/local.properties
 android/capacitor-cordova-android-plugins/build/
 *.apk
+tests/e2e/.data/
+test-results/
+playwright-report/
+web-src/siteflow.html

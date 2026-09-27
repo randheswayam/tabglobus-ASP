@@ -1,9 +1,10 @@
-# Rebuilds the app from app.html + app.js.
+# Rebuilds the app from app.html + api.js + app.js.
 # Output: ../www/index.html (Android app) and ./siteflow.html (hosted web version, no <head> wrapper).
 import os
 here = os.path.dirname(os.path.abspath(__file__))
 html = open(os.path.join(here, 'app.html'), encoding='utf-8').read()
-js = open(os.path.join(here, 'app.js'), encoding='utf-8').read()
+# api.js (API client) is bundled ahead of app.js, which uses it.
+js = '\n'.join(open(os.path.join(here, f), encoding='utf-8').read() for f in ('api.js', 'app.js'))
 page = html.replace('/*__APP_JS__*/', js)
 open(os.path.join(here, 'siteflow.html'), 'w', encoding='utf-8').write(page)
 head = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'

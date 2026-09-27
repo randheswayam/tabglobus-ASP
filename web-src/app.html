@@ -1,4 +1,4 @@
-<title>SiteFlow Studio</title>
+<title>SiteFlow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -274,6 +274,13 @@ main{min-width:0;padding-inline:32px;padding-block:24px 48px}
 .subh{font-size:12px;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:center}
 .bbox{border:1px dashed var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
 
+/* sign-in */
+body.anon .app{grid-template-columns:1fr}
+body.anon .side,body.anon .tabs{display:none}
+.login{max-width:400px;margin:10vh auto 0}
+.login .panel-b{padding:24px;gap:16px}
+.login details summary{cursor:pointer}
+
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:9px;font-weight:500;font-size:13.5px;transition:.25s;z-index:50;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
@@ -316,11 +323,6 @@ main{min-width:0;padding-inline:32px;padding-block:24px 48px}
   <nav class="tabs" id="tabs"></nav>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
-<input type="file" id="f-cam" accept="image/*" capture="environment" hidden>
-<input type="file" id="f-gal" accept="image/*" multiple hidden>
-<input type="file" id="f-video" accept="video/*" capture="environment" hidden>
-<input type="file" id="f-voice" accept="audio/*" capture hidden>
-<input type="file" id="f-doc" accept=".pdf,image/*,.dwg,.doc,.docx" multiple hidden>
 
 <script>
 /*__APP_JS__*/
