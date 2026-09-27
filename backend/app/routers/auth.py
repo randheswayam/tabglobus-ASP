@@ -1,13 +1,17 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app import workflow_config as wc
 from app.auth import create_access_token
 from app.db import get_db
 from app.deps import get_current_user
-from app.models import User
+from app.models import ClientInvite, Role, User
 from app.passwords import hash_password, verify_password
+from app.services import audit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -49,3 +53,43 @@ def login(body: LoginIn, db: Session = Depends(get_db)) -> TokenOut:
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)) -> UserOut:
     return UserOut.of(user)
+
+
+class ActivateIn(BaseModel):
+    email: str
+    code: str
+    password: str
+
+
+_INVALID_INVITE = "This invite code is not valid. Ask your architect for a new one."
+
+
+def _aware(t: datetime) -> datetime:
+    return t.replace(tzinfo=timezone.utc) if t.tzinfo is None else t
+
+
+@router.post("/activate", response_model=TokenOut)
+def activate(body: ActivateIn, db: Session = Depends(get_db)) -> TokenOut:
+    """A client sets their password with the one-time invite code. Every failure looks the same."""
+    if len(body.password) < 10:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            {"message": "Choose a password of at least 10 characters", "missing": ["password"]})
+    now = datetime.now(timezone.utc)
+    user = db.scalars(select(User).where(func.lower(User.email) == body.email.strip().lower(),
+                                         User.role == Role.client)).first()
+    invite = None if user is None else db.scalars(
+        select(ClientInvite).where(ClientInvite.user_id == user.id, ClientInvite.used_at.is_(None),
+                                   ClientInvite.revoked_at.is_(None)).order_by(ClientInvite.id.desc())).first()
+    code = body.code.strip().upper()
+    usable = invite is not None and invite.attempts < wc.INVITE_MAX_ATTEMPTS and _aware(invite.expires_at) > now
+    if not usable:
+        verify_password(code, _DUMMY_HASH)  # same work whether or not an invite exists
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, _INVALID_INVITE)
+    if not verify_password(code, invite.code_hash):
+        invite.attempts += 1
+        db.commit()
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, _INVALID_INVITE)
+    user.password_hash, user.is_active, invite.used_at = hash_password(body.password), True, now
+    audit.record(db, user, "client.activated", project_id=invite.project_id, entity_type="user", entity_id=user.id)
+    db.commit()
+    return TokenOut(access_token=create_access_token(user.id), user=UserOut.of(user))

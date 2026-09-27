@@ -290,6 +290,22 @@ class ProjectStage(Base):
     completed_by: Mapped["User | None"] = relationship()
 
 
+class ClientInvite(Base):
+    """A one-time code the Architect shares with a client to set their password. Only a hash is stored."""
+    __tablename__ = "client_invites"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    code_hash: Mapped[str] = mapped_column(String(255))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # replaced by a newer invite
+    created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 

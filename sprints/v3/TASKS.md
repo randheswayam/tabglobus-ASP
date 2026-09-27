@@ -76,7 +76,7 @@
   - Files: backend/app/models.py, backend/migrations/versions/0007_client_role.py, backend/app/deps.py, backend/app/routers/*.py, backend/tests/test_client_access.py
   - Completed: 2026-09-27. Added Role.client. require_staff is a router-level dependency on all 9 staff routers, so a client gets 403 ('This area is for the SiteFlow team…') before any other check. Clients keep /auth/*, /template, /notifications (their own rows only; the customer app needs the alerts) and /client/*. There is no is_client column or migration: a membership whose user has the Client role is the client membership. The route walk enumerates every path and method from the OpenAPI schema, because this FastAPI version nests included routers. 47 new tests, 322 in total. Three v1 model tests were updated afterwards, because the seed stays staff-only (clients come by invite).
 
-- [ ] Task 9: Client invite and activation with a one-time code (P0)
+- [x] Task 9: Client invite and activation with a one-time code (P0)
   - Acceptance:
     - `POST /projects/{id}/client-invite` (architect) takes the client's name and email. It creates the client user (inactive) and the membership, and returns a one-time 8-character code **once**. Only a hash is stored, and it expires after `INVITE_CODE_TTL_DAYS`.
     - `POST /auth/activate` takes the email, code and a new password (at least 10 characters). It activates the account and burns the code.
@@ -84,6 +84,7 @@
     - Re-inviting replaces the old code. An existing client can be added to a second project without a new code.
     - Everything is audited. Tests cover all of these paths.
   - Files: backend/app/models.py, backend/migrations/versions/0008_client_invites.py, backend/app/routers/invites.py, backend/app/routers/auth.py, backend/app/main.py, backend/tests/test_invites.py
+  - Completed: 2026-09-27. ClientInvite model and migration 0007 (numbered 0007, because Task 8 needed no migration). POST /projects/{id}/client-invite (architect) creates an inactive client and the membership, and returns an 8-character code (alphabet without 0/O or 1/I) once. Only a PBKDF2 hash is stored, expiring after INVITE_CODE_TTL_DAYS. Re-inviting revokes the old code. An already active client is added to the project without a code. A team member's email returns 409. GET /projects/{id}/clients returns the invite status. POST /auth/activate sets a password of at least 10 characters. Wrong codes count attempts and the invite locks at INVITE_MAX_ATTEMPTS. Expired, used, revoked, locked and unknown codes all return the same 400 and do the same hashing work. A short password returns 422 and doesn't burn the code. client.invited and client.activated are audited. 13 new tests, 335 in total.
 
 - [ ] Task 10: Sign-off requests: versioned packages with attachments (P0)
   - Acceptance:
