@@ -16,7 +16,7 @@ from app.db import get_db
 from app.deps import get_visible_project, require_role, require_staff, visible_projects
 from app.models import (Project, ProjectMember, Role, SignoffAttachment, SignoffRequest, SignoffStatus, StageStatus,
                         User)
-from app.services import audit, stages
+from app.services import audit, notify, red_flags, stages
 from app.services.filecheck import EXTENSIONS, content_type_of, read_checked
 from app.services.signoffs import OPEN, attachment_out, requests_for, signoff_out
 from app.services.storage import get_storage
@@ -160,6 +160,8 @@ def send_signoff(signoff_id: int, user: User = Depends(require_role(Role.archite
     req.status, req.sent_at = SignoffStatus.sent, datetime.now(timezone.utc)
     audit.record(db, user, "signoff.sent", project_id=req.project_id, entity_type="signoff", entity_id=req.id,
                  detail={"stage": sc.BY_KEY[req.stage_key]["label"], "version": req.version})
+    notify.signoff_sent(db, req.project, sc.BY_KEY[req.stage_key]["label"], req.version, user)
+    red_flags.sync_red_flags(db, req.project, req.sent_at)
     db.commit()
     db.refresh(req)
     return signoff_out(req)

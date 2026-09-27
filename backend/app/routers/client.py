@@ -16,7 +16,7 @@ from app.deps import get_current_user
 from app.models import Project, ProjectMember, Role, SignoffAttachment, SignoffRequest, SignoffStatus, SignoffView, User
 from app.routers.signoffs import file_response
 from app.schemas import iso_utc
-from app.services import audit, client_view, stages
+from app.services import audit, client_view, notify, red_flags, stages
 from app.services.signoffs import attachment_out
 
 router = APIRouter(prefix="/client", tags=["client app"])
@@ -144,6 +144,8 @@ def approve(signoff_id: int, body: ApproveIn, request: Request, user: User = Dep
                  detail={"stage": sc.BY_KEY[req.stage_key]["label"], "version": req.version, "signer": req.signer_name})
     stages.complete(db, req.project, req.stage_key, user,
                     f"Signed off by {req.signer_name} in the client app (version {req.version}).")
+    notify.signoff_answered(db, req.project, sc.BY_KEY[req.stage_key]["label"], req.version, user, req.signer_name, None)
+    red_flags.sync_red_flags(db, req.project, now)
     db.commit()
     db.refresh(req)
     return client_signoff_out(db, user, req)
@@ -163,6 +165,8 @@ def request_changes(signoff_id: int, body: ChangesIn, user: User = Depends(requi
     audit.record(db, user, "signoff.changes_requested", project_id=req.project_id, entity_type="signoff",
                  entity_id=req.id, detail={"stage": sc.BY_KEY[req.stage_key]["label"], "version": req.version,
                                            "comment": comment})
+    notify.signoff_answered(db, req.project, sc.BY_KEY[req.stage_key]["label"], req.version, user, None, comment)
+    red_flags.sync_red_flags(db, req.project, req.responded_at)
     db.commit()
     db.refresh(req)
     return client_signoff_out(db, user, req)

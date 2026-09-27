@@ -28,6 +28,7 @@ RED_FLAG_RULES = {
     "repeated_rework": {"label": "Repeated rework", "rank": 3},
     "legal_delay": {"label": "Legal delay", "rank": 2},
     "no_recent_visit": {"label": "No recent visit", "rank": 1},
+    "client_decision_overdue": {"label": "Client decision overdue", "rank": 4},
 }
 
 PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"]

@@ -7,7 +7,7 @@ import pytest
 from app.services.red_flags import RULES, ProblemState, ProjectState, VisitState, evaluate_flags
 
 NOW = datetime(2026, 10, 15, 12, 0, tzinfo=timezone.utc)
-CFG = SimpleNamespace(REVIEW_SLA_HOURS=48, VISIT_INTERVAL_DAYS=14, REWORK_LIMIT=2)
+CFG = SimpleNamespace(REVIEW_SLA_HOURS=48, VISIT_INTERVAL_DAYS=14, REWORK_LIMIT=2, CLIENT_SIGNOFF_SLA_DAYS=7)
 
 
 def state(**kw) -> ProjectState:
@@ -81,7 +81,8 @@ def test_one_problem_can_raise_two_rules():
 
 
 def test_every_rule_has_a_label_and_rank():
-    assert set(RULES) == {"critical_issue", "legal_delay", "review_overdue", "repeated_rework", "no_recent_visit", "overdue_fix"}
+    assert set(RULES) == {"critical_issue", "legal_delay", "review_overdue", "repeated_rework", "no_recent_visit", "overdue_fix",
+                          "client_decision_overdue"}
     assert all(r["label"] and isinstance(r["rank"], int) for r in RULES.values())
     assert RULES["critical_issue"]["rank"] > RULES["no_recent_visit"]["rank"]
 
@@ -91,3 +92,11 @@ def test_dates_use_the_office_timezone_not_utc():
     just_after_midnight_ist = datetime(2026, 10, 14, 19, 0, tzinfo=timezone.utc)  # 15 Oct 00:30 in Asia/Kolkata
     s = state(problems=[ProblemState(id=12, severity="Low", target_date=date(2026, 10, 14), open=True)])
     assert evaluate_flags(s, just_after_midnight_ist, CFG) == {("overdue_fix", "problem-12")}
+
+
+def test_client_decision_overdue_after_the_sla():
+    late = state(site_visit_open=False, pending_signoffs=[(21, NOW - timedelta(days=8))])
+    on_time = state(site_visit_open=False, pending_signoffs=[(22, NOW - timedelta(days=6))])
+    assert flags(late) == {("client_decision_overdue", "signoff-21")}
+    assert flags(on_time) == set()
+    assert RULES["client_decision_overdue"] == {"label": "Client decision overdue", "rank": 4}

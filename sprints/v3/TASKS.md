@@ -119,13 +119,14 @@
   - Files: backend/app/routers/client.py, backend/app/services/client_view.py, backend/tests/test_client_view.py
   - Completed: 2026-09-27. services/client_view.py builds GET /client/projects (cards with phase, current stages, progress and how many sign-offs are waiting for you) and GET /client/projects/{id} (the 10 phases with stages as in_progress, upcoming, completed or historical, the signed milestones with signer, time and version, the sign-off summaries, and shared updates, empty until Task 21). The test collects every key in both responses against an allow-list and checks the text for internal words (audit, rework, red flag, problem, notes, staff emails, legal), using a fixture with a rework, an approved High problem and a red flag. Historical sign-off stages are never shown as signed. 6 new tests, 386 in total.
 
-- [ ] Task 13: Sign-off notifications and the "client decision overdue" red flag (P0)
+- [x] Task 13: Sign-off notifications and the "client decision overdue" red flag (P0)
   - Acceptance:
     - A sent request notifies the client ("Please review and sign off: …").
     - An approval or a change request notifies the project architect and team leads, with the client's comment.
     - A new red flag rule, `client_decision_overdue` (label "Client decision overdue", rank 4), holds while a sent request is older than `CLIENT_SIGNOFF_SLA_DAYS`, and clears on response.
     - The rule is added to `evaluate_flags`, with unit tests using a fixed clock.
   - Files: backend/app/services/notify.py, backend/app/services/red_flags.py, backend/app/workflow_config.py, backend/tests/test_red_flag_rules.py, backend/tests/test_notifications.py
+  - Completed: 2026-09-27. Sending notifies the project's clients ('Please review and sign off: …'), including invited clients who haven't activated yet, so the request is waiting at first sign-in. An approval or change request notifies the creating architect and the team leads, with the comment. New rule client_decision_overdue ('Client decision overdue', rank 4) holds while a sent request is older than CLIENT_SIGNOFF_SLA_DAYS, keyed by the sign-off. Flags are synced on send and on the client's response, so an answer clears the flag. 5 new tests, 391 in total.
 
 - [ ] Task 14: Dashboard: phase, stage, client and waiting-for-client (P0)
   - Acceptance:

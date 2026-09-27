@@ -7,10 +7,14 @@ from app.models import Notification, Project, ProjectMember, Role, User
 from app.schemas import civil_engineer_of
 
 
-def _send(db: Session, users, kind: str, project: Project, text: str, actor: User | None = None) -> None:
+def _send(db: Session, users, kind: str, project: Project, text: str, actor: User | None = None,
+          include_invited: bool = False) -> None:
+    """include_invited: also reach clients who have not activated yet, so the request is waiting at first sign-in."""
     seen = set()
     for u in users:
-        if u is None or not u.is_active or u.id in seen or (actor is not None and u.id == actor.id):
+        if u is None or u.id in seen or (actor is not None and u.id == actor.id):
+            continue
+        if not u.is_active and not (include_invited and u.role == Role.client):
             continue
         seen.add(u.id)
         db.add(Notification(user_id=u.id, project_id=project.id, kind=kind, text=text))
@@ -37,6 +41,18 @@ def stage_ready(db: Session, project: Project, stage: dict, actor: User | None) 
         return
     users = _team_leads(db) if role == "team_lead" else _members_with_role(db, project, role)
     _send(db, users, "stage_ready", project, f"{stage['label']} is open on {project.name}.", actor)
+
+
+def signoff_sent(db: Session, project: Project, stage_label: str, version: int, actor: User) -> None:
+    _send(db, _members_with_role(db, project, "client"), "signoff_requested", project,
+          f"Please review and sign off: {stage_label} (version {version}) on {project.name}.", actor, include_invited=True)
+
+
+def signoff_answered(db: Session, project: Project, stage_label: str, version: int, client: User,
+                     signer_name: str | None, comment: str | None) -> None:
+    text = (f"{signer_name} signed off {stage_label} (version {version}) on {project.name}." if comment is None
+            else f"{client.name} asked for changes on {stage_label} (version {version}) on {project.name}: {comment}")
+    _send(db, [_architect(db, project), *_team_leads(db)], "signoff_answered", project, text, client)
 
 
 def legal_approved(db: Session, project: Project, actor: User) -> None:

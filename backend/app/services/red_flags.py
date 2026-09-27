@@ -9,7 +9,8 @@ from sqlalchemy import func, select
 
 from app import workflow_config as wc
 from app.clock import business_date
-from app.models import Problem, ProblemStatus, RedFlag, Review, ReviewDecision, SiteVisit, StepStatus
+from app.models import (Problem, ProblemStatus, RedFlag, Review, ReviewDecision, SignoffRequest, SignoffStatus, SiteVisit,
+                        StepStatus)
 from app.schemas import iso_utc, user_brief
 from app.services import audit, notify
 
@@ -41,6 +42,7 @@ class ProjectState:
     last_approved_visit_at: datetime | None
     visits: list[VisitState] = field(default_factory=list)
     problems: list[ProblemState] = field(default_factory=list)
+    pending_signoffs: list[tuple[int, datetime]] = field(default_factory=list)  # (id, sent_at) awaiting the client
 
 
 def evaluate_flags(s: ProjectState, now: datetime, cfg=wc) -> set[tuple[str, str]]:
@@ -64,6 +66,10 @@ def evaluate_flags(s: ProjectState, now: datetime, cfg=wc) -> set[tuple[str, str
             out.add(("review_overdue", f"visit-{v.id}"))
         if v.status != "approved" and v.rework_count >= cfg.REWORK_LIMIT:
             out.add(("repeated_rework", f"visit-{v.id}"))
+
+    for signoff_id, sent_at in s.pending_signoffs:
+        if now - sent_at > timedelta(days=cfg.CLIENT_SIGNOFF_SLA_DAYS):
+            out.add(("client_decision_overdue", f"signoff-{signoff_id}"))
 
     since = s.last_approved_visit_at or s.legal_approved_at
     if s.site_visit_open and since and now - since > timedelta(days=cfg.VISIT_INTERVAL_DAYS):
@@ -89,6 +95,8 @@ def project_state(db, project) -> ProjectState:
     reworks = {vid: n for vid, d, _, n in reviews if d == ReviewDecision.rework}
     approvals = [_utc(t) for _, d, t, _ in reviews if d == ReviewDecision.approve]
     problems = db.scalars(select(Problem).where(Problem.project_id == project.id)).all()
+    pending = db.execute(select(SignoffRequest.id, SignoffRequest.sent_at).where(
+        SignoffRequest.project_id == project.id, SignoffRequest.status == SignoffStatus.sent)).all()
     la = project.legal_approval
     return ProjectState(
         legal_status=la.status.value if la else "Not started",
@@ -100,6 +108,7 @@ def project_state(db, project) -> ProjectState:
                            rework_count=reworks.get(v.id, 0)) for v in visits],
         problems=[ProblemState(id=p.id, severity=p.severity, target_date=p.target_date,
                                open=p.status == ProblemStatus.open) for p in problems],
+        pending_signoffs=[(i, _utc(t)) for i, t in pending],
     )
 
 

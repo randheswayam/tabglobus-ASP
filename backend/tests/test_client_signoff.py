@@ -149,3 +149,52 @@ def test_drafts_never_reach_the_client(client, client_headers, auth_headers, new
 def test_staff_cannot_sign_on_the_clients_behalf(client, auth_headers, sent, role):
     r = client.post(f"/client/signoffs/{sent['sid']}/approve", json=APPROVE, headers=auth_headers(role))
     assert r.status_code == 403
+
+
+# ---------- notifications and the overdue flag (Task 13) ----------
+
+def test_sending_notifies_the_client_and_answers_notify_the_studio(client, client_headers, auth_headers, sent):
+    notes = client.get("/notifications", headers=client_headers).json()["items"]
+    assert notes[0]["kind"] == "signoff_requested"
+    assert notes[0]["text"] == "Please review and sign off: Client sign-off: preliminary requirements (version 1) on Villa A."
+    _view_all(client, client_headers, sent)
+    client.post(f"/client/signoffs/{sent['sid']}/approve", json=APPROVE, headers=client_headers)
+    for role in ("architect", "team_lead"):
+        texts = [n["text"] for n in client.get("/notifications", headers=auth_headers(role)).json()["items"]]
+        assert "mr. gokhale signed off Client sign-off: preliminary requirements (version 1) on Villa A." in texts
+
+
+def test_change_request_notifies_the_studio_with_the_comment(client, client_headers, auth_headers, sent):
+    client.post(f"/client/signoffs/{sent['sid']}/request-changes", json={"comment": "Add a guest room."}, headers=client_headers)
+    texts = [n["text"] for n in client.get("/notifications", headers=auth_headers("architect")).json()["items"]]
+    assert any("asked for changes" in t and "Add a guest room." in t for t in texts)
+
+
+def test_invited_client_still_gets_the_request(client, auth_headers, new_project):
+    arch = auth_headers("architect")
+    pid = new_project(start_stage="requirements_signoff", historical_confirmed_by="Parvez")["id"]
+    code = client.post(f"/projects/{pid}/client-invite", headers=arch, json={"name": "Ms. Rao", "email": "rao@client.example"}).json()["code"]
+    sid = client.post(f"/projects/{pid}/signoffs", headers=arch, json={
+        "stage_key": "requirements_signoff", "title": "Baseline", "summary": "Scope"}).json()["id"]
+    client.post(f"/signoffs/{sid}/attachments", headers=arch, files={"file": ("B.pdf", PDF, "application/pdf")})
+    client.post(f"/signoffs/{sid}/send", headers=arch)
+    tok = client.post("/auth/activate", json={"email": "rao@client.example", "code": code, "password": "courtyard-house-1"}).json()
+    notes = client.get("/notifications", headers={"Authorization": f"Bearer {tok['access_token']}"}).json()["items"]
+    assert [n["kind"] for n in notes] == ["signoff_requested"]
+
+
+def test_overdue_client_decision_raises_and_clears(client, client_headers, auth_headers, sent, db):
+    from datetime import datetime, timedelta, timezone
+
+    from app.services.red_flags import sync_red_flags
+
+    project = db.get(m.Project, sent["pid"])
+    sync_red_flags(db, project, datetime.now(timezone.utc) + timedelta(days=8))
+    db.commit()
+    lead = auth_headers("team_lead")
+    flags = {f["rule"] for f in client.get(f"/projects/{sent['pid']}/red-flags", headers=lead).json()}
+    assert "client_decision_overdue" in flags
+    _view_all(client, client_headers, sent)
+    client.post(f"/client/signoffs/{sent['sid']}/approve", json=APPROVE, headers=client_headers)
+    flags = {f["rule"] for f in client.get(f"/projects/{sent['pid']}/red-flags", headers=lead).json()}
+    assert "client_decision_overdue" not in flags
