@@ -99,7 +99,7 @@
   - Files: backend/app/models.py, backend/migrations/versions/0004_red_flags.py, backend/app/services/red_flags.py, backend/app/routers/red_flags.py, backend/app/routers/legal.py, backend/app/routers/site_visits.py, backend/app/routers/reviews.py, backend/app/routers/problems.py, backend/app/main.py, backend/tests/test_red_flags.py
   - Completed: 2026-09-27. RedFlag model and migration 0004 (which also makes the audit actor nullable, for events SiteFlow records itself). sync_red_flags() flushes, reads state with queries, then raises and auto-clears flags. condition_ended_at re-arms a flag Parvez cleared by hand, only after its rule stops and holds again. It runs in the same transaction after legal, submit, review and resolve. Added GET /projects/{id}/red-flags (active only) and POST /red-flags/{id}/clear (team lead, reason required, 409 if already cleared). Order checks in the audit tests now use workflow_actions() to skip media and red flag events. 9 new tests, 193 in total.
 
-- [ ] Task 11: Dashboard API with the four panels (P0)
+- [x] Task 11: Dashboard API with the four panels (P0)
   - Acceptance:
     - `GET /dashboard` syncs flags for the visible projects, then returns:
       - `all_projects`: name, location, current step, official progress, open problem count, last approved visit date and red flag count.
@@ -109,6 +109,7 @@
     - Results are scoped by visibility: an engineer sees only their own projects.
     - Tests cover each panel's contents and sort order.
   - Files: backend/app/routers/dashboard.py, backend/app/main.py, backend/tests/test_dashboard.py
+  - Completed: 2026-09-27. GET /dashboard syncs flags for the visible projects, then returns all_projects (open problem count, last approved visit, flag labels and flags), needs_attention (sorted by highest rank, then oldest flag), major_problems (open High and Critical, Critical first then by target date, with the tagged or first photo id) and review_queue (built by queue_rows, which is now shared with /reviews/queue). Scoped by visibility. 6 new tests, 199 in total.
 
 - [ ] Task 12: Dashboard filters (P0)
   - Acceptance:

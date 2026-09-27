@@ -27,9 +27,13 @@ def _minutes_since(t: datetime) -> int:
 
 @router.get("/reviews/queue")
 def review_queue(db: Session = Depends(get_db), user: User = Depends(require_role(Role.team_lead))) -> list[dict]:
-    visible = visible_projects(user).with_only_columns(Project.id)
+    return queue_rows(db, visible_projects(user).with_only_columns(Project.id))
+
+
+def queue_rows(db: Session, project_ids) -> list[dict]:
+    """Submitted visits waiting for Parvez, oldest first, for the given projects (a list or a subquery)."""
     visits = db.scalars(select(SiteVisit).where(SiteVisit.status == VisitStatus.submitted,
-                                                SiteVisit.project_id.in_(visible))
+                                                SiteVisit.project_id.in_(project_ids))
                         .order_by(SiteVisit.submitted_at)).all()
     return [{
         "id": v.id,
