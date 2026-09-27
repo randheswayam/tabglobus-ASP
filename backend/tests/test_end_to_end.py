@@ -1,5 +1,5 @@
 """Full v1 loop through the API: create, legal, submit, rework, resubmit, approve (plan T2 shape)."""
-from tests.conftest import valid_visit
+from tests.conftest import valid_visit, workflow_actions
 
 
 def test_full_three_step_loop(client, users, auth_headers, evidence):
@@ -51,9 +51,8 @@ def test_full_three_step_loop(client, users, auth_headers, evidence):
         assert p["official_progress"] == 20.8
         assert [s["status"] for s in p["steps"]] == ["completed", "active", "locked"]  # next visit open
 
-    all_actions = [e["action"] for e in p["audit"]]
-    assert all_actions.count("media.added") == 5  # the photos taken for the first visit
-    actions = [a for a in all_actions if a != "media.added"]
+    assert [e["action"] for e in p["audit"]].count("media.added") == 5  # the photos taken for the first visit
+    actions = workflow_actions(p["audit"])
     assert actions == [
         "project.created",
         "legal.updated", "legal.updated", "step.completed", "step.activated",

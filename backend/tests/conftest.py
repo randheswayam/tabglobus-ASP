@@ -150,3 +150,8 @@ def evidence(client, auth_headers, upload):
         return visit
 
     return _evidence
+
+
+def workflow_actions(audit: list[dict]) -> list[str]:
+    """Audit actions without media and red flag events, for tests about the order of workflow steps."""
+    return [e["action"] for e in audit if not e["action"].startswith(("media.", "red_flag."))]

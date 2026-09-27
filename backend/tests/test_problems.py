@@ -69,7 +69,8 @@ def test_engineer_or_team_lead_resolves_with_a_note(client, auth_headers, approv
     assert [p["id"] for p in _problems(client, headers, pid, "resolved")] == [problem["id"]]
     assert len(_problems(client, headers, pid, "open")) == 1
     audit = client.get(f"/projects/{pid}", headers=headers).json()["audit"]
-    assert audit[-1]["action"] == "problem.resolved" and audit[-1]["detail"]["problem_id"] == problem["id"]
+    resolved = [e for e in audit if e["action"] == "problem.resolved"]
+    assert len(resolved) == 1 and resolved[0]["detail"]["problem_id"] == problem["id"]
 
 
 def test_resolve_needs_a_note(client, auth_headers, approved):

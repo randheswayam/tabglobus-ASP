@@ -223,12 +223,35 @@ class Problem(Base):
     resolved_by: Mapped["User | None"] = relationship()
 
 
+class RedFlag(Base):
+    """One raising of a red flag rule (plan section 5.3) for one subject (a problem, a visit or the project).
+
+    Cleared automatically when the rule stops holding, or by Parvez with a reason. A manual clear keeps the
+    flag down while the rule keeps holding; condition_ended_at records when it stopped, which re-arms it."""
+    __tablename__ = "red_flags"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    rule: Mapped[str] = mapped_column(String(40))
+    key: Mapped[str] = mapped_column(String(40))  # problem-<id>, visit-<id> or project
+    raised_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    clear_kind: Mapped[str | None] = mapped_column(String(10))  # auto | manual
+    cleared_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    clear_reason: Mapped[str | None] = mapped_column(Text)
+    condition_ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    project: Mapped[Project] = relationship()
+    cleared_by: Mapped["User | None"] = relationship()
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id"), index=True)
-    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    # None for events SiteFlow records by itself, such as red flags raised or cleared automatically.
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     action: Mapped[str] = mapped_column(String(60))
     entity_type: Mapped[str] = mapped_column(String(40))
     entity_id: Mapped[int | None] = mapped_column(Integer)

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -8,7 +8,7 @@ from app.db import get_db
 from app.deps import get_visible_project, require_role
 from app.models import LegalStatus, Project, Role, User
 from app.schemas import project_detail
-from app.services import audit, workflow
+from app.services import audit, red_flags, workflow
 
 router = APIRouter(tags=["legal"])
 
@@ -71,6 +71,7 @@ def update_legal(body: LegalIn, user: User = Depends(require_role(Role.admin)),
         workflow.complete(db, project, workflow.LEGAL, user)
         workflow.activate(db, project, workflow.SITE_VISIT, user)
 
+    red_flags.sync_red_flags(db, project, datetime.now(timezone.utc))
     db.commit()
     db.refresh(project)
     return project_detail(db, project)

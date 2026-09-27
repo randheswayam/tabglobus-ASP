@@ -9,7 +9,7 @@ from app.db import get_db
 from app.deps import require_role, visible_projects
 from app.models import Project, Review, ReviewDecision, Role, SiteVisit, User, VisitStatus
 from app.schemas import iso_utc, user_brief, visit_out
-from app.services import audit, problems, workflow
+from app.services import audit, problems, red_flags, workflow
 
 router = APIRouter(tags=["reviews"])
 
@@ -78,6 +78,7 @@ def review_site_visit(visit_id: int, body: ReviewIn, user: User = Depends(requir
         workflow.lock(db, project, workflow.REVIEW, user)
         workflow.activate(db, project, workflow.SITE_VISIT, user)
 
+    red_flags.sync_red_flags(db, project, datetime.now(timezone.utc))
     db.commit()
     db.refresh(visit)
     return visit_out(visit)

@@ -1,6 +1,6 @@
 import pytest
 
-from tests.conftest import valid_visit
+from tests.conftest import valid_visit, workflow_actions
 
 
 @pytest.fixture
@@ -48,7 +48,7 @@ def test_approve_makes_progress_official(client, auth_headers, submitted):
     assert p["official_progress"] == 16.7
     assert [s["status"] for s in p["steps"]] == ["completed", "active", "locked"]
     assert p["current_step"] == "Site Visit"  # the next visit opens (recurring visits, v2)
-    assert [e["action"] for e in p["audit"][-4:]] == ["site_visit.approved", "step.completed", "step.activated", "step.locked"]
+    assert workflow_actions(p["audit"])[-4:] == ["site_visit.approved", "step.completed", "step.activated", "step.locked"]
     assert client.get("/reviews/queue", headers=lead).json() == []
 
 
@@ -65,7 +65,7 @@ def test_rework_returns_visit_to_engineer_with_comment(client, auth_headers, sub
     assert p["official_progress"] == 0
     assert p["latest_visit"]["status"] == "rework"
     assert p["latest_visit"]["rework_comment"] == "Add photo of the seepage."
-    assert [e["action"] for e in p["audit"][-3:]] == ["site_visit.rework_requested", "step.locked", "step.activated"]
+    assert workflow_actions(p["audit"])[-3:] == ["site_visit.rework_requested", "step.locked", "step.activated"]
 
     v = client.get(f"/site-visits/{submitted['id']}", headers=eng).json()
     assert v["reviews"][-1] == {**v["reviews"][-1], "decision": "rework", "comment": "Add photo of the seepage."}

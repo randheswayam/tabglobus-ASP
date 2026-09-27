@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.deps import get_visible_project, require_role, visible_projects
 from app.models import Problem, ProblemStatus, Project, Role, User
-from app.services import audit
+from app.services import audit, red_flags
 from app.services.problems import problem_out
 
 router = APIRouter(tags=["problems"])
@@ -46,6 +46,7 @@ def resolve_problem(problem_id: int, body: ResolveIn, db: Session = Depends(get_
     problem.resolution_note = note
     audit.record(db, user, "problem.resolved", project_id=problem.project_id, entity_type="problem",
                  entity_id=problem.id, detail={"problem_id": problem.id, "problem": problem.problem, "note": note})
+    red_flags.sync_red_flags(db, problem.project, datetime.now(timezone.utc))
     db.commit()
     db.refresh(problem)
     return problem_out(problem)

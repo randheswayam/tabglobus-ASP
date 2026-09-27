@@ -1,5 +1,5 @@
 """Recurring site visits: approval reopens Site Visit for the next one, with a history."""
-from tests.conftest import valid_visit
+from tests.conftest import valid_visit, workflow_actions
 
 
 def _submit(client, headers, pid, evidence, **kw):
@@ -25,7 +25,7 @@ def test_approval_reopens_site_visit_for_the_next_visit(client, auth_headers, re
     assert p["current_step"] == "Site Visit"
     assert p["official_progress"] == 16.7
     assert p["approved_visits"] == 1 and p["visit_number"] == 2
-    assert [e["action"] for e in p["audit"][-4:]] == ["site_visit.approved", "step.completed", "step.activated", "step.locked"]
+    assert workflow_actions(p["audit"])[-4:] == ["site_visit.approved", "step.completed", "step.activated", "step.locked"]
 
     # The second visit is a new record with its own submission count.
     later = {"pln-beam": "Done", "pln-filling": "Done", "pln-dpc": "Done"}

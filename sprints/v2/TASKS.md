@@ -88,7 +88,7 @@
   - Files: backend/app/services/red_flags.py, backend/tests/test_red_flag_rules.py
   - Completed: 2026-09-27. evaluate_flags(ProjectState, now, cfg) is a pure function returning (rule, key) pairs for all six rules. A problem due today is not overdue. A Rejected Legal Approval also counts as delayed. Repeated rework applies only to visits not yet approved. No recent visit applies only while Step 2 is open, counting from the last approval or from Legal Approval. RULES gives each rule a label and a rank for the dashboard's sort order. 13 unit tests, 184 in total.
 
-- [ ] Task 10: Red flag persistence, automatic sync and manual clear (P0)
+- [x] Task 10: Red flag persistence, automatic sync and manual clear (P0)
   - Acceptance:
     - A `RedFlag` model and migration `0004_red_flags` are added.
     - `sync_red_flags(db, project, now)` raises new flags, clears automatically the flags whose rule no longer holds, and writes `red_flag.raised` or `red_flag.cleared`.
@@ -97,6 +97,7 @@
     - A flag cleared by hand is not raised again while its rule keeps holding. It is raised again after the rule stops holding and later holds again.
     - Tests move `now` forward for the time-based rules.
   - Files: backend/app/models.py, backend/migrations/versions/0004_red_flags.py, backend/app/services/red_flags.py, backend/app/routers/red_flags.py, backend/app/routers/legal.py, backend/app/routers/site_visits.py, backend/app/routers/reviews.py, backend/app/routers/problems.py, backend/app/main.py, backend/tests/test_red_flags.py
+  - Completed: 2026-09-27. RedFlag model and migration 0004 (which also makes the audit actor nullable, for events SiteFlow records itself). sync_red_flags() flushes, reads state with queries, then raises and auto-clears flags. condition_ended_at re-arms a flag Parvez cleared by hand, only after its rule stops and holds again. It runs in the same transaction after legal, submit, review and resolve. Added GET /projects/{id}/red-flags (active only) and POST /red-flags/{id}/clear (team lead, reason required, 409 if already cleared). Order checks in the audit tests now use workflow_actions() to skip media and red flag events. 9 new tests, 193 in total.
 
 - [ ] Task 11: Dashboard API with the four panels (P0)
   - Acceptance:
