@@ -17,3 +17,12 @@ def test_template_serves_form_config(client, auth_headers):
 
 def test_template_requires_sign_in(client):
     assert client.get("/template").status_code == 401
+
+
+def test_template_serves_the_stage_flow_for_onboarding(client, auth_headers):
+    from app import stage_config as sc
+
+    t = client.get("/template", headers=auth_headers("architect")).json()
+    assert [p["name"] for p in t["phases"]] == [p["name"] for p in sc.PHASES]
+    assert [s["key"] for s in t["flow"]] == [s["key"] for s in sc.STAGES]
+    assert t["flow"][7] == {"key": "tentative_elevations", "number": None, "label": "Tentative elevations", "phase": 2}

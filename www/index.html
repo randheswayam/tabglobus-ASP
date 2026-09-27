@@ -265,6 +265,8 @@ button.ph{padding:0;cursor:zoom-in}
 /* stage tracker */
 .section-h{font-size:15px;margin:18px 0 10px}
 .so-summary{white-space:pre-wrap}
+.onboard{border:1px dashed var(--line);border-radius:8px;padding:10px 12px}
+.onboard summary{cursor:pointer}
 .share-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
 .share-ph{position:relative;display:block;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid var(--line);cursor:pointer}
 .share-ph img{width:100%;height:100%;object-fit:cover;display:block}
@@ -1060,18 +1062,27 @@ V.projects = {
 };
 
 V['new-project'] = {
-  load: async () => { ui.data.engineers = await API.engineers(); },
+  load: async () => { [ui.data.engineers] = await Promise.all([API.engineers(), template()]); },
   html: () => {
     const eng = ui.data.engineers || [];
     const f = ui.p.form || {};
+    const flow = (TEMPLATE && TEMPLATE.flow) || [];
     return `<div class="crumbs"><button data-go="projects">Projects</button>/<span>New project</span></div>
-    <div class="head"><div><h1>New project</h1><div class="sub">Residential template: Legal Approval, then Site Visit, then Team Lead Review.</div></div></div>
+    <div class="head"><div><h1>New project</h1><div class="sub">Residential workflow: 18 stages from project setup to handover, with client sign-off at the major milestones.</div></div></div>
     ${errBox()}
     <form class="sec" data-form="new-project"><div class="sec-h"><h3>Project</h3></div><div class="sec-b"><div class="fgrid">
       <div class="field"><label for="np-name">Project name <span class="req">Required</span></label><input id="np-name" data-testid="np-name" value="${esc(f.name)}" placeholder="e.g. Pashan Residence"></div>
       <div class="field"><label for="np-loc">Location <span class="req">Required</span></label><input id="np-loc" data-testid="np-location" value="${esc(f.location)}" placeholder="Plot, road, area, city"></div>
       <div class="field"><label for="np-eng">Civil Engineer <span class="req">Required</span></label><select id="np-eng" data-testid="np-engineer">${eng.map(u => `<option value="${u.id}" ${String(u.id) === String(f.civil_engineer_id) ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></div>
       <div class="field"><label for="np-date">Legal Approval expected by</label><input id="np-date" data-testid="np-legal-date" type="date" value="${esc(f.legal_expected_date)}"></div>
+      ${flow.length ? `<details class="field full onboard" ${f.start_stage ? 'open' : ''}><summary data-testid="np-in-progress"><b>Already in progress?</b> <span class="small muted">Start the project at its current stage.</span></summary>
+        <div class="fgrid" style="margin-top:10px">
+          <div class="field"><label for="np-start">Current stage</label><select id="np-start" data-testid="np-start"><option value="">A new project (start at Project setup)</option>
+            ${TEMPLATE.phases.map(ph => `<optgroup label="Phase ${ph.number} · ${esc(ph.name)}">${flow.filter(s => s.phase === ph.number && s.key !== flow[0].key)
+              .map(s => `<option value="${s.key}" ${s.key === f.start_stage ? 'selected' : ''}>${s.number ? esc(s.number) + '. ' : ''}${esc(s.label)}</option>`).join('')}</optgroup>`).join('')}</select></div>
+          <div class="field"><label for="np-confirmer">Earlier stages confirmed by</label><input id="np-confirmer" data-testid="np-confirmer" value="${esc(f.historical_confirmed_by)}" placeholder="Who confirms they were done"></div>
+          <p class="small muted full">Earlier stages are recorded as “Historical — completed before SiteFlow”. They are never shown as client sign-offs, and all normal rules apply from the current stage.</p>
+        </div></details>` : ''}
       <div class="field full"><button class="btn primary" type="submit" data-testid="np-submit">Create project</button></div>
     </div></div></form>`;
   }
@@ -1854,12 +1865,15 @@ document.addEventListener('submit', async e => {
         ui.error = null; await go(home()); break;
       }
       case 'new-project': {
+        const start = $('#np-start') ? $('#np-start').value : '', confirmer = $('#np-confirmer') ? $('#np-confirmer').value.trim() : '';
         const body = {name: $('#np-name').value.trim(), location: $('#np-loc').value.trim(),
-          civil_engineer_id: +$('#np-eng').value || null, legal_expected_date: $('#np-date').value || null};
+          civil_engineer_id: +$('#np-eng').value || null, legal_expected_date: $('#np-date').value || null,
+          ...(start ? {start_stage: start, historical_confirmed_by: confirmer} : {})};
         const miss = [!body.name && 'Project name', !body.location && 'Location', !body.civil_engineer_id && 'Civil Engineer'].filter(Boolean);
-        ui.p.form = body;
+        ui.p.form = {...body, start_stage: start, historical_confirmed_by: confirmer};
         if (miss.length){ ui.error = {message: `${miss.join(', ')} ${miss.length === 1 ? 'is' : 'are'} required.`, items: []}; render(); return; }
-        try { const p = await API.createProject(body); toast(`${p.name} created. Legal Approval is open.`); await go('project', {pid: p.id}); }
+        if (start && !confirmer){ ui.error = {message: 'Who confirmed the earlier stages? Add a name to onboard a project mid-way.', items: []}; render(); return; }
+        try { const p = await API.createProject(body); toast(`${p.name} created. ${(p.current_stages || []).join(' + ') || 'The first stage'} is open.`); await go('project', {pid: p.id}); }
         catch (err){ setError(err); render(); }
         break;
       }

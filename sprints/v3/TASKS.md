@@ -199,12 +199,13 @@
   - Files: backend/app/models.py, backend/migrations/versions/0010_shared_updates.py, backend/app/routers/client.py, backend/app/routers/projects.py, web-src/app.js, backend/tests/test_shared_updates.py, tests/e2e/v3-client-app.spec.js
   - Completed: 2026-09-27. SharedUpdate and SharedUpdatePhoto models and migration 0009 (numbered 0009, since two earlier planned migrations weren't needed). POST /site-visits/{id}/share (Architect or Team Lead, approved visits only) takes a required note and photo ids that must belong to that visit. It audits update.shared and notifies the clients. GET /projects/{id}/shared-updates lists them for staff. The client view adds shared_updates (note, time, stage, photo ids), and photos come through /client/updates/{id}/media/{mid}, only for photos in that update on the client's own project. The staff /media route stays closed to clients. UI: 'Share with the client' on an approved visit's review screen (tick photos, write a note), and 'Updates from your architect' in the client app. Also fixed the client timeline completion date, which used the UTC date, to use the device's local date. 6 new backend tests (404 in total), 1 new E2E test (27 in total).
 
-- [ ] Task 22: UI: legacy onboarding on the New project form (P1)
+- [x] Task 22: UI: legacy onboarding on the New project form (P1)
   - Acceptance:
     - The New project form has an optional "Already in progress?" section: a current stage picker (grouped by phase) and "Earlier stages confirmed by" (a name, required when a stage is picked).
     - The created project shows earlier stages as Historical.
     - The Playwright test onboards a project at stage 13 and checks that the historical stages never read as signed by the client.
   - Files: web-src/app.js, tests/e2e/v3-stages.spec.js
+  - Completed: 2026-09-27. The New project form has a collapsible 'Already in progress?' section: a current stage picker grouped by phase (from the stage flow now served by GET /template) and 'Earlier stages confirmed by', required when a stage is picked (the message asks who confirmed). A note explains that historical stages are never shown as client sign-offs. The success message names the stage that opened. The E2E test onboards at stage 13 and checks the stage 11 design freeze shows Historical, not 'signed by the client', with the confirmer in the audit trail. 1 new backend test (409 in total), 1 new E2E test (28 in total).
 
 - [ ] Task 23: Client demo parity and republish (P2)
   - Acceptance:

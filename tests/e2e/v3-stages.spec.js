@@ -68,3 +68,24 @@ test('stage tracker fits a phone screen', async ({ browser, request }) => {
   await shot(page, 'v3-15-04-tracker-phone');
   await context.close();
 });
+
+test('architect onboards an in-progress project at detailed drawings from the New project form', async ({ page }) => {
+  await signIn(page, 'architect');
+  await page.getByTestId('nav-projects').click();
+  await page.getByTestId('new-project-btn').click();
+  await page.getByTestId('np-name').fill('Ranade Villa');
+  await page.getByTestId('np-location').fill('Bavdhan, Pune');
+  await page.getByTestId('np-in-progress').click();
+  await page.getByTestId('np-start').selectOption('detailed_drawings');
+  await page.getByTestId('np-submit').click();
+  await expect(page.getByTestId('form-error')).toContainText('Who confirmed');
+  await page.getByTestId('np-confirmer').fill('Parvez');
+  await shot(page, 'v3-22-01-onboarding-form');
+  await page.getByTestId('np-submit').click();
+  await expect(page.getByTestId('project-title')).toHaveText('Ranade Villa');
+  await expect(page.getByTestId('stage-detailed_drawings')).toContainText('In progress');
+  await expect(page.getByTestId('stage-design_freeze_signoff')).toContainText('Historical');
+  await expect(page.getByTestId('stage-design_freeze_signoff')).not.toContainText('signed by the client');
+  await expect(page.getByTestId('audit-list')).toContainText('onboarded mid-way (earlier stages confirmed by Parvez)');
+  await shot(page, 'v3-22-02-onboarded');
+});
