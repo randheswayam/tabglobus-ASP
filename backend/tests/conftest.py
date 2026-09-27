@@ -31,3 +31,26 @@ def db():
 def client():
     with TestClient(app) as c:
         yield c
+
+
+TEST_PASSWORD = "correct-horse-battery"
+
+
+@pytest.fixture
+def users(db):
+    """One seeded user per role, keyed by role value."""
+    from app.seed import seed
+
+    return {u.role.value: u for u in seed(db, password=TEST_PASSWORD)}
+
+
+@pytest.fixture
+def auth_headers(client, users):
+    """auth_headers("architect") -> Authorization header for that seeded user."""
+
+    def _headers(role: str) -> dict:
+        r = client.post("/auth/login", json={"email": users[role].email, "password": TEST_PASSWORD})
+        assert r.status_code == 200, r.text
+        return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+    return _headers
