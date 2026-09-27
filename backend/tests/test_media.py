@@ -180,3 +180,23 @@ def test_cannot_remove_after_submission_or_as_someone_else(upload, draft, client
     assert client.delete(f"/media/{mid}", headers=auth_headers("team_lead")).status_code == 403
     client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
     assert client.delete(f"/media/{mid}", headers=auth_headers("civil_engineer")).status_code == 409
+
+
+# ---------- retagging (supports removing a problem in the form) ----------
+
+def test_uploader_retags_or_untags_a_photo(upload, draft, client, auth_headers):
+    mid = upload(draft["id"], problem_ref="2").json()["id"]
+    eng = auth_headers("civil_engineer")
+    r = client.patch(f"/media/{mid}", json={"problem_ref": 1}, headers=eng)
+    assert r.status_code == 200 and r.json()["problem_ref"] == 1
+    r = client.patch(f"/media/{mid}", json={"problem_ref": None}, headers=eng)
+    assert r.status_code == 200 and r.json()["problem_ref"] is None
+    assert client.patch(f"/media/{mid}", json={"problem_ref": -1}, headers=eng).status_code == 422
+    assert client.patch(f"/media/{mid}", json={"problem_ref": 0}, headers=auth_headers("team_lead")).status_code == 403
+
+
+def test_retag_is_closed_after_submission(upload, draft, client, auth_headers, ready_project, evidence):
+    mid = upload(draft["id"]).json()["id"]
+    evidence(ready_project["id"])
+    client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
+    assert client.patch(f"/media/{mid}", json={"problem_ref": 0}, headers=auth_headers("civil_engineer")).status_code == 409

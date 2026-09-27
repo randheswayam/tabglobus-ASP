@@ -20,6 +20,7 @@ const SiteFlowAPI = (() => {
   const base = () => store.get(K_BASE) || defaultBase();
   const token = () => store.get(K_TOKEN);
   let onSignedOut = null;
+  const mediaUrls = {};
 
   class ApiError extends Error {
     constructor(status, message, detail){ super(message); this.status = status; this.detail = detail; }
@@ -69,6 +70,41 @@ const SiteFlowAPI = (() => {
     submitVisit: (id, body) => request('POST', `/projects/${id}/site-visits`, body),
     visit: id => request('GET', `/site-visits/${id}`),
     reviewQueue: () => request('GET', '/reviews/queue'),
-    review: (id, body) => request('POST', `/site-visits/${id}/review`, body)
+    review: (id, body) => request('POST', `/site-visits/${id}/review`, body),
+
+    /* ---------- media (v2) ---------- */
+    openDraft: pid => request('POST', `/projects/${pid}/site-visits/draft`),
+    deleteMedia: id => request('DELETE', `/media/${id}`),
+    retagMedia: (id, problem_ref) => request('PATCH', `/media/${id}`, {problem_ref}),
+    // XMLHttpRequest rather than fetch: only XHR reports upload progress.
+    uploadMedia(visitId, file, meta, onProgress){
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest(), t = token();
+        xhr.open('POST', `${base()}/site-visits/${visitId}/media`);
+        if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t);
+        xhr.upload.onprogress = e => { if (onProgress && e.lengthComputable) onProgress(e.loaded / e.total); };
+        xhr.onerror = () => reject(new ApiError(0, `Cannot reach the SiteFlow server at ${base()}. Check your connection.`));
+        xhr.onload = () => {
+          let data = null; try { data = JSON.parse(xhr.responseText); } catch (_) {}
+          if (xhr.status === 401 && t){ store.set(K_TOKEN, null); if (onSignedOut) onSignedOut(); }
+          if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+          else reject(new ApiError(xhr.status, messageOf(data, xhr.status), data && data.detail));
+        };
+        const fd = new FormData();
+        fd.append('file', file); fd.append('kind', meta.kind);
+        if (meta.problem_ref != null) fd.append('problem_ref', String(meta.problem_ref));
+        if (meta.captured_at) fd.append('captured_at', meta.captured_at);
+        if (meta.lat != null && meta.lng != null){ fd.append('lat', String(meta.lat)); fd.append('lng', String(meta.lng)); }
+        xhr.send(fd);
+      });
+    },
+    // Files need the Bearer token, which an <img src> can't send, so fetch them as blobs.
+    async mediaUrl(id){
+      if (mediaUrls[id]) return mediaUrls[id];
+      const t = token();
+      const r = await fetch(`${base()}/media/${id}`, {headers: t ? {Authorization: 'Bearer ' + t} : {}});
+      if (!r.ok) throw new ApiError(r.status, 'Could not load the file');
+      return (mediaUrls[id] = URL.createObjectURL(await r.blob()));
+    }
   };
 })();

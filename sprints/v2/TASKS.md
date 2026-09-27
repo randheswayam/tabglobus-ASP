@@ -120,7 +120,7 @@
   - Files: backend/app/routers/dashboard.py, backend/tests/test_dashboard.py
   - Completed: 2026-09-27. The filters are q, location, step, engineer_id, red_flag, severity, category, progress_min, progress_max, visit_from and visit_to. They narrow all_projects, needs_attention, major_problems and review_queue consistently. Severity and category match open problems. Visit dates use the last approved visit (UTC date). Typed parameters, plus checks on category, min above max and from after to, return 422. 26 new tests, 225 in total.
 
-- [ ] Task 13: UI: photo and video capture in the site visit form (P0)
+- [x] Task 13: UI: photo and video capture in the site visit form (P0)
   - Acceptance:
     - Opening the form calls the draft endpoint.
     - A Photos section offers Take photo (a file input with `accept="image/*" capture="environment"`) and Upload. Each problem card has its own Add photo button, which sets `problem_ref`.
@@ -130,6 +130,7 @@
     - The missing list includes the photo count and the per-problem photo rule, and the server's 413 and 415 errors are shown in plain words.
     - The Playwright test uploads fixture images, sees a High problem blocked until its photo is added, then submits.
   - Files: web-src/api.js, web-src/app.js, web-src/app.html, tests/e2e/fixtures/, tests/e2e/v2-media.spec.js
+  - Completed: 2026-09-27. The form opens the server draft. Photos section: Take photo (capture=environment), Upload (multiple) and optional video, with upload progress, thumbnails fetched as blobs with the token, and remove. Each problem card has its own photo slot, required for High and Critical. The capture time comes from the file's lastModified (within a day) and GPS from the form. The type and size are checked on the device first, and server 413 or 415 errors are shown as sent. Added PATCH /media/{id} (2 tests) so removing a problem retags the photos below it. Media features stay off when the API lacks them, so the client demo keeps working until Task 21. The v1 Task 10 E2E test now takes photos. 1 new E2E test (8 in total), 227 backend tests.
 
 - [ ] Task 14: UI: media on the review screen and visit history on the project page (P0)
   - Acceptance:

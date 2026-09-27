@@ -3,6 +3,7 @@ import secrets
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app import workflow_config as wc
@@ -127,3 +128,24 @@ def delete_media(media_id: int, user: User = Depends(require_role(Role.civil_eng
     db.commit()
     get_storage().delete(key)  # after the commit, so a failed commit never loses the file
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+class RetagIn(BaseModel):
+    problem_ref: int | None = None
+
+
+@router.patch("/media/{media_id}")
+def retag_media(media_id: int, body: RetagIn, user: User = Depends(require_role(Role.civil_engineer)),
+                db: Session = Depends(get_db)) -> dict:
+    """Move a photo to another problem (or untag it), e.g. when a problem above it is removed from the form."""
+    media = _visible_media(db, user, media_id)
+    if media.uploader_id != user.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the person who added it can change it")
+    if media.site_visit.status not in (VisitStatus.draft, VisitStatus.rework):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"Media on a {media.site_visit.status.value} visit can't change")
+    if body.problem_ref is not None and body.problem_ref < 0:
+        raise _unprocessable("problem_ref must be a problem number from 0", "problem_ref")
+    media.problem_ref = body.problem_ref
+    db.commit()
+    db.refresh(media)
+    return media_out(media)

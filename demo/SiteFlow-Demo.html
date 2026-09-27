@@ -234,6 +234,10 @@ main{min-width:0;padding-inline:32px;padding-block:24px 48px}
 .addph:hover{border-color:var(--accent);color:var(--accent)}
 .addph svg{width:22px;height:22px}
 .pcount{font-family:var(--f-mono);font-size:12.5px}
+.ph-tag{position:absolute;left:4px;bottom:4px;font-size:10.5px;font-weight:600;background:rgba(0,0,0,.6);color:#fff;border-radius:4px;padding:1px 5px}
+.ph-video{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--ink-2);font-size:11.5px;font-weight:600}
+.ph-bar{position:absolute;left:0;bottom:0;height:4px;background:var(--accent);transition:width .2s}
+.ph-up{border-style:dashed}
 .pcount.short{color:var(--bad)}
 .gps{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .gps .coord{font-family:var(--f-mono);font-size:13.5px;padding:8px 12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--line-2)}
@@ -935,6 +939,10 @@ function reviewCard(p){
 
 /* ---------- site visit (Civil Engineer) ---------- */
 let TEMPLATE = null;
+const MEDIA = typeof API.uploadMedia === 'function';
+const visitMedia = () => (ui.data.server && ui.data.server.media) || [];
+const photosOf = ref => visitMedia().filter(m => m.kind === 'photo' && m.problem_ref === ref);
+const needsPhoto = p => p.severity === 'High' || p.severity === 'Critical';
 async function template(){ if (!TEMPLATE) TEMPLATE = await API.template(); return TEMPLATE; }
 const draftKey = pid => `siteflow.draft.${ui.me.id}.${pid}`;
 function readDraft(pid){ try { return JSON.parse(localStorage.getItem(draftKey(pid)) || 'null'); } catch (_) { return null; } }
@@ -955,12 +963,17 @@ const emptyDraft = () => ({visit_at: localNow(), gps: null, manual: '', weather:
   no_issues: false, problems: [], summary: '', recommended_action: ''});
 
 const PROBLEM_LABELS = {category: 'category', problem: 'problem', other_text: 'description', severity: 'severity',
-  location: 'location on site', responsible_party: 'responsible party', target_date: 'target fix date'};
+  location: 'location on site', responsible_party: 'responsible party', target_date: 'target fix date',
+  photo: 'photo of the problem (High and Critical)'};
 function visitLabel(path){
   const fixed = {visit_at: 'Visit date and time', location: 'Location (GPS or manual entry)', 'location.gps': 'GPS coordinates',
     weather: 'Weather', attendees: 'Attendees', current_stage: 'Construction stage', problems: 'Problems, or tick “No issues found”',
     no_issues: '“No issues found” cannot be ticked while problems are listed', summary: 'Summary', recommended_action: 'Recommended action'};
   if (fixed[path]) return fixed[path];
+  if (path === 'photos'){
+    const n = visitMedia().filter(x => x.kind === 'photo').length;
+    return `Photos: at least ${TEMPLATE ? TEMPLATE.min_photos : ''} (${n} added)`;
+  }
   let m = path.match(/^checklist\.(.+)$/);
   if (m){ const it = (TEMPLATE ? TEMPLATE.stages.flatMap(s => s.checklist) : []).find(i => i.id === m[1]); return `Checklist: ${it ? it.label : m[1]}`; }
   m = path.match(/^problems\[(\d+)\]\.(.+)$/);
@@ -986,6 +999,10 @@ function visitMissing(d){
     else if (blank(p.problem)) miss.push(at + '.problem');
     ['severity', 'location', 'responsible_party', 'target_date'].forEach(k => { if (blank(p[k])) miss.push(`${at}.${k}`); });
   });
+  if (MEDIA){
+    if (visitMedia().filter(m => m.kind === 'photo').length < TEMPLATE.min_photos) miss.push('photos');
+    d.problems.forEach((p, n) => { if (needsPhoto(p) && !photosOf(n).length) miss.push(`problems[${n}].photo`); });
+  }
   ['summary', 'recommended_action'].forEach(k => { if (blank(d[k])) miss.push(k); });
   return miss;
 }
@@ -1016,6 +1033,10 @@ V.visit = {
     let d = readDraft(p.id);
     if (!d && ui.data.rework) d = draftFromVisit(await API.visit(last.id));
     ui.data.draft = d || emptyDraft();
+    // Photos and video attach to a visit on the server; the typed fields stay on the device.
+    const stepOpen = p.steps.find(s => s.order === 2).status === 'active';
+    ui.data.server = MEDIA && stepOpen ? await API.openDraft(p.id) : null;
+    ui.data.uploads = [];
   },
   html: () => {
     const p = ui.data.project, d = ui.data.draft, T = TEMPLATE;
@@ -1039,6 +1060,7 @@ V.visit = {
           : `<div class="row"><button class="btn" data-act="gps" data-testid="visit-gps">${ico('pin')}Capture GPS</button><span class="small muted">or describe the location below</span></div>`}
         <div class="field"><label for="v-man">Manual location</label><input id="v-man" data-v="manual" data-testid="visit-location-manual" value="${esc(d.manual)}" placeholder="Plot, landmark, area"></div>
       </div></section>
+      ${MEDIA ? photosSection() : ''}
       <section class="sec"><div class="sec-h"><h3>${ico('flow')}Construction stage <span class="req">Required</span></h3></div><div class="sec-b form">
         <div class="field"><label for="v-stage">Current stage</label><select id="v-stage" data-v="current_stage" data-rerender="1" data-testid="visit-stage">${opt(T.stages.map(s => s.name), d.current_stage, 'Select stage')}</select></div>
         ${stage ? `<div class="checks">${stage.checklist.map(i => `<div class="chk" style="justify-content:space-between;cursor:default"><span>${esc(i.label)}</span><select class="inp" style="width:auto" data-chk="${esc(i.id)}" data-testid="checklist-${esc(i.id)}">${opt(T.checklist_states, d.checklist[i.id], 'State')}</select></div>`).join('')}</div>` : '<span class="small muted">Pick a stage to see its checklist.</span>'}
@@ -1055,7 +1077,11 @@ V.visit = {
             <div class="field"><label>Location on site</label><input data-p="${n}.location" data-testid="problem-${n}-location" value="${esc(pr.location)}"></div>
             <div class="field"><label>Responsible party</label><input data-p="${n}.responsible_party" data-testid="problem-${n}-party" value="${esc(pr.responsible_party)}"></div>
             <div class="field"><label>Target fix date</label><input type="date" data-p="${n}.target_date" data-testid="problem-${n}-date" value="${esc(pr.target_date)}"></div>
-          </div></div>`).join('')}
+          </div>
+          ${MEDIA ? `<div class="subh">Photos of this problem${needsPhoto(pr) ? ' <span class="req">Required for High and Critical</span>' : ''}</div>
+          <div class="photos">${photosOf(n).map(mediaTile).join('')}${pendingTiles(n)}
+            <button class="addph" data-act="pick-media" data-kind="photo" data-ref="${n}" data-capture="1" data-testid="problem-${n}-photo">${ico('camera')}Add photo</button></div>` : ''}
+          </div>`).join('')}
       </div></section>
       <section class="sec"><div class="sec-h"><h3>${ico('doc')}Summary</h3></div><div class="sec-b"><div class="fgrid">
         <div class="field full"><label for="v-sum">Summary <span class="req">Required</span></label><textarea id="v-sum" rows="3" data-v="summary" data-testid="visit-summary">${esc(d.summary)}</textarea></div>
@@ -1066,6 +1092,67 @@ V.visit = {
     <div class="submitbar"><span class="small" id="sb-lbl">${sbLabel(miss)}</span><button class="btn primary" data-act="submit-visit" data-testid="visit-submit-mobile" ${miss.length ? 'disabled' : ''}>${ico('check')}Submit</button></div>`;
   }
 };
+function mediaTile(m){
+  const tag = m.problem_ref != null ? `<span class="ph-tag">Problem ${m.problem_ref + 1}</span>` : '';
+  const body = m.kind === 'photo' ? `<img data-mid="${m.id}" alt="Site photo taken ${esc(fmtStamp(m.captured_at))}">`
+    : `<div class="ph-video">${ico('video')}<span>Video · ${(m.size / 1048576).toFixed(1)} MB</span></div>`;
+  return `<div class="ph" data-testid="media-${m.id}" title="${esc(fmtStamp(m.captured_at))}${m.lat != null ? ` · ${m.lat.toFixed(5)}, ${m.lng.toFixed(5)}` : ''}">${body}${tag}
+    <button data-act="del-media" data-id="${m.id}" data-testid="media-remove-${m.id}" aria-label="Remove">${ico('x')}</button></div>`;
+}
+const pendingTiles = ref => (ui.data.uploads || []).filter(u => u.ref === ref)
+  .map(u => `<div class="ph ph-up" data-testid="upload-pending"><div class="ph-video">${ico('cloud')}<span>Uploading</span></div><i class="ph-bar" id="up-${u.id}" style="width:${Math.round(u.pct * 100)}%"></i></div>`).join('');
+
+function photosSection(){
+  const T = TEMPLATE, all = visitMedia(), photos = all.filter(m => m.kind === 'photo');
+  const general = all.filter(m => m.problem_ref == null);
+  return `<section class="sec" data-testid="visit-photos"><div class="sec-h"><h3>${ico('camera')}Photos <span class="req">Required</span></h3>
+      <span class="pcount ${photos.length < T.min_photos ? 'short' : ''}" data-testid="photo-count">${photos.length} / ${T.min_photos} min</span></div>
+    <div class="sec-b form">
+      <div class="photos">${general.map(mediaTile).join('')}${pendingTiles(null)}
+        <button class="addph" data-act="pick-media" data-kind="photo" data-capture="1" data-testid="photo-take">${ico('camera')}Take photo</button>
+        <button class="addph" data-act="pick-media" data-kind="photo" data-testid="photo-upload">${ico('image')}Upload</button></div>
+      <div class="row"><button class="btn sm" data-act="pick-media" data-kind="video" data-capture="1" data-testid="video-add">${ico('video')}Add video</button>
+        <span class="small muted">Optional, up to ${T.max_video_mb} MB. Photos up to ${T.max_photo_mb} MB each.</span></div>
+      <p class="small muted">Photos of a problem go on that problem below. Each photo keeps the time it was taken${ui.data.draft.gps ? ' and the GPS location' : ''}.</p>
+    </div></section>`;
+}
+
+/* A file input per pick, so the camera opens straight away where the device supports capture. */
+function pickFiles(kind, capture, ref){
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.hidden = true;
+  inp.accept = (kind === 'photo' ? TEMPLATE.photo_types : TEMPLATE.video_types).join(',');
+  if (capture) inp.setAttribute('capture', 'environment');
+  inp.multiple = kind === 'photo' && ref === null && !capture;
+  inp.addEventListener('change', () => { const files = [...inp.files]; inp.remove(); uploadFiles(files, kind, ref); });
+  document.body.appendChild(inp);
+  inp.click();
+}
+
+async function uploadFiles(files, kind, ref){
+  const T = TEMPLATE, types = kind === 'photo' ? T.photo_types : T.video_types;
+  const limit = (kind === 'photo' ? T.max_photo_mb : T.max_video_mb) * 1048576;
+  for (const f of files){
+    if (!types.includes(f.type)){ toast(`${f.name || 'That file'} is not a supported ${kind}. Use ${types.map(t => t.split('/')[1].toUpperCase()).join(', ')}.`); continue; }
+    if (f.size > limit){ toast(`${f.name || 'That file'} is over the ${limit / 1048576} MB limit for a ${kind}.`); continue; }
+    const up = {id: Math.random().toString(36).slice(2), ref, pct: 0};
+    ui.data.uploads.push(up); rerenderKeepScroll();
+    // A camera file's lastModified is when it was taken; files older than a day use the upload time.
+    const taken = f.lastModified && Date.now() - f.lastModified < 864e5 ? new Date(f.lastModified) : new Date();
+    const gps = ui.data.draft.gps;
+    try {
+      const m = await API.uploadMedia(ui.data.server.id, f, {kind, problem_ref: ref, captured_at: taken.toISOString(),
+        lat: gps ? gps.lat : null, lng: gps ? gps.lng : null}, pct => { up.pct = pct; const bar = $('#up-' + up.id); if (bar) bar.style.width = Math.round(pct * 100) + '%'; });
+      ui.data.server.media.push(m);
+    } catch (err){
+      toast(err.status === 413 || err.status === 415 ? err.message : `Upload failed: ${err.message}`);
+    } finally {
+      ui.data.uploads = ui.data.uploads.filter(u => u !== up);
+      if (ui.route === 'visit') rerenderKeepScroll();
+    }
+  }
+}
+
 const sbLabel = miss => miss.length ? `<b style="color:var(--bad)">${miss.length} missing</b>` : '<b style="color:var(--ok)">Ready to submit</b>';
 const missCount = miss => `${miss.length} missing`;
 const missList = miss => miss.length
@@ -1151,6 +1238,18 @@ function render(){
   $('#main').innerHTML = shell() + (ui.loadError ? `<div class="errbox" data-testid="load-error">${esc(ui.loadError)}</div>` : v.html());
   document.body.classList.toggle('focus', ui.route === 'visit');
   if (ui.route === 'project') syncLegalSave();
+  hydrateMedia();
+}
+
+/* Thumbnails are fetched with the sign-in token after each render. */
+function hydrateMedia(){
+  if (!MEDIA) return;
+  document.querySelectorAll('img[data-mid]:not([src])').forEach(async img => {
+    try { img.src = await API.mediaUrl(+img.dataset.mid); } catch (_) { img.alt = 'Photo could not be loaded'; }
+  });
+  document.querySelectorAll('video[data-mid]:not([src])').forEach(async v => {
+    try { v.src = await API.mediaUrl(+v.dataset.mid); } catch (_) {}
+  });
 }
 
 /* Save stays disabled for Approved until a document reference is entered. */
@@ -1182,7 +1281,21 @@ document.addEventListener('click', async e => {
       toast('Demo data reset.'); await go('projects'); break;
     case 'open-review': go('review', {vid: +a.dataset.vid}); break;
     case 'add-problem': ui.data.draft.problems.push(blankProblem()); ui.data.draft.no_issues = false; saveDraft(); rerenderKeepScroll(); break;
-    case 'del-problem': ui.data.draft.problems.splice(+a.dataset.n, 1); saveDraft(); rerenderKeepScroll(); break;
+    case 'del-problem': {
+      const n = +a.dataset.n;
+      // Photos are tagged by problem position: untag this problem's photos, shift those below it up.
+      if (MEDIA) try {
+        for (const m of visitMedia().filter(x => x.problem_ref != null && x.problem_ref >= n)){
+          const ref = m.problem_ref === n ? null : m.problem_ref - 1;
+          Object.assign(m, await API.retagMedia(m.id, ref));
+        }
+      } catch (err){ toast(err.message); break; }
+      ui.data.draft.problems.splice(n, 1); saveDraft(); rerenderKeepScroll(); break; }
+    case 'pick-media': pickFiles(a.dataset.kind, !!a.dataset.capture, a.dataset.ref === undefined ? null : +a.dataset.ref); break;
+    case 'del-media':
+      try { await API.deleteMedia(+a.dataset.id); ui.data.server.media = visitMedia().filter(m => m.id !== +a.dataset.id); rerenderKeepScroll(); }
+      catch (err){ toast(err.message); }
+      break;
     case 'clear-gps': ui.data.draft.gps = null; saveDraft(); rerenderKeepScroll(); break;
     case 'gps':
       if (!navigator.geolocation){ toast('GPS is not available here. Describe the location instead.'); break; }

@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { shot, signIn, signOut, createApprovedProject } = require('./helpers');
+const { shot, signIn, signOut, createApprovedProject, addMedia } = require('./helpers');
 
 const NAME = 'Patil Villa';
 
@@ -49,6 +49,9 @@ test.describe.serial('site visit and Team Lead review', () => {
     await page.getByTestId('visit-summary').fill('Plinth beam cast, filling under way.');
     await expect(page.getByTestId('visit-submit')).toBeDisabled();
     await page.getByTestId('visit-action').fill('Fix seepage before DPC.');
+    // v2: five photos, one of them of the High problem.
+    for (let i = 0; i < 4; i++) await addMedia(page, 'photo-take');
+    await addMedia(page, 'problem-0-photo');
 
     await expect(page.getByTestId('visit-submit')).toBeEnabled();
     await shot(page, 'task10-03-form-complete');
