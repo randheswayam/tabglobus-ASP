@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 from pydantic import BaseModel, field_validator
 from sqlalchemy import select
@@ -24,6 +24,13 @@ class ProjectIn(BaseModel):
 
 
 # ---------- serializers ----------
+
+def iso_utc(t: datetime | None) -> str | None:
+    """ISO 8601 with an explicit UTC offset. SQLite returns naive datetimes; they are stored as UTC."""
+    if t is None:
+        return None
+    return (t.replace(tzinfo=timezone.utc) if t.tzinfo is None else t.astimezone(timezone.utc)).isoformat()
+
 
 def user_brief(u: User | None) -> dict | None:
     return None if u is None else {"id": u.id, "name": u.name, "role": u.role.value}
@@ -51,7 +58,7 @@ def visit_brief(v: SiteVisit | None) -> dict | None:
         "status": v.status.value,
         "submission_count": v.submission_count,
         "computed_progress": v.computed_progress,
-        "submitted_at": v.submitted_at.isoformat() if v.submitted_at else None,
+        "submitted_at": iso_utc(v.submitted_at),
         "rework_comment": rework.comment if rework and v.status.value == "rework" else None,
     }
 
@@ -68,7 +75,7 @@ def visit_out(v: SiteVisit) -> dict:
         "no_issues": v.no_issues,
         "problems": v.problems,
         "reviews": [{"decision": r.decision.value, "comment": r.comment, "reviewer": user_brief(r.reviewer),
-                     "at": r.created_at.isoformat()} for r in v.reviews],
+                     "at": iso_utc(r.created_at)} for r in v.reviews],
     }
 
 
@@ -111,6 +118,6 @@ def project_detail(db: Session, project: Project) -> dict:
         "steps": [{"order": s.order, "name": s.name, "status": s.status.value} for s in project.steps],
         "legal_approval": legal_out(project),
         "latest_visit": visit_brief(latest_visit(project)),
-        "audit": [{"action": e.action, "actor": actors.get(e.actor_id), "at": e.created_at.isoformat(),
+        "audit": [{"action": e.action, "actor": actors.get(e.actor_id), "at": iso_utc(e.created_at),
                    "detail": e.detail} for e in events],
     }

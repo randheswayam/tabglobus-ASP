@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.deps import require_role, visible_projects
 from app.models import Project, Review, ReviewDecision, Role, SiteVisit, User, VisitStatus
-from app.schemas import user_brief, visit_out
+from app.schemas import iso_utc, user_brief, visit_out
 from app.services import audit, workflow
 
 router = APIRouter(tags=["reviews"])
@@ -38,7 +38,7 @@ def review_queue(db: Session = Depends(get_db), user: User = Depends(require_rol
         "current_stage": v.current_stage,
         "submission_count": v.submission_count,
         "computed_progress": v.computed_progress,
-        "submitted_at": v.submitted_at.isoformat(),
+        "submitted_at": iso_utc(v.submitted_at),
         "waiting_minutes": _minutes_since(v.submitted_at),
     } for v in visits]
 

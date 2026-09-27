@@ -95,3 +95,12 @@ def test_cannot_review_twice(client, auth_headers, submitted):
 
 def test_review_of_missing_visit_is_404(client, auth_headers):
     assert _review(client, auth_headers("team_lead"), 9999, decision="approve").status_code == 404
+
+
+def test_queue_and_review_timestamps_are_utc(client, auth_headers, submitted):
+    lead = auth_headers("team_lead")
+    [item] = client.get("/reviews/queue", headers=lead).json()
+    assert item["submitted_at"].endswith("+00:00")
+    v = _review(client, lead, submitted["id"], decision="rework", comment="x").json()
+    assert v["submitted_at"].endswith("+00:00")
+    assert v["reviews"][0]["at"].endswith("+00:00")

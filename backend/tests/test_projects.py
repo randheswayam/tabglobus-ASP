@@ -94,3 +94,9 @@ def test_list_engineers_for_assignment(client, auth_headers, users):
     assert r.status_code == 200
     assert [u["id"] for u in r.json()] == [users["civil_engineer"].id]
     assert client.get("/users", headers=auth_headers("civil_engineer")).status_code == 403
+
+
+def test_timestamps_are_serialized_as_utc(new_project):
+    # SQLite hands back naive datetimes; the API must still say they are UTC so clients show local time correctly.
+    at = new_project()["audit"][0]["at"]
+    assert at.endswith("+00:00"), at

@@ -20,11 +20,12 @@ async function signIn(page, role) {
   await page.getByTestId('login-email').fill(EMAIL[role]);
   await page.getByTestId('login-password').fill(PASSWORD);
   await page.getByTestId('login-submit').click();
-  await page.getByTestId('signed-in-as').first().waitFor();
+  // The name shows in the sidebar (desktop) or the top bar (phone); wait for whichever is visible.
+  await page.locator('[data-testid="signed-in-as"]:visible').first().waitFor();
 }
 
 async function signOut(page) {
-  await page.getByTestId('sign-out').first().click();
+  await page.locator('[data-testid="sign-out"]:visible').first().click();
   await page.getByTestId('login-email').waitFor();
 }
 

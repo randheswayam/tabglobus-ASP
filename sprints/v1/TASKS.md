@@ -1,6 +1,6 @@
 # Sprint v1 — Tasks
 
-## Status: In Progress
+## Status: Complete
 
 - [x] Task 1: Set up the FastAPI backend project with config and PostgreSQL (P0)
   - Acceptance: `uvicorn app.main:app` starts and `GET /health` returns `{"status":"ok"}`. `docker compose up db` starts PostgreSQL. CORS allows the web and Capacitor origins. `template_config.py` defines the 8 residential stages (Foundation, Plinth, Superstructure, Masonry, Plastering, Services, Finishes, Handover), each with placeholder checklist items and weights that sum to 100, plus the problem list from plan section 4 and `MIN_PHOTOS`. Placeholders are marked `# PLACEHOLDER: pending Parvez (D2/D3)`. `pytest` runs with one passing health test.
@@ -47,6 +47,18 @@
   - Files: web-src/api.js, web-src/build.py, web-src/app.js, web-src/app.html
   - Completed: 2026-09-27. Replaced the prototype's localStorage engine, five-step seed, template editor and demo user switcher with an API-driven app; styles and icons are kept. api.js stores the token on the device, signs the user out on a 401, and lets ?api= or the sign-in Server field set the server address. Legal form: the Save button stays disabled for Approved until a document is entered, and user input survives a failed save (a Playwright test caught the status reset). The sign-in email is kept after an error. Playwright harness: seeded SQLite API on port 8001 and static www/ on port 8080. 3 E2E tests with 8 screenshots.
 
-- [ ] Task 10: Connect the site visit form and review screen to the API (P0)
+- [x] Task 10: Connect the site visit form and review screen to the API (P0)
   - Acceptance: the Civil Engineer's site visit form matches the Task 7 fields, including the stage checklist and the problem picker from the config (served by `GET /template`). The draft saves to device storage and restores after reopening. Submit stays disabled, with a list of missing items, until the form is complete, and it shows the server's 422 errors when those occur. After submit, the engineer sees the derived progress as pending. Parvez's review queue opens a read-only view of the full submission with Approve, and with Request rework plus a comment box. On rework, the engineer sees the comment and can resubmit. `python web-src/build.py` produces a working `www/index.html`.
   - Files: web-src/app.js, web-src/app.html, backend/app/routers/template.py
+  - Completed: 2026-09-27. GET /template serves the stages, checklists and problem list, so the form uses the same config the server validates. The form mirrors the server's missing-field rules. Submit stays disabled with a live missing list and shows server 422 errors. The draft saves to device storage per user and project. A rework resubmission is prefilled from the last submission and shows Parvez's comment. The review queue has a nav count badge, and the review screen is read-only with Approve and Request rework (comment required). Fixed two bugs found by the E2E tests: a submit click lost when a blur re-rendered the button, and SQLite timestamps sent without a UTC offset (now always +00:00, with 2 new pytest tests). The signed-in name now shows on the mobile top bar. 3 E2E tests (including one at phone width) with 9 screenshots, and 2 new API tests for /template.
+
+## Sprint v1 totals
+- 111 backend tests (pytest) and 6 Playwright E2E tests, all passing.
+- Security: semgrep (python, fastapi, secrets, jwt, sql-injection, javascript, xss) clean; pip-audit and npm audit clean.
+
+## Notes for v2
+- Recurring visits: approval completes Step 3 and the workflow ends. Real projects need the next site visit cycle.
+- A Rejected Legal Approval is final. A reapplication path needs Parvez's decision (D7).
+- Android app: the Capacitor WebView loads over https and calls the API over http, so it needs a TLS API or android.allowMixedContent for development.
+- PostgreSQL has not been run end to end yet, because Docker Desktop was off. Everything was verified on SQLite.
+- Photos and video, minimum photo count, dashboard, red flags and notifications, as planned in the PRD.
