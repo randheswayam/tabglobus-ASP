@@ -14,6 +14,7 @@ from app import stage_config as sc
 from app.models import LegalStatus, Problem, ProblemStatus, Project, ProjectStage, StageStatus, User
 from app.schemas import iso_utc, user_brief
 from app.services import audit, notify
+from app.services.signoffs import latest_by_stage
 
 DONE = ("completed", "historical")
 
@@ -113,8 +114,8 @@ def can_complete(user: User, stage: dict, state: str) -> bool:
 
 
 def signoff_facts(db: Session, project: Project) -> dict:
-    """Latest sign-off request per stage, for the client_signoff gate. Filled in once sign-offs exist."""
-    return {}
+    """Latest sign-off request per stage, for the client_signoff gate."""
+    return latest_by_stage(db, project)
 
 
 def project_view(db: Session, project: Project, user: User) -> dict:

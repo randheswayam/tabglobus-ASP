@@ -86,7 +86,7 @@
   - Files: backend/app/models.py, backend/migrations/versions/0008_client_invites.py, backend/app/routers/invites.py, backend/app/routers/auth.py, backend/app/main.py, backend/tests/test_invites.py
   - Completed: 2026-09-27. ClientInvite model and migration 0007 (numbered 0007, because Task 8 needed no migration). POST /projects/{id}/client-invite (architect) creates an inactive client and the membership, and returns an 8-character code (alphabet without 0/O or 1/I) once. Only a PBKDF2 hash is stored, expiring after INVITE_CODE_TTL_DAYS. Re-inviting revokes the old code. An already active client is added to the project without a code. A team member's email returns 409. GET /projects/{id}/clients returns the invite status. POST /auth/activate sets a password of at least 10 characters. Wrong codes count attempts and the invite locks at INVITE_MAX_ATTEMPTS. Expired, used, revoked, locked and unknown codes all return the same 400 and do the same hashing work. A short password returns 422 and doesn't burn the code. client.invited and client.activated are audited. 13 new tests, 335 in total.
 
-- [ ] Task 10: Sign-off requests: versioned packages with attachments (P0)
+- [x] Task 10: Sign-off requests: versioned packages with attachments (P0)
   - Acceptance:
     - `SignoffRequest` and `SignoffAttachment` models and migration 0009 are added.
     - The architect, for a client sign-off stage that is active:
@@ -98,6 +98,7 @@
     - `GET /projects/{id}/signoffs` returns the history.
     - Audit events are `signoff.created`, `signoff.sent` and `signoff.attachment_added`.
   - Files: backend/app/models.py, backend/migrations/versions/0009_signoffs.py, backend/app/routers/signoffs.py, backend/app/services/signoffs.py, backend/app/main.py, backend/tests/test_signoffs.py
+  - Completed: 2026-09-27. The SignoffRequest, SignoffAttachment and SignoffView models and migration 0008 are added (SignoffView is used in Task 11). The Architect creates a draft for an active client sign-off stage (422 for a stage that isn't a sign-off stage, 409 if locked, 409 if another package is open). Versions number per stage and link to the previous one (supersedes_id). Drafts can be edited, and attachments added (PDF or image, with a signature check for %PDF-, a size limit and a display-only safe filename) or removed. Sending needs at least one attachment and a client member (422 lists what's missing). After sending, every edit returns 409. There is a history list and a staff download. The stage reason now reflects the package state. Upload checks moved to services/filecheck.py and are shared with media. 16 new tests (including new routes in the client route walk), 355 in total.
 
 - [ ] Task 11: Client reviews and signs off (approve or request changes) (P0)
   - Acceptance:

@@ -290,6 +290,70 @@ class ProjectStage(Base):
     completed_by: Mapped["User | None"] = relationship()
 
 
+class SignoffStatus(str, enum.Enum):
+    draft = "draft"
+    sent = "sent"
+    approved = "approved"
+    changes_requested = "changes_requested"
+
+
+class SignoffRequest(Base):
+    """One version of a client sign-off package for a milestone stage (4, 11, 17 or 18).
+    Frozen once sent; immutable once the client responds (see the guard at the end of this module)."""
+    __tablename__ = "signoff_requests"
+    __table_args__ = (UniqueConstraint("project_id", "stage_key", "version"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    stage_key: Mapped[str] = mapped_column(String(40))
+    version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[SignoffStatus] = mapped_column(_enum(SignoffStatus), default=SignoffStatus.draft)
+    title: Mapped[str] = mapped_column(String(200))
+    summary: Mapped[str] = mapped_column(Text)
+    created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    response_comment: Mapped[str | None] = mapped_column(Text)
+    signer_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    signer_name: Mapped[str | None] = mapped_column(String(120))
+    method: Mapped[str | None] = mapped_column(String(30))
+    confirmation_text: Mapped[str | None] = mapped_column(Text)
+    fingerprint: Mapped[str | None] = mapped_column(String(64))
+    supersedes_id: Mapped[int | None] = mapped_column(ForeignKey("signoff_requests.id"))
+
+    attachments: Mapped[list["SignoffAttachment"]] = relationship(back_populates="request", order_by="SignoffAttachment.id")
+    created_by: Mapped[User] = relationship(foreign_keys=[created_by_id])
+    signer: Mapped["User | None"] = relationship(foreign_keys=[signer_id])
+
+
+class SignoffAttachment(Base):
+    __tablename__ = "signoff_attachments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    request_id: Mapped[int] = mapped_column(ForeignKey("signoff_requests.id"), index=True)
+    filename: Mapped[str] = mapped_column(String(120))  # display name only; never a storage path
+    content_type: Mapped[str] = mapped_column(String(60))
+    size: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64))
+    storage_key: Mapped[str] = mapped_column(String(200), unique=True)
+    uploaded_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    request: Mapped[SignoffRequest] = relationship(back_populates="attachments")
+
+
+class SignoffView(Base):
+    """The client opened an attachment. Approval needs a view of every attachment in the version."""
+    __tablename__ = "signoff_views"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    request_id: Mapped[int] = mapped_column(ForeignKey("signoff_requests.id"), index=True)
+    attachment_id: Mapped[int] = mapped_column(ForeignKey("signoff_attachments.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    viewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class ClientInvite(Base):
     """A one-time code the Architect shares with a client to set their password. Only a hash is stored."""
     __tablename__ = "client_invites"
