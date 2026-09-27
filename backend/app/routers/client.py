@@ -13,10 +13,10 @@ from app import stage_config as sc
 from app import workflow_config as wc
 from app.db import get_db
 from app.deps import get_current_user
-from app.models import ProjectMember, Role, SignoffAttachment, SignoffRequest, SignoffStatus, SignoffView, User
+from app.models import Project, ProjectMember, Role, SignoffAttachment, SignoffRequest, SignoffStatus, SignoffView, User
 from app.routers.signoffs import file_response
 from app.schemas import iso_utc
-from app.services import audit, stages
+from app.services import audit, client_view, stages
 from app.services.signoffs import attachment_out
 
 router = APIRouter(prefix="/client", tags=["client app"])
@@ -80,6 +80,20 @@ class ApproveIn(BaseModel):
 
 class ChangesIn(BaseModel):
     comment: str | None = None
+
+
+@router.get("/projects")
+def my_projects(user: User = Depends(require_client), db: Session = Depends(get_db)) -> list[dict]:
+    ids = _member_project_ids(db, user)
+    projects = db.scalars(select(Project).where(Project.id.in_(ids)).order_by(Project.id)).all()
+    return [client_view.project_card(db, p) for p in projects]
+
+
+@router.get("/projects/{project_id}")
+def my_project(project_id: int, user: User = Depends(require_client), db: Session = Depends(get_db)) -> dict:
+    if project_id not in _member_project_ids(db, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+    return client_view.project_detail(db, db.get(Project, project_id), user, client_signoff_out)
 
 
 @router.get("/signoffs")

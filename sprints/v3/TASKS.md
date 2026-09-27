@@ -111,12 +111,13 @@
   - Files: backend/app/routers/client.py, backend/app/services/signoffs.py, backend/app/models.py, backend/tests/test_client_signoff.py
   - Completed: 2026-09-27. The /client router (Client role only) covers the list, one package (sent or answered, drafts are 404, other clients' packages are 404), and opening a document, which records a SignoffView and serves the file. Approve needs every document opened (422 lists the unviewed filenames), confirm true and the client's own name (whitespace and case ignored). It records the signer, method client_app, a snapshot of the confirmation text and a fingerprint (sha256 of IP and user agent, not the address). The stage then completes ('Signed off by … in the client app (version N)') and its successors open. Request changes needs a comment. A before_flush guard makes answered versions and sent documents immutable (SignoffImmutableError). Staff can't sign on the client's behalf (403). 14 new tests, 380 in total.
 
-- [ ] Task 12: Client-safe project view API (P0)
+- [x] Task 12: Client-safe project view API (P0)
   - Acceptance:
     - `GET /client/projects` and `GET /client/projects/{id}` are for the client's own projects only.
     - They are built from an allow-list: project name and location, phases and stages (status, historical label, completed dates), official progress, current stages, sign-off requests (status, version, dates, the client's own responses) and shared updates.
     - A test serialises the responses and asserts that none of these keys or values appear: audit, rework comments, red flags, problems, internal notes, emails of staff, or other projects' ids.
   - Files: backend/app/routers/client.py, backend/app/services/client_view.py, backend/tests/test_client_view.py
+  - Completed: 2026-09-27. services/client_view.py builds GET /client/projects (cards with phase, current stages, progress and how many sign-offs are waiting for you) and GET /client/projects/{id} (the 10 phases with stages as in_progress, upcoming, completed or historical, the signed milestones with signer, time and version, the sign-off summaries, and shared updates, empty until Task 21). The test collects every key in both responses against an allow-list and checks the text for internal words (audit, rework, red flag, problem, notes, staff emails, legal), using a fixture with a rework, an approved High problem and a red flag. Historical sign-off stages are never shown as signed. 6 new tests, 386 in total.
 
 - [ ] Task 13: Sign-off notifications and the "client decision overdue" red flag (P0)
   - Acceptance:
