@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db import create_all, migrate
-from app.routers import auth, legal, projects, reviews, site_visits, template
+from app.routers import auth, legal, problems, projects, reviews, site_visits, template
 
 
 @asynccontextmanager
@@ -32,6 +32,7 @@ app.include_router(projects.router)
 app.include_router(legal.router)
 app.include_router(site_visits.router)
 app.include_router(reviews.router)
+app.include_router(problems.router)
 app.include_router(template.router)
 
 

@@ -47,6 +47,11 @@ class VisitStatus(str, enum.Enum):
     approved = "approved"
 
 
+class ProblemStatus(str, enum.Enum):
+    open = "open"
+    resolved = "resolved"
+
+
 class ReviewDecision(str, enum.Enum):
     approve = "approve"
     rework = "rework"
@@ -164,6 +169,30 @@ class Review(Base):
 
     site_visit: Mapped[SiteVisit] = relationship(back_populates="reviews")
     reviewer: Mapped[User] = relationship()
+
+
+class Problem(Base):
+    """A problem from an approved site visit, tracked until someone resolves it."""
+    __tablename__ = "problems"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    site_visit_id: Mapped[int] = mapped_column(ForeignKey("site_visits.id"), index=True)
+    index: Mapped[int] = mapped_column(Integer)  # position in the visit's problem list (matches media problem_ref)
+    category: Mapped[str] = mapped_column(String(40))
+    problem: Mapped[str] = mapped_column(String(300))  # config list item, or the free text for "Other"
+    severity: Mapped[str] = mapped_column(String(20))
+    location: Mapped[str] = mapped_column(String(300))
+    responsible_party: Mapped[str] = mapped_column(String(200))
+    target_date: Mapped[date] = mapped_column(Date)
+    status: Mapped[ProblemStatus] = mapped_column(_enum(ProblemStatus), default=ProblemStatus.open, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolved_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    resolution_note: Mapped[str | None] = mapped_column(Text)
+
+    project: Mapped[Project] = relationship()
+    resolved_by: Mapped["User | None"] = relationship()
 
 
 class AuditEvent(Base):

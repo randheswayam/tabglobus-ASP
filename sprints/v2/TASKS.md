@@ -33,7 +33,7 @@
   - Files: backend/app/routers/reviews.py, backend/app/routers/projects.py, backend/app/schemas.py, backend/tests/test_reviews.py, backend/tests/test_end_to_end.py, backend/tests/test_visits_history.py
   - Completed: 2026-09-27. Approve completes Step 3, then reopens Step 2 and locks Step 3 (all audited). The next visit is a new row with its own submission count. official_progress is always the latest approved visit. Project detail gains approved_visits and visit_number (none before Legal Approval). Added GET /projects/{id}/visits, newest first with approved_at, drafts left out. Updated the v1 review and end-to-end tests and the Task 10 E2E test for the new cycle. E2E ports moved to 8001 and 8090 so run_local.py can stay up. 4 new tests, 128 in total.
 
-- [ ] Task 4: Problems become tracked open items (P0)
+- [x] Task 4: Problems become tracked open items (P0)
   - Acceptance:
     - A `Problem` model and migration `0002_problems` are added.
     - Approving a visit creates one open `Problem` per reported problem, with its category, problem or free text, severity, location, responsible party and target date, linked to the visit.
@@ -41,6 +41,7 @@
     - `POST /problems/{id}/resolve` (the assigned engineer or the team lead) needs a non-blank note, sets `resolved_at` and `resolved_by`, and writes `problem.resolved`. Resolving twice returns 409, and other roles get 403.
     - Visits marked "No issues found" create no problems.
   - Files: backend/app/models.py, backend/migrations/versions/0002_problems.py, backend/app/routers/problems.py, backend/app/routers/reviews.py, backend/app/main.py, backend/tests/test_problems.py
+  - Completed: 2026-09-27. Problem model and migration 0002. Approval turns each reported problem into an open item (Other stores its free text as the problem). Added GET /projects/{id}/problems?status= and POST /problems/{id}/resolve (engineer or team lead, a note required, 409 if already resolved, 404 when not visible), audited as problem.resolved. 11 new tests, 139 in total.
 
 - [ ] Task 5: Media model and the server-side draft visit (P0)
   - Acceptance:
