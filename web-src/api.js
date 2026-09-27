@@ -75,6 +75,8 @@ const SiteFlowAPI = (() => {
     /* ---------- media (v2) ---------- */
     openDraft: pid => request('POST', `/projects/${pid}/site-visits/draft`),
     visits: pid => request('GET', `/projects/${pid}/visits`),
+    dashboard: filters => request('GET', '/dashboard' + (Object.keys(filters || {}).length ? '?' + new URLSearchParams(filters) : '')),
+    clearFlag: (id, reason) => request('POST', `/red-flags/${id}/clear`, {reason}),
     deleteMedia: id => request('DELETE', `/media/${id}`),
     retagMedia: (id, problem_ref) => request('PATCH', `/media/${id}`, {problem_ref}),
     // XMLHttpRequest rather than fetch: only XHR reports upload progress.

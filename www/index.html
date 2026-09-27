@@ -239,6 +239,29 @@ main{min-width:0;padding-inline:32px;padding-block:24px 48px}
 .ph-bar{position:absolute;left:0;bottom:0;height:4px;background:var(--accent);transition:width .2s}
 .ph-up{border-style:dashed}
 button.ph{padding:0;cursor:zoom-in}
+/* dashboard */
+.filters{margin-bottom:16px}
+.filters summary{cursor:pointer;list-style:none}
+.filters summary::-webkit-details-marker{display:none}
+.flt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px 12px}
+.flt{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--ink-2)}
+.flt input,.flt select{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:7px 9px;font-size:13px;color:var(--ink);width:100%}
+.dash-table tr.clickable{cursor:pointer}
+.dash-table tr.clickable:hover td{background:var(--surface-2)}
+.dash-table td{vertical-align:top;padding:9px 8px}
+.attn-row{cursor:default}
+.linkish{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--ink);text-align:left}
+.linkish:hover{color:var(--accent)}
+.flag-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.flag-chip{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.flag-clear-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%}
+.flag-clear-form .inp{flex:1;min-width:160px;padding:6px 9px;font-size:13px}
+.major-row{width:100%;border:0;border-bottom:1px solid var(--line-2);background:none;text-align:left}
+.major-row:hover{background:var(--surface-2)}
+.major-thumb{width:44px;height:34px;border-radius:5px;overflow:hidden;background:var(--surface-2);display:block}
+.major-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.major-row.fi{grid-template-columns:44px minmax(0,1fr)}
+.overdue-text{color:var(--bad);font-weight:600}
 .lightbox{position:fixed;inset:0;z-index:60;background:rgba(10,16,18,.82);display:grid;place-items:center;padding:16px}
 .lb-body{max-width:min(960px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px}
 .lb-body img,.lb-body video{max-width:100%;max-height:78vh;object-fit:contain;border-radius:8px;background:#000}
@@ -307,9 +330,9 @@ body.anon .side,body.anon .tabs{display:none}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:9px;font-weight:500;font-size:13.5px;transition:.25s;z-index:50;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
-@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:1fr}}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:899px){
-  .app{grid-template-columns:1fr}
+  .app{grid-template-columns:minmax(0,1fr)}
   .side{display:none}
   main{padding-inline:16px;padding-block:12px 96px}
   .mtop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 -16px 14px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:10}
@@ -428,6 +451,8 @@ const SiteFlowAPI = (() => {
     /* ---------- media (v2) ---------- */
     openDraft: pid => request('POST', `/projects/${pid}/site-visits/draft`),
     visits: pid => request('GET', `/projects/${pid}/visits`),
+    dashboard: filters => request('GET', '/dashboard' + (Object.keys(filters || {}).length ? '?' + new URLSearchParams(filters) : '')),
+    clearFlag: (id, reason) => request('POST', `/red-flags/${id}/clear`, {reason}),
     deleteMedia: id => request('DELETE', `/media/${id}`),
     retagMedia: (id, problem_ref) => request('PATCH', `/media/${id}`, {problem_ref}),
     // XMLHttpRequest rather than fetch: only XHR reports upload progress.
@@ -527,6 +552,7 @@ const pct = n => (n == null ? '—' : `${Number(n).toFixed(1).replace(/\.0$/, ''
 
 /* ---------- state ---------- */
 const ui = {route: 'login', p: {}, me: null, data: {}, error: null, loadError: null};
+const home = () => API.dashboard && ui.me && ['architect', 'team_lead'].includes(ui.me.role) ? 'dashboard' : 'projects';
 const can = {
   create: () => ui.me && ui.me.role === 'architect',
   legal: () => ui.me && ui.me.role === 'admin',
@@ -556,7 +582,8 @@ API.onSignedOut(() => showLogin('Your session has ended. Sign in again.'));
 function shell(){
   if (!ui.me) return '';
   const u = ui.me;
-  const nav = [['projects', 'folder', 'Projects'], ...(can.review() ? [['queue', 'eye', 'Review queue']] : [])];
+  const nav = [...(home() === 'dashboard' ? [['dashboard', 'home', 'Dashboard']] : []), ['projects', 'folder', 'Projects'],
+    ...(can.review() ? [['queue', 'eye', 'Review queue']] : [])];
   const cur = ui.route === 'review' ? 'queue' : ['project', 'new-project', 'visit'].includes(ui.route) ? 'projects' : ui.route;
   const count = r => r === 'queue' && ui.queueCount ? `<span class="count" data-testid="queue-count">${ui.queueCount}</span>` : '';
   const who = `<span data-testid="signed-in-as"><b>${esc(u.name)}</b> <span class="muted small">· ${ROLES[u.role]}</span></span>`;
@@ -647,6 +674,107 @@ function demoPanel(){
     </ol>
     <p class="small muted">Sample projects and people. Changes stay in this browser.</p>
   </div>`;
+}
+
+/* ---------- dashboard (Architect and Team Lead) ---------- */
+const K_FILTERS = 'siteflow.dashboard.filters';
+function savedFilters(){ try { return JSON.parse(localStorage.getItem(K_FILTERS) || '{}') || {}; } catch (_) { return {}; } }
+function saveFilters(f){ try { localStorage.setItem(K_FILTERS, JSON.stringify(f)); } catch (_) {} }
+const FILTERS = ['q', 'location', 'step', 'engineer_id', 'red_flag', 'severity', 'category', 'progress_min', 'progress_max', 'visit_from', 'visit_to'];
+
+V.dashboard = {
+  load: async () => {
+    ui.data.filters = savedFilters();
+    const [d] = await Promise.all([API.dashboard(ui.data.filters), template()]);
+    ui.data.dash = d;
+    // Engineer choices come from the dashboard itself; only the Architect may list users.
+    const seen = {}; d.all_projects.forEach(p => { if (p.civil_engineer) seen[p.civil_engineer.id] = p.civil_engineer.name; });
+    ui.data.engineers = {...(ui.data.engineers || {}), ...seen};
+  },
+  html: () => {
+    const d = ui.data.dash, f = ui.data.filters;
+    const n = Object.keys(f).length;
+    return `<div data-testid="dashboard-view"><div class="head"><div><h1>Dashboard</h1><div class="sub">${d.all_projects.length} project${d.all_projects.length === 1 ? '' : 's'}${n ? ` matching ${n} filter${n === 1 ? '' : 's'}` : ''} · ${d.needs_attention.length} need${d.needs_attention.length === 1 ? 's' : ''} attention</div></div>
+      ${can.create() ? `<button class="btn primary" data-go="new-project">${ico('plus')}New project</button>` : ''}</div>
+    ${filterBar(f)}
+    <div class="kpis">
+      <div class="kpi ${d.needs_attention.length ? 'alert' : ''}"><b data-testid="kpi-attention">${d.needs_attention.length}</b><span>Need architect attention</span></div>
+      <div class="kpi ${d.major_problems.length ? 'attn' : ''}"><b data-testid="kpi-major">${d.major_problems.length}</b><span>Open High and Critical problems</span></div>
+      <div class="kpi"><b data-testid="kpi-queue">${d.review_queue.length}</b><span>Waiting for review</span></div>
+      <div class="kpi"><b>${d.all_projects.length}</b><span>Projects shown</span></div>
+    </div>
+    ${errBox()}
+    <div class="grid2">
+      <div class="stack">
+        <section class="panel" data-testid="panel-attention"><div class="panel-h"><h2>Needs Architect Attention</h2><span class="small muted">Most severe first</span></div>
+          ${d.needs_attention.length ? `<div class="tasks">${d.needs_attention.map(attentionRow).join('')}</div>` : '<div class="empty">No red flags. Nothing needs your attention.</div>'}</section>
+        <section class="panel" data-testid="panel-projects"><div class="panel-h"><h2>All Projects</h2></div>
+          ${d.all_projects.length ? `<div class="tbl-wrap"><table class="ftable dash-table"><thead><tr><th>Project</th><th>Step</th><th>Progress</th><th>Open problems</th><th>Last visit</th><th>Flags</th></tr></thead><tbody>
+            ${d.all_projects.map(p => `<tr data-act="open-project" data-pid="${p.id}" data-testid="dash-row-${p.id}" class="clickable">
+              <td><b>${esc(p.name)}</b><div class="small muted">${esc(p.location)}</div></td>
+              <td>${esc(p.current_step || 'Complete')}</td><td class="mono">${pct(p.official_progress)}</td>
+              <td class="mono">${p.open_problems}</td><td class="small">${p.last_visit_at ? fmtStamp(p.last_visit_at) : '<span class="muted">None yet</span>'}</td>
+              <td>${p.flag_labels.map(l => pill('rework', l)).join(' ') || '<span class="muted small">None</span>'}</td></tr>`).join('')}
+          </tbody></table></div>` : '<div class="empty">No projects match these filters.</div>'}</section>
+      </div>
+      <div class="stack">
+        <section class="panel" data-testid="panel-major"><div class="panel-h"><h2>Major Problems</h2><span class="small muted">Open High and Critical</span></div>
+          ${d.major_problems.length ? `<div class="feed">${d.major_problems.map(majorRow).join('')}</div>` : '<div class="empty">No open High or Critical problems.</div>'}</section>
+        <section class="panel" data-testid="panel-queue"><div class="panel-h"><h2>Review Queue</h2></div>
+          ${d.review_queue.length ? `<div class="tasks">${d.review_queue.map(v => `<button class="task task-review" data-act="${can.review() ? 'open-review' : 'open-project'}" data-vid="${v.id}" data-pid="${v.project.id}">
+            <span class="ti">${ico('eye')}</span><span><b>${esc(v.project.name)}</b><span class="small muted">${esc(v.engineer ? v.engineer.name : '')} · ${esc(v.current_stage || '')}</span></span>
+            <span class="meta">${pill(v.waiting_minutes > 2880 ? 'rework' : 'submitted', `Waiting ${waitedText(v.waiting_minutes)}`)}</span></button>`).join('')}</div>` : '<div class="empty">Nothing waiting for review.</div>'}</section>
+      </div>
+    </div></div>`;
+  }
+};
+const waitedText = m => m < 60 ? `${m} min` : m < 1440 ? `${Math.floor(m / 60)} h` : `${Math.floor(m / 1440)} d`;
+
+function attentionRow(p){
+  return `<div class="task attn-row" data-testid="attention-${p.id}">
+    <span class="ti" style="background:var(--bad-soft);color:var(--bad)">${ico('flag')}</span>
+    <span><b><button class="linkish" data-act="open-project" data-pid="${p.id}">${esc(p.name)}</button></b><span class="small muted">${esc(p.location)} · ${esc(p.current_step || 'Complete')}</span>
+      <span class="flag-list">${p.flags.map(f => flagChip(f)).join('')}</span></span>
+    <span class="meta mono small">${pct(p.official_progress)}</span></div>`;
+}
+function flagChip(f){
+  const clearing = ui.p.clearing === f.id;
+  return `<span class="flag-chip" data-testid="flag-${f.id}">${pill('rework', f.label)}<span class="small muted">since ${fmtStamp(f.raised_at)}</span>
+    ${can.review() && !clearing ? `<button class="btn sm ghost" data-act="flag-clear" data-id="${f.id}" data-testid="flag-clear-${f.id}">Clear</button>` : ''}
+    ${clearing ? `<span class="flag-clear-form"><input class="inp" id="fr-${f.id}" data-testid="flag-reason-${f.id}" placeholder="Reason for clearing" aria-label="Reason for clearing">
+      <button class="btn sm primary" data-act="flag-confirm" data-id="${f.id}" data-testid="flag-confirm-${f.id}">Clear flag</button>
+      <button class="btn sm ghost" data-act="flag-cancel">Cancel</button></span>` : ''}</span>`;
+}
+function majorRow(x){
+  return `<button class="fi warn major-row" data-act="open-project" data-pid="${x.project.id}" data-testid="major-${x.id}">
+    ${x.photo_id ? `<span class="major-thumb"><img data-mid="${x.photo_id}" alt="Photo of the problem"></span>` : `<span class="fic">${ico('alert')}</span>`}
+    <div><div><b>${esc(x.problem)}</b> · ${esc(x.project.name)}</div>
+      <div class="when">${pill(x.severity === 'Critical' ? 'rework' : 'active', x.severity)}<span>${esc(x.location)}</span><span>· ${esc(x.responsible_party)}</span>
+      <span class="${x.target_date < new Date().toISOString().slice(0, 10) ? 'overdue-text' : ''}">· fix by ${fmtDate(x.target_date)}</span></div></div></button>`;
+}
+function filterBar(f){
+  const T = TEMPLATE, sel = (id, label, options, val) => `<label class="flt"><span>${label}</span><select id="${id}" data-flt="${id.slice(3)}" data-testid="${id}"><option value="">Any</option>${options.map(([v, l]) => `<option value="${esc(v)}" ${String(val ?? '') === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
+  const inp = (id, label, type, val, extra = '') => `<label class="flt"><span>${label}</span><input id="${id}" type="${type}" data-flt="${id.slice(3)}" data-testid="${id}" value="${esc(val ?? '')}" ${extra}></label>`;
+  return `<details class="panel filters" data-testid="filters" ${Object.keys(f).length ? 'open' : ''}><summary class="panel-h"><h3>${ico('flow')}Filters</h3>${Object.keys(f).length ? `<button class="btn sm ghost" data-act="flt-reset" data-testid="flt-reset">Clear filters</button>` : ''}</summary>
+    <div class="panel-b flt-grid">
+      ${inp('fl-q', 'Project name', 'search', f.q)}${inp('fl-location', 'Location', 'search', f.location)}
+      ${sel('fl-step', 'Current step', [['Legal Approval', 'Legal Approval'], ['Site Visit', 'Site Visit'], ['Team Lead Review', 'Team Lead Review']], f.step)}
+      ${sel('fl-engineer_id', 'Civil Engineer', Object.entries(ui.data.engineers || {}), f.engineer_id)}
+      ${sel('fl-red_flag', 'Red flag', [['true', 'Yes'], ['false', 'No']], f.red_flag)}
+      ${sel('fl-severity', 'Problem severity', T.severities.map(s => [s, s]), f.severity)}
+      ${sel('fl-category', 'Problem category', Object.keys(T.problems).map(c => [c, c]), f.category)}
+      ${inp('fl-progress_min', 'Progress from %', 'number', f.progress_min, 'min="0" max="100" step="any"')}${inp('fl-progress_max', 'Progress to %', 'number', f.progress_max, 'min="0" max="100" step="any"')}
+      ${inp('fl-visit_from', 'Last visit from', 'date', f.visit_from)}${inp('fl-visit_to', 'Last visit to', 'date', f.visit_to)}
+    </div></details>`;
+}
+async function applyFilter(el){
+  const f = {...ui.data.filters}, v = el.value.trim();
+  if (v) f[el.dataset.flt] = v; else delete f[el.dataset.flt];
+  saveFilters(f);
+  const y = window.scrollY;
+  try { await V.dashboard.load(); ui.error = null; } catch (err){ setError(err); ui.data.filters = f; }
+  render(); window.scrollTo(0, y);
+  const again = document.getElementById(el.id); if (again && el.type !== 'date' && el.tagName !== 'SELECT'){ again.focus(); try { again.setSelectionRange(v.length, v.length); } catch (_) {} }
 }
 
 V.projects = {
@@ -1123,14 +1251,14 @@ document.addEventListener('click', async e => {
     case 'set-server': API.setBase($('#li-api').value.trim()); toast(`Server set to ${API.base()}`); break;
     case 'start-visit': go('visit', {pid: +a.dataset.pid}); break;
     case 'demo-login':
-      try { ui.me = await API.login(a.dataset.email, API.demoPassword); ui.error = null; await go('projects'); }
+      try { ui.me = await API.login(a.dataset.email, API.demoPassword); ui.error = null; await go(home()); }
       catch (err){ ui.error = err.message; render(); }
       break;
     case 'reset-demo':
       // The viewer blocks confirm(), so a second tap confirms.
       if (!a.dataset.confirm){ a.dataset.confirm = '1'; a.textContent = 'Tap again to reset'; setTimeout(() => { if (a.isConnected){ delete a.dataset.confirm; a.textContent = 'Reset demo data'; } }, 3000); break; }
       API.resetDemo(); try { Object.keys(localStorage).filter(k => k.startsWith('siteflow.draft.')).forEach(k => localStorage.removeItem(k)); } catch (_) {}
-      toast('Demo data reset.'); await go('projects'); break;
+      toast('Demo data reset.'); await go(home()); break;
     case 'open-review': go('review', {vid: +a.dataset.vid}); break;
     case 'add-problem': ui.data.draft.problems.push(blankProblem()); ui.data.draft.no_issues = false; saveDraft(); rerenderKeepScroll(); break;
     case 'del-problem': {
@@ -1144,6 +1272,15 @@ document.addEventListener('click', async e => {
       } catch (err){ toast(err.message); break; }
       ui.data.draft.problems.splice(n, 1); saveDraft(); rerenderKeepScroll(); break; }
     case 'open-media': ui.lightbox = +a.dataset.id; rerenderKeepScroll(); break;
+    case 'flag-clear': ui.p.clearing = +a.dataset.id; rerenderKeepScroll(); { const i = $('#fr-' + a.dataset.id); if (i) i.focus(); } break;
+    case 'flag-cancel': ui.p.clearing = null; rerenderKeepScroll(); break;
+    case 'flag-confirm': {
+      const reason = ($('#fr-' + a.dataset.id) || {}).value || '';
+      if (!reason.trim()){ toast('Give a reason for clearing this red flag.'); break; }
+      try { await API.clearFlag(+a.dataset.id, reason.trim()); ui.p.clearing = null; toast('Red flag cleared. The reason is in the audit trail.'); await V.dashboard.load(); ui.error = null; }
+      catch (err){ setError(err); }
+      rerenderKeepScroll(); break; }
+    case 'flt-reset': e.preventDefault(); saveFilters({}); await go('dashboard'); break;
     case 'close-media': ui.lightbox = null; rerenderKeepScroll(); break;
     case 'pick-media': pickFiles(a.dataset.kind, !!a.dataset.capture, a.dataset.ref === undefined ? null : +a.dataset.ref); break;
     case 'del-media':
@@ -1184,7 +1321,7 @@ document.addEventListener('submit', async e => {
         ui.loginEmail = $('#li-email').value.trim();
         try { ui.me = await API.login(ui.loginEmail, $('#li-pass').value); }
         catch (err){ ui.error = err.message; render(); const pw = $('#li-pass'); if (pw) pw.focus(); return; }
-        ui.error = null; await go('projects'); break;
+        ui.error = null; await go(home()); break;
       }
       case 'new-project': {
         const body = {name: $('#np-name').value.trim(), location: $('#np-loc').value.trim(),
@@ -1220,8 +1357,15 @@ document.addEventListener('input', e => {
   }
   if (el.id === 'lg-doc') syncLegalSave();
 });
+let fltTimer = null;
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (!el.dataset.flt || el.tagName === 'SELECT' || el.type === 'date') return;
+  clearTimeout(fltTimer); fltTimer = setTimeout(() => applyFilter(el), 350);
+});
 document.addEventListener('change', e => {
   const el = e.target;
+  if (el.dataset.flt && (el.tagName === 'SELECT' || el.type === 'date')){ applyFilter(el); return; }
   if (ui.route === 'visit' && ui.data.draft){
     const d = ui.data.draft;
     if (el.dataset.v) d[el.dataset.v] = el.type === 'checkbox' ? el.checked : el.value;
@@ -1237,13 +1381,13 @@ document.addEventListener('change', e => {
 window.addEventListener('online', () => render());
 window.addEventListener('offline', () => render());
 if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.App){
-  window.Capacitor.Plugins.App.addListener('backButton', () => { if (ui.route !== 'projects' && ui.me) go('projects'); else window.Capacitor.Plugins.App.exitApp(); });
+  window.Capacitor.Plugins.App.addListener('backButton', () => { if (ui.route !== home() && ui.me) go(home()); else window.Capacitor.Plugins.App.exitApp(); });
 }
 
 /* ---------- boot ---------- */
 (async () => {
   if (!API.signedIn()) return showLogin();
-  try { ui.me = await API.me(); await go('projects'); }
+  try { ui.me = await API.me(); await go(home()); }
   catch (e) { showLogin(API.signedIn() ? e.message : null); }
 })();
 })();

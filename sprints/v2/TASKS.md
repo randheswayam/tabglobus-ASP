@@ -141,7 +141,7 @@
   - Files: web-src/app.js, web-src/app.html, tests/e2e/v2-media.spec.js, tests/e2e/v2-recurring.spec.js
   - Completed: 2026-09-27. The review screen shows each problem with its tagged photos, plus a Site photos and video grid, with capture times on the thumbnails. Tapping a photo opens a larger view with the capture time, GPS, problem and uploader (a video plays there). The project page shows a Visit N pill and a Visit history panel from GET /projects/{id}/visits. The audit trail now words the v2 events (media, problems, red flags) and shows SiteFlow for system entries. 2 new E2E tests (10 in total) with 3 screenshots.
 
-- [ ] Task 15: UI: dashboard with panels, filters and manual red flag clear (P0)
+- [x] Task 15: UI: dashboard with panels, filters and manual red flag clear (P0)
   - Acceptance:
     - A new Dashboard nav item is shown to the Architect and the Team Lead, and is their landing page after sign-in.
     - It shows the four panels, with red flag pills naming each rule, and major problems with thumbnails.
@@ -149,6 +149,7 @@
     - Parvez sees Clear on each flag, which needs a reason.
     - The Playwright test creates flags (a High problem approved, and legal overdue), filters by red flag and severity, and clears one flag with a reason. It checks the audit entry, and takes phone and desktop screenshots.
   - Files: web-src/api.js, web-src/app.js, web-src/app.html, tests/e2e/v2-dashboard.spec.js
+  - Completed: 2026-09-27. The Dashboard is the landing page and first nav item for the Architect and the Team Lead. Engineers, Admins and the demo keep Projects. It has a KPI row and four panels: Needs Architect Attention with flag chips, All Projects as a table, Major Problems with photo thumbnails, and Review Queue. The collapsible filter bar covers all 11 filters, remembered on the device, with the engineer choices taken from the dashboard data (the Team Lead can't list users). Parvez clears a flag inline with a reason. Fixed a phone overflow: grid columns now use minmax(0, 1fr), and the phone tests check each panel's edge instead of the document scroll width. Updated the Task 9 E2E test for the new landing page. 3 new E2E tests (13 in total) with 4 screenshots.
 
 - [ ] Task 16: In-app notifications, backend (P1)
   - Acceptance:

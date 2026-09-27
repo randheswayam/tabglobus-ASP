@@ -15,18 +15,19 @@ test('sign-in rejects a wrong password and accepts the right one', async ({ page
   await page.getByTestId('login-password').fill('e2e-pass-123');
   await page.getByTestId('login-submit').click();
   await expect(page.getByTestId('signed-in-as').first()).toContainText('Meera Joshi');
-  await expect(page.getByTestId('projects-view')).toBeVisible();
+  await expect(page.getByTestId('dashboard-view')).toBeVisible();  // v2: the Architect lands on the dashboard
   await shot(page, 'task9-03-after-login');
 
   // Session survives a reload; sign out returns to the login screen.
   await page.reload();
-  await expect(page.getByTestId('projects-view')).toBeVisible();
+  await expect(page.getByTestId('dashboard-view')).toBeVisible();
   await signOut(page);
 });
 
 test('architect creates a project; engineer sees it, legacy screens are gone', async ({ page }) => {
   await signIn(page, 'architect');
   await expect(page.getByTestId('nav-templates')).toHaveCount(0);
+  await page.getByTestId('nav-projects').click();
   await page.getByTestId('new-project-btn').click();
   await expect(page.getByTestId('np-engineer')).toContainText('Farhan Shaikh');
   await shot(page, 'task9-04-new-project-form');
