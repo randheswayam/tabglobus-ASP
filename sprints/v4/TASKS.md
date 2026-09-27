@@ -417,9 +417,86 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - The v3 client demo (`demo-api.js`) isn't changed; its build still passes the demo E2E test.
   - Files: backend/app/stage_config.py, backend/app/workflow_config.py, backend/migrations/versions/0020_finishing_fee_gate.py, backend/tests/test_stage_config.py, backend/tests/test_stage_engine.py, backend/tests/test_migrations.py, web-src/icons.js, tests/e2e/*.spec.js (label updates)
 
+### Project image and the principal architect's overview (requested 28 September 2026)
+
+A small image of each project's 3D model sits beside the project name, so each project is easy to recognise. Only the main (principal) architect sees an overview of overall completion, client fees due and received, major milestones, and major issues with how each is being resolved.
+
+- [ ] Task 31: Project image (3D model render) beside the name (P0)
+  - Acceptance:
+    - The Architect or Admin can upload one project image, a render or screenshot of the 3D model, as JPEG, PNG or WEBP:
+      - `PUT /projects/{id}/image` stores it through `filecheck` and the storage interface under a random key, and records its sha256;
+      - `DELETE` removes it;
+      - both are audited.
+      - The size limit is `MAX_PROJECT_IMAGE_MB` in `workflow_config`, marked `TBD_PARVEZ`.
+      - The server keeps the original and a small square thumbnail (for example 96 × 96), made with Pillow, which is added to the requirements and passes pip-audit.
+    - `GET /projects/{id}/image?size=thumb|full` serves it to staff who can see the project. Project list and dashboard rows carry `image: {thumb_url, updated_at}` or `null`.
+    - The thumbnail sits beside the project name:
+      - in the dashboard's All Projects and Needs Architect Attention rows;
+      - on the Projects cards (the empty space circled in the screenshot of 28 September 2026);
+      - in the project page header.
+      - With no image, the phase icon from Task 28 is shown on a neutral tile.
+      - Each thumbnail has alt text "<project name> — 3D view".
+    - The project page has "Add project image" and "Replace" controls (`data-testid="project-image-upload"`).
+    - Only the uploaded image is shown. SiteFlow doesn't open or render 3D model files.
+    - The client app doesn't show the image yet; this is recorded as an open question in `docs/PROGRESS.md`.
+    - Tests cover upload, the type and signature checks, size, thumbnail dimensions, visibility, and replace or remove. An E2E test uploads an image and sees it on the card and the dashboard row. Screenshots are saved.
+  - Files: backend/app/models.py, backend/migrations/versions/0021_project_image.py, backend/app/modules/projects/image.py, backend/requirements.txt, backend/app/workflow_config.py, web-src/app.js, web-src/api.js, web-src/app.html, backend/tests/test_project_image.py, tests/e2e/v4-project-image.spec.js
+
+- [ ] Task 32: Principal architect designation (P0)
+  - Acceptance:
+    - `users` gains `is_principal` (boolean, default false), with a migration. Only an Admin can set it through `PATCH /admin/users/{id}` (Task 12), and only on an active staff user who isn't a client. The change is audited.
+    - The seed marks Parvez as principal.
+    - `require_principal` returns 403 for everyone else, including Admin, Accounts, Team Lead and Architect users who aren't the principal.
+    - Decision 0003 gains a note: the principal architect is a designation on a staff user, not a separate role. The person keeps their role's permissions (Parvez stays Team Lead for reviews) and adds the principal-only views.
+    - `docs/PROGRESS.md` records the open question of whether more than one person may be principal. The build allows one or more; the seed has one.
+    - Tests: `test_principal.py` covers the designation, the guard for every other role, and a client refused.
+  - Files: backend/app/models.py, backend/migrations/versions/0022_principal.py, backend/app/deps.py, backend/app/modules/identity/admin.py, backend/app/seed.py, docs/decisions/0003-module-layout.md, backend/tests/test_principal.py
+
+- [ ] Task 33: Client fees due and received (interim ledger) (P0)
+  - Acceptance:
+    - A new append-only `FeeEntry` model (project, kind `due` or `received`, amount, currency, date, reference, note, recorded by, recorded at) has a migration.
+    - Accounts or the principal records entries through `POST /projects/{id}/fees`:
+      - the amount must be above 0;
+      - a received entry needs a reference;
+      - entries are never edited; a correction is a new entry with a negative amount and a reason.
+      - Recording is audited.
+    - `GET /projects/{id}/fees` returns the entries and the totals: due, received, outstanding.
+    - Only the principal and Accounts can read fees. Everyone else, including clients, gets 403, and the keys never appear in other responses. The Task 19 field-rule test is extended.
+    - This interim ledger is replaced by the V12 fee module. A note in `docs/V4_EXECUTION_PLAN.md` says V12 migrates these entries.
+    - Tests: `test_fees_ledger.py` covers recording, totals, the correction entry, and access for each role.
+  - Files: backend/app/models.py, backend/migrations/versions/0023_fee_entries.py, backend/app/modules/fees/__init__.py, backend/app/modules/fees/ledger.py, backend/app/main.py, backend/tests/test_fees_ledger.py, docs/V4_EXECUTION_PLAN.md
+
+- [ ] Task 34: Principal overview API (P0)
+  - Acceptance:
+    - `GET /principal/overview` (principal only) returns, for each project the principal can see:
+      - **Overall completion %:** stages completed or historical out of all stages. The construction progress % is shown next to it, not mixed in. `OVERALL_COMPLETION_WEIGHTS` in `workflow_config` is empty by default (equal weights) and marked `TBD_PARVEZ` under V4-D03.
+      - **Fees:** due, received and outstanding, from Task 33.
+      - **Major milestones:** from `MAJOR_MILESTONES` in `workflow_config`, which by default holds the four client sign-offs, the 50% and 80% fee gates, Site line-out and civil completion, marked `TBD_PARVEZ`. Each has its state (health from Task 27), completion date or waiting reason, and who completed it.
+      - **Major issues:** open High and Critical problems, with severity, location, responsible party, target date, days open, overdue flag and the recommended action from the visit. Recently resolved ones (last `RESOLVED_ISSUES_DAYS` days, marked `TBD_PARVEZ`) show the resolution note.
+    - Portfolio totals: projects, average completion, total due, received and outstanding, open major issues, and milestones waiting.
+    - Tests: `test_principal_overview.py` covers the completion calculation, the fee totals, the milestone states, open and resolved issues, and 403 for every non-principal.
+  - Files: backend/app/modules/principal/__init__.py, backend/app/modules/principal/overview.py, backend/app/workflow_config.py, backend/app/main.py, backend/tests/test_principal_overview.py
+
+- [ ] Task 35: Principal overview on the dashboard (P0)
+  - Acceptance:
+    - When the signed-in user is the principal, the dashboard opens with a "Principal overview" section (`data-testid="principal-overview"`):
+      - portfolio totals at the top;
+      - then one row per project with its image (Task 31), completion %, fees due, received and outstanding, the milestone strip (icons and states), and the count of major issues;
+      - expanding a row shows the milestones with dates or reasons, and the major issues with responsible party, target date and action, or the resolution note.
+    - Accounts sees a fees tab for recording entries (Task 33), but not the overview.
+    - For every other user the section isn't rendered and the API isn't called.
+    - Money uses the project currency with Indian digit grouping (for example ₹12,50,000).
+    - Colour is never the only signal.
+    - E2E `v4-principal.spec.js`:
+      - Accounts records a due and a received entry;
+      - Parvez (principal) sees the totals, a milestone and a major issue with its action;
+      - Meera (Architect) doesn't see the section, and the API returns 403.
+      - Screenshots are saved.
+  - Files: web-src/app.js, web-src/api.js, web-src/app.html, tests/e2e/v4-principal.spec.js
+
 ### P1 — Should have
 
-- [ ] Task 31: Password reset stub (P1)
+- [ ] Task 36: Password reset stub (P1)
   - Acceptance:
     - An Admin can issue a reset for a staff user: a one-time token hashed at rest, a TTL setting, and single use. Nothing is emailed (no channel until S15).
     - `POST /auth/reset` with the token sets a new password (minimum 10 characters) and revokes every session.
@@ -427,7 +504,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - Tests cover expiry, reuse and the session revocation.
   - Files: backend/app/models.py, backend/migrations/versions/0017_password_resets.py, backend/app/modules/identity/reset.py, backend/tests/test_password_reset.py
 
-- [ ] Task 32: Approval delegation (P1)
+- [ ] Task 37: Approval delegation (P1)
   - Acceptance:
     - A new `ApprovalDelegation` model (delegator, delegate, start, end, reason) has a migration. A Team Lead can delegate site-visit review to another staff user for a date range.
     - The delegate can review while the range is active in the business timezone; after the end date they get 403.
@@ -436,7 +513,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - Tests: `test_delegation.py` (active, expired, over-authority).
   - Files: backend/app/models.py, backend/migrations/versions/0018_delegations.py, backend/app/modules/identity/delegation.py, backend/app/routers/reviews.py, backend/tests/test_delegation.py
 
-- [ ] Task 33: Activity state machine (pure) (P1)
+- [ ] Task 38: Activity state machine (pure) (P1)
   - Acceptance:
     - `backend/app/modules/workflow/states.py` defines the PRD 6.3 states:
       - Not Started, Ready, In Progress, Submitted, Under Review, Approved, Rework, Rejected, Completed;
@@ -447,7 +524,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - Nothing is wired into ProjectStage yet: that's a follow-up task in S05, recorded in `docs/PROGRESS.md`.
   - Files: backend/app/modules/workflow/states.py, backend/tests/test_states.py
 
-- [ ] Task 34: Pin each project to a flow version (P1)
+- [ ] Task 39: Pin each project to a flow version (P1)
   - Acceptance:
     - A new `FlowVersion` model (number, created_at, snapshot JSON of `stage_config.PHASES` and `STAGES`) has a migration that backfills version 1 from a frozen copy.
     - `projects.flow_version_id` is added, and new projects pin the current version.
@@ -455,24 +532,24 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - A test changes the config in memory, creates a new version, and shows that an existing project keeps the old flow.
   - Files: backend/app/models.py, backend/migrations/versions/0019_flow_versions.py, backend/app/modules/workflow/versions.py, backend/app/services/stages.py, backend/tests/test_flow_versions.py
 
-- [ ] Task 35: Map the diagram stages to PRD Stage 0 to 15 (P1)
+- [ ] Task 40: Map the diagram stages to PRD Stage 0 to 15 (P1)
   - Acceptance:
     - Each stage in `stage_config` gains `prd_stage` (for example setup → 0, `requirements_signoff` → 2, `line_out` → 11).
     - A test asserts that every PRD stage 0 to 15 is covered at least once.
     - The mapping table is added to `docs/V4_EXECUTION_PLAN.md` (closes R-09) and shown as a small label in the stage detail.
   - Files: backend/app/stage_config.py, backend/tests/test_stage_config.py, docs/V4_EXECUTION_PLAN.md, web-src/app.js
 
-- [ ] Task 36: XLSX import (P1)
+- [ ] Task 41: XLSX import (P1)
   - Acceptance:
     - The preview and commit also accept `.xlsx` (the first sheet, same columns) through `openpyxl`, which is added to requirements and passes pip-audit.
     - The file type is checked by its signature (a zip header), not only the extension.
     - Tests reuse the CSV cases with an XLSX fixture.
   - Files: backend/requirements.txt, backend/app/modules/projects/importer.py, backend/tests/test_import.py, backend/tests/fixtures/import.xlsx
 
-- [ ] Task 37: Sprint close: status docs (P1)
+- [ ] Task 42: Sprint close: status docs (P1)
   - Acceptance:
     - `docs/V4_EXECUTION_PLAN.md` section 2 updates S00 to S04 with the new evidence (file paths and test names) and their new status.
-    - `docs/PROGRESS.md` gets a dated entry: done, not done, deviations, and open questions (stage owners, field matrix, exception roles, stage evidence rules and file size limits, stage delay thresholds, the basis of the 50% and 80% fee percentages, D-13 data).
+    - `docs/PROGRESS.md` gets a dated entry: done, not done, deviations, and open questions (stage owners, field matrix, exception roles, stage evidence rules and file size limits, stage delay thresholds, the basis of the 50% and 80% fee percentages, principal-only views and who else may read fees, major milestones list, overall completion weights, project image on the client app, D-13 data).
     - The next sprint is named: execution-plan step 6 onwards (S05).
     - The full suites and scans are green.
   - Files: docs/V4_EXECUTION_PLAN.md, docs/PROGRESS.md
