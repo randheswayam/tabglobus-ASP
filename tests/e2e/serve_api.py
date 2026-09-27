@@ -16,6 +16,7 @@ if DB.exists():
 os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{DB.as_posix()}"
 os.environ["PASSWORD_HASH_ITERATIONS"] = "1000"
 os.environ.setdefault("JWT_SECRET", "e2e-only-secret-not-for-production-use")
+os.environ["CORS_ORIGINS"] = '["http://localhost:8090"]'
 sys.path.insert(0, str(HERE.parents[1] / "backend"))
 
 import uvicorn  # noqa: E402

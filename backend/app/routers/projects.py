@@ -8,7 +8,7 @@ from app import template_config as tc
 from app.db import get_db
 from app.deps import get_current_user, get_visible_project, require_role, visible_projects
 from app.models import LegalApproval, Project, ProjectMember, Role, StepStatus, User, WorkflowStep
-from app.schemas import ProjectIn, project_detail, project_summary
+from app.schemas import ProjectIn, project_detail, project_summary, visit_history_row
 from app.services import audit
 
 router = APIRouter(tags=["projects"])
@@ -51,6 +51,12 @@ def list_projects(db: Session = Depends(get_db), user: User = Depends(get_curren
 @router.get("/projects/{project_id}")
 def get_project(project: Project = Depends(get_visible_project), db: Session = Depends(get_db)) -> dict:
     return project_detail(db, project)
+
+
+@router.get("/projects/{project_id}/visits")
+def list_visits(project: Project = Depends(get_visible_project)) -> list[dict]:
+    """Every submitted visit on the project, newest first. Drafts are not history."""
+    return [visit_history_row(v) for v in reversed(project.site_visits) if v.status.value != "draft"]
 
 
 @router.get("/users")

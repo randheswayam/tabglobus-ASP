@@ -48,7 +48,7 @@ def test_full_three_step_loop(client, users, auth_headers):
     for headers in (architect, lead, engineer, admin):
         p = client.get(f"/projects/{pid}", headers=headers).json()
         assert p["official_progress"] == 20.8
-        assert [s["status"] for s in p["steps"]] == ["completed", "completed", "completed"]
+        assert [s["status"] for s in p["steps"]] == ["completed", "active", "locked"]  # next visit open
 
     actions = [e["action"] for e in p["audit"]]
     assert actions == [
@@ -57,5 +57,5 @@ def test_full_three_step_loop(client, users, auth_headers):
         "site_visit.submitted", "step.completed", "step.activated",
         "site_visit.rework_requested", "step.locked", "step.activated",
         "site_visit.submitted", "step.completed", "step.activated",
-        "site_visit.approved", "step.completed",
+        "site_visit.approved", "step.completed", "step.activated", "step.locked",
     ]

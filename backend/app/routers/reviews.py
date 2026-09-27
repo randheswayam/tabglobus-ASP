@@ -66,7 +66,10 @@ def review_site_visit(visit_id: int, body: ReviewIn, user: User = Depends(requir
         project.official_progress = visit.computed_progress
         audit.record(db, user, "site_visit.approved", project_id=project.id, entity_type="site_visit",
                      entity_id=visit.id, detail={**detail, "official_progress": visit.computed_progress})
+        # Recurring visits: this cycle's review is done, and Site Visit reopens for the next visit.
         workflow.complete(db, project, workflow.REVIEW, user)
+        workflow.activate(db, project, workflow.SITE_VISIT, user)
+        workflow.lock(db, project, workflow.REVIEW, user)
     else:
         visit.status = VisitStatus.rework
         audit.record(db, user, "site_visit.rework_requested", project_id=project.id, entity_type="site_visit",

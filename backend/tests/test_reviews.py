@@ -45,9 +45,9 @@ def test_approve_makes_progress_official(client, auth_headers, submitted):
 
     p = _project(client, lead, submitted["project"]["id"])
     assert p["official_progress"] == 16.7
-    assert [s["status"] for s in p["steps"]] == ["completed", "completed", "completed"]
-    assert p["current_step"] is None
-    assert [e["action"] for e in p["audit"][-2:]] == ["site_visit.approved", "step.completed"]
+    assert [s["status"] for s in p["steps"]] == ["completed", "active", "locked"]
+    assert p["current_step"] == "Site Visit"  # the next visit opens (recurring visits, v2)
+    assert [e["action"] for e in p["audit"][-4:]] == ["site_visit.approved", "step.completed", "step.activated", "step.locked"]
     assert client.get("/reviews/queue", headers=lead).json() == []
 
 

@@ -98,7 +98,9 @@ test.describe.serial('site visit and Team Lead review', () => {
     await expect(page.getByTestId('review-submission')).toContainText('Submission 2');
     await page.getByTestId('review-approve').click();
     await expect(page.getByTestId('official-progress')).toContainText('20.8%');
-    await expect(page.getByTestId('step-3')).toContainText('Done');
+    // Recurring visits: approval reopens Site Visit for the next visit.
+    await expect(page.getByTestId('step-2')).toContainText('In progress');
+    await expect(page.getByTestId('step-3')).toContainText('Locked');
     await expect(page.getByTestId('audit-list')).toContainText('progress 20.8% is official');
     await shot(page, 'task10-08-approved-official');
   });

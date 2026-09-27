@@ -49,6 +49,31 @@ def latest_visit(project: Project) -> SiteVisit | None:
     return project.site_visits[-1] if project.site_visits else None
 
 
+def approved_at(v: SiteVisit) -> str | None:
+    approve = next((r for r in reversed(v.reviews) if r.decision.value == "approve"), None)
+    return iso_utc(approve.created_at) if approve else None
+
+
+def visit_history_row(v: SiteVisit) -> dict:
+    return {
+        "id": v.id,
+        "status": v.status.value,
+        "current_stage": v.current_stage,
+        "computed_progress": v.computed_progress,
+        "submission_count": v.submission_count,
+        "submitted_at": iso_utc(v.submitted_at),
+        "approved_at": approved_at(v),
+        "engineer": user_brief(v.engineer),
+    }
+
+
+def visit_numbers(project: Project) -> tuple[int, int | None]:
+    """(approved visits, number of the visit now in progress). No visit is in progress before Legal Approval."""
+    approved = sum(1 for v in project.site_visits if v.status.value == "approved")
+    legal_done = project.steps and project.steps[0].status == StepStatus.completed
+    return approved, (approved + 1 if legal_done else None)
+
+
 def visit_brief(v: SiteVisit | None) -> dict | None:
     if v is None:
         return None
@@ -118,6 +143,8 @@ def project_detail(db: Session, project: Project) -> dict:
         "steps": [{"order": s.order, "name": s.name, "status": s.status.value} for s in project.steps],
         "legal_approval": legal_out(project),
         "latest_visit": visit_brief(latest_visit(project)),
+        "approved_visits": visit_numbers(project)[0],
+        "visit_number": visit_numbers(project)[1],
         "audit": [{"action": e.action, "actor": actors.get(e.actor_id), "at": iso_utc(e.created_at),
                    "detail": e.detail} for e in events],
     }

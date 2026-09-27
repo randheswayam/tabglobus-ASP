@@ -22,7 +22,7 @@
   - Files: backend/alembic.ini, backend/migrations/env.py, backend/migrations/versions/0001_v1_baseline.py, backend/app/db.py, backend/app/main.py, backend/tests/test_migrations.py
   - Completed: 2026-09-27. Baseline 0001 generated from the v1 models. migrate() runs at startup (AUTO_MIGRATE, off in the test suite). A v1 database made by create_all is stamped 0001 first, so existing local data is kept. run_local.py and the E2E server now migrate too. 3 new tests, 124 in total.
 
-- [ ] Task 3: Recurring site visits (P0)
+- [x] Task 3: Recurring site visits (P0)
   - Acceptance:
     - Approving a visit completes Step 3, then reopens Step 2 and locks Step 3. The audit trail shows `step.completed`, then `step.activated` for Site Visit.
     - `official_progress` shows the latest approved visit.
@@ -31,6 +31,7 @@
     - The project detail gains `visit_number` and `approved_visits`.
     - The v1 test that expected all steps completed is updated to the new cycle.
   - Files: backend/app/routers/reviews.py, backend/app/routers/projects.py, backend/app/schemas.py, backend/tests/test_reviews.py, backend/tests/test_end_to_end.py, backend/tests/test_visits_history.py
+  - Completed: 2026-09-27. Approve completes Step 3, then reopens Step 2 and locks Step 3 (all audited). The next visit is a new row with its own submission count. official_progress is always the latest approved visit. Project detail gains approved_visits and visit_number (none before Legal Approval). Added GET /projects/{id}/visits, newest first with approved_at, drafts left out. Updated the v1 review and end-to-end tests and the Task 10 E2E test for the new cycle. E2E ports moved to 8001 and 8090 so run_local.py can stay up. 4 new tests, 128 in total.
 
 - [ ] Task 4: Problems become tracked open items (P0)
   - Acceptance:
