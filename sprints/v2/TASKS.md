@@ -194,6 +194,7 @@
     - On an emulator, the engineer signs in, opens the site visit form, takes a photo through the camera intent, and submits against `run_local.py`. Screenshots or a screen recording are saved.
     - If no emulator is available, the build succeeding is recorded, and the device check is left as a T3 item.
   - Files: capacitor.config.json, android/app/src/debug/res/xml/network_security_config.xml, android/app/src/debug/AndroidManifest.xml, README.md
+  - Status 2026-09-27, partly done and blocked: this machine has no JDK and no Android SDK, so `npm run apk` and the emulator check could not run. Done: a debug-only network security config that permits cleartext, a debug-only mixed-content allowance in MainActivity (the runtime debuggable flag, so no Gradle change), the README section, and a successful `npx cap sync android`. I chose not to change androidScheme to http in capacitor.config.json: it is global, so it would change release builds and the app's storage origin too. The release manifest is unchanged and still blocks cleartext. XML validated, and semgrep's Java rules report nothing. Still open: build with JDK 21 and Android SDK 35 (or the GitHub Actions workflow), then on an emulator sign in, take a photo and submit against run_local.py. Otherwise leave the device check for T3.
 
 - [ ] Task 21: Client demo parity (P2)
   - Acceptance:

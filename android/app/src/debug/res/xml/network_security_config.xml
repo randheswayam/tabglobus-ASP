@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only (src/debug). Lets the app reach a development API over plain http: the emulator's
+     host at 10.0.2.2, localhost, or a laptop on the office Wi-Fi. Release builds use the platform default,
+     which blocks cleartext traffic. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,27 +1,32 @@
-# SiteFlow MVP — Android app and web prototype
+# SiteFlow MVP: web console and Android field app
 
-Prototype by TAN GLOBUS AI for the Architecture Workflow Platform (Phase 1 MVP).
+SiteFlow by TAN GLOBUS AI, for residential projects. One codebase runs as the web console and, through Capacitor, as the Android field app. At phone width it switches to the mobile layout with bottom tabs and a full-screen site visit form.
 
-One codebase runs as both the web console and the Android field app. On a phone-width screen it switches to the mobile layout with a bottom tab bar and a focused, full-screen site visit capture.
+The app talks to the FastAPI backend in `backend/` (see [backend/README.md](backend/README.md)). To run both locally: `backend/.venv/Scripts/python run_local.py`, then open http://localhost:8080/index.html.
 
-## What the MVP covers
+## What it does
 
-| Capability | Where to see it |
+| Area | What the app does |
 |---|---|
-| Configure | Workflow templates → Configure. Edit steps, roles, SLA days, required fields, minimum photos, GPS, video, voice, site checklist, milestones and invoice trigger %. Saving creates a new version; running projects stay on the version they started with. |
-| Create project | Projects → New project. Pick a template, assign the team, launch. The first activity is assigned immediately. |
-| Dashboard | Open activities by role, awaiting review, overdue and escalated, milestones and triggers, notifications. |
-| Steps | Five-step workflow: Client Requirement → Site Visit → Site Visit Review → Survey and Civil Assessment (parallel) → Concept Design. |
-| Site visit capture | Visit details, camera photos stamped with date, time and coordinates, GPS capture (or project pin or manual entry), video, voice note, documents, site checklist, observations and next steps. |
-| Validate | Submit is blocked until every mandatory item is present, with a list of what is missing. |
-| Review | Approve starts the next step. Send back for rework returns it to the assignee with the comment. |
-| Trigger next work | Parallel branches, automatic next-activity assignment, milestones that raise an invoice request, a client update and a review meeting. |
-| Escalate | Activities past their SLA due date escalate to the project manager. |
-| Audit trail | Every assignment, submission, decision and milestone on the project page. |
+| Workflow | Three steps per residential project: Legal Approval, then Site Visit, then Team Lead Review. Each approval reopens Site Visit for the next visit. |
+| Legal Approval | The Admin records the authority, reference, dates and approval document. Approved unlocks the site visit. |
+| Site visit | Mandatory form with the stage checklist, the prepopulated problem list, photos and optional video. A High or Critical problem needs its own photo. The draft is kept on the device. |
+| Progress | Derived from the stage checklist and weights, and official only after Parvez approves. |
+| Review | Parvez approves, or sends the visit back with a comment. Approved problems become open items until someone resolves them. |
+| Dashboard | All Projects, Needs Architect Attention, Major Problems and Review Queue, with filters and red flags. |
+| Notifications and audit | In-app notifications for step changes, reviews and red flags. Every change is recorded in the audit trail. |
 
-Use the "Viewing as" selector to switch between Principal Architect, Project Manager, Architect, Site Engineer, Civil Engineer and Accounts. The Android app opens as the Site Engineer.
+A client demo that runs entirely in the browser on sample data is built to `demo/SiteFlow-Demo.html` by `web-src/build.py`.
 
-Data is demo data stored on the device (browser storage in the web version, app storage on Android). There is no server in this prototype; "Reset demo data" restores the seeded projects.
+## Connecting the Android debug build to the API
+
+Debug builds reach a development API over plain http: `http://10.0.2.2:8000` from the emulator, which is the host machine's `run_local.py`. To use another server, such as a laptop on the office Wi-Fi, set it in the sign-in screen's Server field, or open the app with `?api=http://<address>:8000`.
+
+This works because of two debug-only settings:
+- `android/app/src/debug/res/xml/network_security_config.xml` permits cleartext traffic.
+- `MainActivity` allows mixed content when the build is debuggable. The app itself is served from `https://localhost`.
+
+Release builds keep the Android defaults, so they need an https API.
 
 ## Build the APK
 
@@ -55,7 +60,7 @@ The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Editing the app
 
-The app source is `web-src/app.html` (layout and styles) and `web-src/app.js` (workflow engine, views, seed data). After editing, run:
+The app source is `web-src/app.html` (layout and styles), `web-src/api.js` (the API client), `web-src/app.js` (views and events) and `web-src/demo-api.js` (the in-browser API for the client demo). After editing, run:
 
 ```
 python3 web-src/build.py
