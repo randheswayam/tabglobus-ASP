@@ -10,6 +10,7 @@ Sprint v4 is the first sprint of the V4 programme. It closes the core gaps that 
 
 - **Requested on 28 September 2026:** every workflow activity can be marked complete with a text note and attached photos, videos, AutoCAD drawings (DWG or DXF) and PDFs.
 - **Requested on 28 September 2026:** hovering over a project on the dashboard shows its complete workflow as a callout, coloured green (completed), yellow (waiting) and red (delayed).
+- **Requested on 28 September 2026:** the interior package is renamed the **Finishing package**, and 80% of fees must be collected before it, through a new 80% fee gate.
 - **Requested on 28 September 2026:** every progress dash on the dashboard and Projects cards becomes a representative icon for its phase, and the callout shows the workflow visually, drawn like the architect's workflow diagram.
 
 No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **Build** stage of Build → Deploy → Evaluate → Maintain.
@@ -36,6 +37,7 @@ No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **
   - Colours: green Completed, yellow Waiting, red Delayed, grey Upcoming. Each has an icon, text and a reason.
   - Delayed comes from the existing red-flag rules mapped to their stage. A per-stage days threshold can be added once Parvez sets it.
 - **Progress is shown as icons, not dashes.** The 10 phase segments are replaced by icons from the workflow diagram (folder, people, document, hard hat, gear, house, key and so on), each coloured by the phase's state and labelled for screen readers. Hovering over one icon shows that phase's stages. Hovering over the project opens the full visual workflow, with stage boxes, arrows, parallel workstreams and the client rework loop.
+- **The finishing package has its fee gate.** Phase 9 is "Finishing", stage 17 is the finishing package sign-off, and a new "80% fee gate" (owner Accounts) sits between civil completion and that sign-off. Until the payment module exists (S10 and V12), the gate is passed only by a recorded exception, like the 50% upfront gate.
 - **Nothing regresses.** All 409 backend tests and 28 E2E tests from v3 still pass, or are updated only where a rule deliberately changed.
 
 ## User Stories
@@ -49,6 +51,7 @@ No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **
 - As an Architect, I want to attach the AutoCAD centerline or grid drawing (DWG or DXF) to the stage I complete, so that the Structural Consultant works from the file that was actually issued.
 - As Parvez, I want to hover over a project on the dashboard and see every stage coloured by state, so that I know what is done, what is waiting and what is late without opening the project.
 - As Parvez, I want each phase on a project card shown as a recognisable icon in its state colour, and the full workflow drawn like my diagram when I hover, so that I read a project's position the way I already think about it.
+- As Accounts, I want the finishing package to wait until 80% of fees are collected, so that the finishing work doesn't start with most of the fee still outstanding.
 - As an Admin, I want to import the in-progress projects from a spreadsheet with a preview and row errors, so that onboarding the roughly 20 projects doesn't mean entering each one by hand (PRD 7.19, FR-27).
 
 ## Technical Architecture
@@ -147,5 +150,6 @@ No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **
   - **Stage owners:** which new role owns each stage. The seeded defaults come from PRD v3.2 section 5 and are marked `TBD_PARVEZ`.
   - **Exception authority:** who may record a gate exception. The seeded default is Admin and Team Lead, marked `TBD_PARVEZ`.
   - **Stage evidence rules:** which stages require a file before completion, and the size limit per file kind (`MAX_STAGE_ATTACHMENT_MB`). The seeded default requires no file, marked `TBD_PARVEZ`.
+  - **Fee percentages:** 50% upfront before detailed drawings, and 80% before the finishing package, as supplied by TAN GLOBUS AI on 28 September 2026. Parvez still has to confirm the basis (total fee, stage fee or another), which is D-05, marked `TBD_PARVEZ`.
   - **Stage delay thresholds:** how many days a stage may stay active before it shows as Delayed (`STAGE_DELAYED_AFTER_DAYS`). Empty by default so the rule is off, marked `TBD_PARVEZ`.
   - **Session lengths:** access and refresh token lifetimes. These are TAN GLOBUS AI security settings, marked for confirmation.

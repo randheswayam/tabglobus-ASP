@@ -388,9 +388,37 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
       - Screenshots are saved.
   - Files: web-src/app.js, web-src/app.html, web-src/icons.js, tests/e2e/v4-dashboard-callout.spec.js
 
+### Finishing package and the 80% fee gate (requested 28 September 2026)
+
+- [ ] Task 30: Rename Interiors to the Finishing package and add the 80% fee gate (P0)
+  - Acceptance:
+    - Phase 9 "Interiors" becomes "Finishing". Stage 17 becomes "Client sign-off: finishing package (tile and material selection)", and its detail says "Finishing package: material, tile and fixture selection approvals". The label changes everywhere the stage is shown: staff tracker, client app, dashboard, notifications and the callout.
+    - A new stage `finishing_fee_gate` is added:
+      - label "80% fee gate";
+      - phase 9, owner `accounts`, workstream Both;
+      - after `civil_completion` and before the finishing sign-off, which now waits for it;
+      - gates `["payment"]`: the Task 16 placeholder, passed by a recorded exception until the payment module (S10 and V12) exists;
+      - detail "80% of fees collected before the finishing package".
+    - `workflow_config` gains the fee milestone settings:
+      - `FINISHING_FEE_PERCENT = 80`, with the comment "supplied by TAN GLOBUS AI on 28 September 2026; confirm with Parvez";
+      - `UPFRONT_FEE_PERCENT = 50` for stage 12.
+      - Both carry the D-05 note, marked `TBD_PARVEZ`, that the basis (total fee, stage fee or another basis) is still open.
+      - The stage labels are built from these settings, not typed separately.
+    - The new stage has an icon (payment card, as for stage 12), so the Task 28 icon test passes.
+    - A migration adds a `finishing_fee_gate` row to every existing project:
+      - `historical` if the finishing sign-off is already completed or historical;
+      - `active` if civil completion is done and the finishing sign-off hasn't started;
+      - `locked` otherwise.
+      - An active finishing sign-off with no package yet goes back to `locked` behind the new gate. A sent package is left as it is.
+      - The migration uses a frozen copy of the stage keys.
+    - Tests and fixtures that count stages (23 becomes 24) or name the old label are updated.
+    - New tests cover the gate order, the migration, and the label built from the percentage.
+    - The v3 client demo (`demo-api.js`) isn't changed; its build still passes the demo E2E test.
+  - Files: backend/app/stage_config.py, backend/app/workflow_config.py, backend/migrations/versions/0020_finishing_fee_gate.py, backend/tests/test_stage_config.py, backend/tests/test_stage_engine.py, backend/tests/test_migrations.py, web-src/icons.js, tests/e2e/*.spec.js (label updates)
+
 ### P1 — Should have
 
-- [ ] Task 30: Password reset stub (P1)
+- [ ] Task 31: Password reset stub (P1)
   - Acceptance:
     - An Admin can issue a reset for a staff user: a one-time token hashed at rest, a TTL setting, and single use. Nothing is emailed (no channel until S15).
     - `POST /auth/reset` with the token sets a new password (minimum 10 characters) and revokes every session.
@@ -398,7 +426,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - Tests cover expiry, reuse and the session revocation.
   - Files: backend/app/models.py, backend/migrations/versions/0017_password_resets.py, backend/app/modules/identity/reset.py, backend/tests/test_password_reset.py
 
-- [ ] Task 31: Approval delegation (P1)
+- [ ] Task 32: Approval delegation (P1)
   - Acceptance:
     - A new `ApprovalDelegation` model (delegator, delegate, start, end, reason) has a migration. A Team Lead can delegate site-visit review to another staff user for a date range.
     - The delegate can review while the range is active in the business timezone; after the end date they get 403.
@@ -407,7 +435,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - Tests: `test_delegation.py` (active, expired, over-authority).
   - Files: backend/app/models.py, backend/migrations/versions/0018_delegations.py, backend/app/modules/identity/delegation.py, backend/app/routers/reviews.py, backend/tests/test_delegation.py
 
-- [ ] Task 32: Activity state machine (pure) (P1)
+- [ ] Task 33: Activity state machine (pure) (P1)
   - Acceptance:
     - `backend/app/modules/workflow/states.py` defines the PRD 6.3 states:
       - Not Started, Ready, In Progress, Submitted, Under Review, Approved, Rework, Rejected, Completed;
@@ -418,7 +446,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - Nothing is wired into ProjectStage yet: that's a follow-up task in S05, recorded in `docs/PROGRESS.md`.
   - Files: backend/app/modules/workflow/states.py, backend/tests/test_states.py
 
-- [ ] Task 33: Pin each project to a flow version (P1)
+- [ ] Task 34: Pin each project to a flow version (P1)
   - Acceptance:
     - A new `FlowVersion` model (number, created_at, snapshot JSON of `stage_config.PHASES` and `STAGES`) has a migration that backfills version 1 from a frozen copy.
     - `projects.flow_version_id` is added, and new projects pin the current version.
@@ -426,24 +454,24 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - A test changes the config in memory, creates a new version, and shows that an existing project keeps the old flow.
   - Files: backend/app/models.py, backend/migrations/versions/0019_flow_versions.py, backend/app/modules/workflow/versions.py, backend/app/services/stages.py, backend/tests/test_flow_versions.py
 
-- [ ] Task 34: Map the diagram stages to PRD Stage 0 to 15 (P1)
+- [ ] Task 35: Map the diagram stages to PRD Stage 0 to 15 (P1)
   - Acceptance:
     - Each stage in `stage_config` gains `prd_stage` (for example setup → 0, `requirements_signoff` → 2, `line_out` → 11).
     - A test asserts that every PRD stage 0 to 15 is covered at least once.
     - The mapping table is added to `docs/V4_EXECUTION_PLAN.md` (closes R-09) and shown as a small label in the stage detail.
   - Files: backend/app/stage_config.py, backend/tests/test_stage_config.py, docs/V4_EXECUTION_PLAN.md, web-src/app.js
 
-- [ ] Task 35: XLSX import (P1)
+- [ ] Task 36: XLSX import (P1)
   - Acceptance:
     - The preview and commit also accept `.xlsx` (the first sheet, same columns) through `openpyxl`, which is added to requirements and passes pip-audit.
     - The file type is checked by its signature (a zip header), not only the extension.
     - Tests reuse the CSV cases with an XLSX fixture.
   - Files: backend/requirements.txt, backend/app/modules/projects/importer.py, backend/tests/test_import.py, backend/tests/fixtures/import.xlsx
 
-- [ ] Task 36: Sprint close: status docs (P1)
+- [ ] Task 37: Sprint close: status docs (P1)
   - Acceptance:
     - `docs/V4_EXECUTION_PLAN.md` section 2 updates S00 to S04 with the new evidence (file paths and test names) and their new status.
-    - `docs/PROGRESS.md` gets a dated entry: done, not done, deviations, and open questions (stage owners, field matrix, exception roles, stage evidence rules and file size limits, stage delay thresholds, D-13 data).
+    - `docs/PROGRESS.md` gets a dated entry: done, not done, deviations, and open questions (stage owners, field matrix, exception roles, stage evidence rules and file size limits, stage delay thresholds, the basis of the 50% and 80% fee percentages, D-13 data).
     - The next sprint is named: execution-plan step 6 onwards (S05).
     - The full suites and scans are green.
   - Files: docs/V4_EXECUTION_PLAN.md, docs/PROGRESS.md
