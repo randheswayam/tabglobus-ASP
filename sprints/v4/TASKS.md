@@ -52,7 +52,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: .github/workflows/ci.yml, backend/README.md
   - Completed: 2026-09-28. .github/workflows/ci.yml runs on push to main and on pull requests, with four jobs on Python 3.12: backend-lint (ruff check and format), backend-tests-sqlite, backend-tests-postgres (postgres:16 service, TEST_DATABASE_URL), and backend-scans (semgrep with the scan.sh rulesets and --error, plus pip-audit). build-apk.yml is untouched. The backend README documents the local equivalents. test_ci_config.py pins the jobs. Verified locally: 420 tests pass on PostgreSQL 16. Not yet run on GitHub, because nothing has been pushed.
 
-- [ ] Task 5: GitHub Actions: eslint, Playwright and npm audit (P0)
+- [x] Task 5: GitHub Actions: eslint, Playwright and npm audit (P0)
   - Acceptance:
     - `ci.yml` gains a web job:
       - `npm ci`, eslint, and `npx playwright install --with-deps chromium`;
@@ -61,6 +61,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
       - runs `npm audit --audit-level=high`.
     - Locally, `npx playwright test` still passes.
   - Files: .github/workflows/ci.yml, playwright.config.js (only if CI needs a flag)
+  - Completed: 2026-09-28. The CI web job, on Node 22 and Python 3.12: npm ci, and backend/.venv built the way playwright.config.js expects, so the config is unchanged. It runs npm run lint, installs Chromium, runs the full Playwright suite, then semgrep (p/javascript, p/xss, p/secrets on web-src and tests/e2e) and npm audit --audit-level=high. On failure it uploads tests/screenshots and test-results. test_ci_config.py covers the job. Not yet run on GitHub, because nothing has been pushed.
 
 - [ ] Task 6: Docker Compose: api and web services (P0)
   - Acceptance:

@@ -53,3 +53,24 @@ def test_every_job_pins_python_312(ci):
         if name.startswith("backend"):
             setup = [s for s in job["steps"] if "setup-python" in s.get("uses", "")]
             assert setup and setup[0]["with"]["python-version"] == "3.12", name
+
+
+def test_web_job_lints_runs_playwright_and_audits(ci):
+    job = ci["jobs"]["web"]
+    assert job["defaults"]["run"]["working-directory"] == "."
+    run = _run(job)
+    assert "npm ci" in run and "npm run lint" in run
+    assert "npx playwright install --with-deps chromium" in run
+    assert "npx playwright test" in run
+    assert "npm audit --audit-level=high" in run
+    for ruleset in ("p/javascript", "p/xss", "p/secrets"):
+        assert f"--config {ruleset}" in run, ruleset
+    # playwright.config.js starts the API with backend/.venv, so CI builds that venv.
+    assert "python -m venv backend/.venv" in run
+
+
+def test_web_job_uploads_evidence_on_failure(ci):
+    uploads = [s for s in ci["jobs"]["web"]["steps"] if "upload-artifact" in s.get("uses", "")]
+    assert uploads and uploads[0]["if"] == "failure()"
+    paths = uploads[0]["with"]["path"]
+    assert "tests/screenshots" in paths and "test-results" in paths
