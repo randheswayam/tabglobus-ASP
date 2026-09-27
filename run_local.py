@@ -59,7 +59,7 @@ def main() -> None:
     web = http.server.ThreadingHTTPServer(("127.0.0.1", WEB_PORT), handler)
     threading.Thread(target=web.serve_forever, daemon=True).start()
 
-    print("\nSiteFlow v1 is running")
+    print("\nSiteFlow is running")
     api_param = "" if API_PORT == 8000 else f"?api=http://localhost:{API_PORT}"
     print(f"  App:  http://localhost:{WEB_PORT}/index.html{api_param}")
     print(f"  API:  http://localhost:{API_PORT}/docs")
