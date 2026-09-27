@@ -1,12 +1,12 @@
 # Sprint v4 — Tasks
 
-## Status: Not Started
+## Status: In Progress
 
 Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` and `docs/V4_EXECUTION_PLAN.md`. Every task ends with the full backend and E2E suites plus scans green, unless the task says a rule deliberately changed.
 
 ### S00 — Tooling and CI
 
-- [ ] Task 1: v4 setup: CLAUDE.md, decision 0003 and doc links (P0)
+- [x] Task 1: v4 setup: CLAUDE.md, decision 0003 and doc links (P0)
   - Acceptance:
     - `CLAUDE.md` points to `docs/SiteFlow-PRD-v3.2.md`, `docs/SiteFlow-PRD-V4.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/V4_IMPLEMENTATION_PLAN.md` and `docs/V4_EXECUTION_PLAN.md`.
     - It gains the "V4 integration and AI rules" section from `docs/reference/CLAUDE-reference-v4.md`. The repository's actual stack section is kept.
@@ -16,6 +16,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
       - integer ids stay for now, and UUID ids and `organization_id` are planned before V08.
     - All 409 backend and 28 E2E tests still pass.
   - Files: CLAUDE.md, docs/decisions/0003-module-layout.md, backend/app/modules/__init__.py
+  - Completed: 2026-09-28. CLAUDE.md now points to PRD v3.2, PRD V4, both plans and the execution plan, carries the V4 integration and AI rules, and names backend/app/modules for new code. Decision 0003 records the module layout, integer ids until before V08, and the role mapping. test_repo_docs.py checks the references resolve.
 
 - [ ] Task 2: ruff and pre-commit for the backend (P0)
   - Acceptance:

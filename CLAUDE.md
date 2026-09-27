@@ -1,13 +1,16 @@
 # CLAUDE.md — SiteFlow
 
-Standing instructions for Claude working in this repository. Adapted from `docs/reference/CLAUDE-reference.md` to the stack this repository actually uses (see `docs/decisions/0001-evolve-current-stack.md`).
+Standing instructions for Claude working in this repository. Adapted from `docs/reference/CLAUDE-reference-v4.md` to the stack this repository actually uses (see `docs/decisions/0001-evolve-current-stack.md` and `docs/decisions/0003-module-layout.md`).
 
 ## Project
 
 SiteFlow is a mobile and web workflow platform for an architecture practice. The business owner is Architect Parvez, and delivery is by TAN GLOBUS AI. Each residential project runs through the 18-stage Studio and Site workflow, with client sign-offs at major milestones, site visits with photo evidence, red flags, and a portfolio dashboard for about 20 concurrent projects. Clients track their own project and sign off in the same app, under the Client role.
 
-- Requirements: `docs/reference/SiteFlow-PRD-v3.1.md`, the source of truth, plus the sprint PRDs in `sprints/vN/PRD.md`.
-- Reference build plan: `docs/reference/SiteFlow-Implementation-Plan-for-Claude-Code.md`.
+- Core requirements: `docs/SiteFlow-PRD-v3.2.md`.
+- V4 enhancements: `docs/SiteFlow-PRD-V4.md`. It governs any capability it specifies.
+- Build steps: `docs/IMPLEMENTATION_PLAN.md` (S00 to S20), then `docs/V4_IMPLEMENTATION_PLAN.md` (V01 to V25).
+- Execution order, step status and risks: `docs/V4_EXECUTION_PLAN.md`.
+- Sprint PRDs and tasks: `sprints/vN/PRD.md` and `sprints/vN/TASKS.md`.
 - Workflow diagram: `docs/reference/workflow-diagram.jpeg`.
 - Progress log: `docs/PROGRESS.md`.
 - Decisions: `docs/decisions/`.
@@ -32,7 +35,8 @@ SiteFlow is a mobile and web workflow platform for an architecture practice. The
 
 ## Architecture rules
 
-- Routers stay thin. Rules live in `backend/app/services/` as pure functions where possible, with tests.
+- New domain code goes in `backend/app/modules/<domain>/` (decision 0003). Existing `services/` and `routers/` move only when a task touches them for a real reason.
+- Routers stay thin. Rules live in services or module code as pure functions where possible, with tests.
 - The stage flow is configuration (`stage_config.py`). Gates are evaluated by the stage engine, never hard-coded in the UI.
 - Every blocked action returns a list of human-readable reasons.
 - Approved, frozen and signed records are immutable. Corrections create a new version linked to the previous one.
@@ -46,6 +50,18 @@ SiteFlow is a mobile and web workflow platform for an architecture practice. The
 - Private calendar details, internal notes, audit records and red flags never reach a client response.
 - Media and documents are served only through authorized endpoints. Never make storage public.
 - No secrets in code or commits.
+
+## V4 integration and AI rules
+
+- Webhooks: verify signatures, reject replays, process idempotently, keep the raw payload under policy.
+- A delivery or read receipt is never an approval or proof of payment. A calendar RSVP is attendance only.
+- Channel-reply approval follows PRD V4 section 11.4A exactly: only a verified WhatsApp button reply or tokenized email APPROVE, and only for sign-off types enabled in configuration.
+- A client saying "paid" creates a verification task; only Accounts can mark payment Received or Cleared.
+- Every AI call goes through `backend/app/modules/ai` (gateway, prompt registry, `AIExecution` audit). No direct provider calls elsewhere.
+- AI output is always labelled as AI, links to its sources, and stays a suggestion or draft until a person accepts it.
+- AI must never approve, sign off, pass a checklist item, set official progress, issue drawings, or make structural or safety determinations.
+- Core capture, submission and review must keep working when AI is switched off.
+- Personal calendar data and records labelled AI Prohibited never enter AI context, embeddings or training data.
 
 ## Code conventions
 
