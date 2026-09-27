@@ -74,6 +74,8 @@ const SiteFlowAPI = (() => {
 
     /* ---------- media (v2) ---------- */
     openDraft: pid => request('POST', `/projects/${pid}/site-visits/draft`),
+    stages: pid => request('GET', `/projects/${pid}/stages`),
+    completeStage: (pid, key, note) => request('POST', `/projects/${pid}/stages/${key}/complete`, {note}),
     visits: pid => request('GET', `/projects/${pid}/visits`),
     dashboard: filters => request('GET', '/dashboard' + (Object.keys(filters || {}).length ? '?' + new URLSearchParams(filters) : '')),
     clearFlag: (id, reason) => request('POST', `/red-flags/${id}/clear`, {reason}),

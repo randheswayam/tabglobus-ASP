@@ -47,7 +47,7 @@ const ico = (n, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidd
 
 /* ---------- reference data ---------- */
 const API = SiteFlowAPI;
-const ROLES = {architect: 'Architect', team_lead: 'Team Lead', civil_engineer: 'Civil Engineer', admin: 'Admin'};
+const ROLES = {architect: 'Architect', team_lead: 'Team Lead', civil_engineer: 'Civil Engineer', admin: 'Admin', client: 'Client'};
 const STEP_LABEL = {locked: 'Locked', active: 'In progress', completed: 'Done'};
 const STEP_PILL = {locked: '', active: 'active', completed: 'done'};
 const VISIT_LABEL = {draft: 'Draft', submitted: 'Awaiting review', rework: 'Rework', approved: 'Approved'};
@@ -122,20 +122,31 @@ function setError(e, labels){
   ui.error = {message: e.message, items};
 }
 function projectCard(p){
-  const steps = ['Legal Approval', 'Site Visit', 'Team Lead Review'];
-  const at = steps.indexOf(p.current_step);
-  const cls = i => p.current_step === null ? 'done' : i < at ? 'done' : i === at ? 'active' : '';
+  const at = p.phase ? p.phase.number : 0;
+  const cls = n => !p.phase ? '' : n < at ? 'done' : n === at ? 'active' : '';
+  const now = (p.current_stages || []).join(' + ');
   return `<button class="pcard" data-act="open-project" data-pid="${p.id}" data-testid="project-card-${p.id}">
     <div><h3>${esc(p.name)}</h3><div class="loc">${esc(p.location)}</div></div>
-    <div class="ministep">${steps.map((s, i) => `<i class="${cls(i)}" title="${esc(s)}"></i>`).join('')}</div>
-    <div class="now"><span>${p.current_step ? `<span class="muted">Now:</span> <b>${esc(p.current_step)}</b>` : '<b>Workflow complete</b>'}</span><span class="mono muted">${pct(p.official_progress)}</span></div>
+    <div class="ministep" aria-label="Phase ${at} of 10">${Array.from({length: 10}, (_, i) => `<i class="${cls(i + 1)}"></i>`).join('')}</div>
+    <div class="now"><span>${now ? `<span class="muted">Now:</span> <b>${esc(now)}</b>` : '<b>All stages complete</b>'}</span><span class="mono muted">${pct(p.official_progress)}</span></div>
+    ${p.phase ? `<div class="small muted">Phase ${p.phase.number} · ${esc(p.phase.name)}</div>` : ''}
     <div class="row small muted">${p.civil_engineer ? `<span>${esc(p.civil_engineer.name)}</span>` : ''}${p.latest_visit_status ? pill(VISIT_PILL[p.latest_visit_status], VISIT_LABEL[p.latest_visit_status]) : ''}</div>
   </button>`;
 }
 function auditText(e){
   const d = e.detail || {};
   switch (e.action){
-    case 'project.created': return 'Project created';
+    case 'project.created': return d.start_stage ? `Project created, onboarded mid-way (earlier stages confirmed by ${d.historical_confirmed_by})` : 'Project created';
+    case 'stage.completed': return `Stage completed: ${d.stage}${d.note ? `. ${d.note}` : ''}`;
+    case 'stage.activated': return `Stage opened: ${d.stage}`;
+    case 'client.invited': return `Client invited: ${d.client}`;
+    case 'client.activated': return 'Client activated their account';
+    case 'signoff.created': return `Sign-off package prepared: ${d.stage} (version ${d.version})`;
+    case 'signoff.attachment_added': return `Document added to sign-off version ${d.version}: ${d.filename}`;
+    case 'signoff.attachment_removed': return `Document removed from sign-off version ${d.version}: ${d.filename}`;
+    case 'signoff.sent': return `Sign-off sent to the client: ${d.stage} (version ${d.version})`;
+    case 'signoff.approved': return `Client signed off: ${d.stage} (version ${d.version}), signed by ${d.signer}`;
+    case 'signoff.changes_requested': return `Client asked for changes: ${d.stage} (version ${d.version}): “${d.comment}”`;
     case 'legal.updated': return d.from === d.to ? 'Legal Approval details updated' : `Legal Approval: ${d.from} to ${d.to}`;
     case 'step.activated': return `${d.step} opened`;
     case 'step.completed': return `${d.step} completed`;
@@ -335,16 +346,18 @@ V['new-project'] = {
 
 V.project = {
   load: async () => {
-    const [p, visits, problems] = await Promise.all([API.project(ui.p.pid), API.visits ? API.visits(ui.p.pid) : null,
-      API.problems ? API.problems(ui.p.pid) : null]);
-    ui.data.project = p; ui.data.visits = visits; ui.data.problems = problems;
+    const [p, visits, problems, stages] = await Promise.all([API.project(ui.p.pid), API.visits ? API.visits(ui.p.pid) : null,
+      API.problems ? API.problems(ui.p.pid) : null, API.stages ? API.stages(ui.p.pid) : null]);
+    ui.data.project = p; ui.data.visits = visits; ui.data.problems = problems; ui.data.stages = stages;
   },
   html: () => {
     const p = ui.data.project;
     const cur = p.steps.find(s => s.status === 'active');
     return `<div class="crumbs"><button data-go="projects">Projects</button>/<span>${esc(p.name)}</span></div>
     <div class="head"><div><h1 data-testid="project-title">${esc(p.name)}</h1><div class="sub">${esc(p.location)}</div></div>
-      <div class="row">${p.visit_number ? `<span class="pill" data-testid="visit-number">Visit ${p.visit_number}</span>` : ''}<span class="pill">Residential v${p.template.version}</span><span class="pill ${cur ? 'active' : 'done'}" data-testid="official-progress">Official progress ${pct(p.official_progress)}</span></div></div>
+      <div class="row">${p.phase ? `<span class="pill active" data-testid="project-phase">Phase ${p.phase.number} · ${esc(p.phase.name)}</span>` : ''}${p.visit_number ? `<span class="pill" data-testid="visit-number">Visit ${p.visit_number}</span>` : ''}<span class="pill">Residential v${p.template.version}</span><span class="pill ${cur ? 'active' : 'done'}" data-testid="official-progress">Official progress ${pct(p.official_progress)}</span></div></div>
+    ${ui.data.stages ? stageTracker(ui.data.stages) : ''}
+    <h2 class="section-h">Construction: Legal Approval, site visits and review</h2>
     <div class="panel stepper-wrap"><ol class="stepper" style="padding:4px 16px">${p.steps.map(s => `<li class="st st-${s.status === 'completed' ? 'done' : s.status}" data-testid="step-${s.order}"><button type="button"><span class="st-n">${s.status === 'completed' ? ico('check') : s.order}</span><span class="st-l">${esc(s.name)}</span><span class="st-s">${STEP_LABEL[s.status]}</span></button></li>`).join('')}</ol></div>
     ${errBox()}
     <div class="grid2">
@@ -382,6 +395,53 @@ function problemsPanel(list){
   return `<section class="panel" data-testid="problems-panel"><div class="panel-h"><h3>${ico('alert')}Open problems</h3><span class="small muted">${open.length} open</span></div>
     <div class="panel-b stack" style="gap:12px">${open.length ? open.map(row).join('') : '<span class="small muted">No open problems.</span>'}
     ${done.length ? `<details data-testid="resolved-problems"><summary class="small">Resolved (${done.length})</summary><div class="stack" style="gap:12px;margin-top:10px">${done.map(row).join('')}</div></details>` : ''}</div></section>`;
+}
+
+/* ---------- stage tracker (the 18-stage residential flow) ---------- */
+const STAGE_STATE = {completed: ['done', 'Done'], historical: ['', 'Historical'], active: ['active', 'In progress'],
+  blocked: ['rework', 'Blocked'], locked: ['', 'Locked']};
+function stageTracker(view){
+  return `<section class="panel tracker" data-testid="stage-tracker"><div class="panel-h"><h2>Project stages</h2>
+      <span class="small muted" data-testid="stage-progress">${view.stage_progress.done} of ${view.stage_progress.total} done</span></div>
+    <div class="phases">${view.phases.map(phaseBlock).join('')}</div></section>`;
+}
+function phaseBlock(ph){
+  const lanes = [...new Set(ph.stages.map(s => s.workstream).filter(w => w !== 'Both'))];
+  const done = ph.stages.every(s => s.state === 'completed' || s.state === 'historical');
+  const current = ph.stages.some(s => s.state === 'active' || s.state === 'blocked');
+  let body;
+  if (lanes.length > 1){
+    // The two pre-design workstreams run in parallel: one column each.
+    body = `<div class="lanes">${['Site', 'Studio'].map(w => `<div class="lane"><div class="eyebrow">${w} workstream</div>${ph.stages.filter(s => s.workstream === w).map(stageChip).join('')}</div>`).join('')}</div>`;
+  } else {
+    // Stages sharing a number (8A, 8B) run in parallel: one row.
+    const rows = [];
+    ph.stages.forEach(s => { const k = s.number ? s.number.replace(/[A-Z]$/, '') : s.key; const last = rows[rows.length - 1];
+      if (last && last.k === k) last.items.push(s); else rows.push({k, items: [s]}); });
+    body = rows.map(r => `<div class="srow">${r.items.map(stageChip).join('')}</div>`).join('');
+  }
+  const open = ph.stages.find(s => s.key === ui.p.openStage);
+  return `<div class="phase ${done ? 'phase-done' : current ? 'phase-cur' : ''}" data-testid="phase-${ph.number}">
+    <div class="phase-h"><span class="phase-n">${ph.number}</span><b>${esc(ph.name)}</b>${done ? `<span class="small muted">· complete</span>` : ''}</div>
+    ${body}${open ? stageDetail(open) : ''}</div>`;
+}
+function stageChip(s){
+  const [cls, label] = STAGE_STATE[s.state];
+  return `<button class="stage st-${s.state} ${ui.p.openStage === s.key ? 'open' : ''}" data-act="open-stage" data-key="${s.key}" data-testid="stage-${s.key}" aria-expanded="${ui.p.openStage === s.key}">
+    <span class="stage-n">${s.number ? esc(s.number) : ico('flow')}</span>
+    <span class="stage-b"><b>${esc(s.label)}</b><span class="small muted">${esc(s.workstream)} · ${esc(ROLES[s.owner_role] || s.owner_role)}${s.signed_by_client ? ' · signed by the client' : ''}</span></span>
+    ${pill(cls, label)}</button>`;
+}
+function stageDetail(s){
+  return `<div class="stage-detail" data-testid="stage-detail-${s.key}">
+    <p class="small">${esc(s.detail)}</p>
+    ${s.reasons.length ? `<ul class="reasons">${s.reasons.map(r => `<li>${ico('alert')}<span>${esc(r)}</span></li>`).join('')}</ul>` : ''}
+    ${s.historical ? `<div class="banner info">${ico('flag')}<span><b>${esc(s.historical.label)}</b>. Confirmed by ${esc(s.historical.confirmed_by || 'not recorded')}. ${esc(s.historical.note || '')}</span></div>` : ''}
+    ${s.state === 'completed' ? `<div class="small"><b>Completed</b> ${fmtStamp(s.completed_at)}${s.completed_by ? ` by ${esc(s.completed_by.name)}` : ''}${s.completion_note ? `: ${esc(s.completion_note)}` : ''}</div>` : ''}
+    ${s.gate === 'client_signoff' && s.state !== 'completed' && s.state !== 'historical' ? `<p class="small muted">Completes when the client approves the sign-off package.</p>` : ''}
+    ${s.can_complete ? `<div class="flag-clear-form"><input class="inp" id="st-note-${s.key}" data-testid="stage-note-${s.key}" placeholder="What was completed? (required)" aria-label="Completion note">
+      <button class="btn sm primary" data-act="stage-complete" data-key="${s.key}" data-testid="stage-complete-${s.key}">${ico('check')}Mark complete</button></div>` : ''}
+  </div>`;
 }
 
 function visitHistory(visits){
@@ -824,6 +884,14 @@ document.addEventListener('click', async e => {
       } catch (err){ toast(err.message); break; }
       ui.data.draft.problems.splice(n, 1); saveDraft(); rerenderKeepScroll(); break; }
     case 'open-media': ui.lightbox = +a.dataset.id; rerenderKeepScroll(); break;
+    case 'open-stage': ui.p.openStage = ui.p.openStage === a.dataset.key ? null : a.dataset.key; rerenderKeepScroll(); break;
+    case 'stage-complete': {
+      const key = a.dataset.key, note = (($('#st-note-' + key) || {}).value || '').trim();
+      if (!note){ toast('Add a note on what was completed.'); break; }
+      a.disabled = true;
+      try { await API.completeStage(ui.data.project.id, key, note); toast('Stage completed.'); await V.project.load(); ui.error = null; }
+      catch (err){ setError(err); }
+      rerenderKeepScroll(); break; }
     case 'open-photo': ui.data.lbMedia = [{id: +a.dataset.mid, kind: 'photo', captured_at: null, lat: null, problem_ref: null, uploader: null}];
       ui.lightbox = +a.dataset.mid; rerenderKeepScroll(); break;
     case 'resolve': ui.p.resolving = +a.dataset.id; rerenderKeepScroll(); { const i = $('#rs-' + a.dataset.id); if (i) i.focus(); } break;
