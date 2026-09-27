@@ -3,11 +3,11 @@ const { APP, shot, signIn, signOut, api } = require('./helpers');
 
 test('architect invites the client; the client activates with the code and signs in', async ({ page, request }) => {
   const users = await api(request, 'architect', 'GET', '/users?role=civil_engineer');
-  const p = await api(request, 'architect', 'POST', '/projects', {name: 'Gokhale Residence', location: 'Baner, Pune', civil_engineer_id: users[0].id});
+  const p = await api(request, 'architect', 'POST', '/projects', {name: 'Gokhale Farmhouse', location: 'Baner, Pune', civil_engineer_id: users[0].id});
 
   await signIn(page, 'architect');
   await page.getByTestId('nav-projects').click();
-  await page.getByTestId('projects-view').getByText('Gokhale Residence').click();
+  await page.getByTestId('projects-view').getByText('Gokhale Farmhouse').click();
   const panel = page.getByTestId('client-panel');
   await expect(panel).toContainText('No client invited yet');
   await page.getByTestId('invite-submit').click();
@@ -54,6 +54,6 @@ test('architect invites the client; the client activates with the code and signs
   await signOut(page);
   await signIn(page, 'architect');
   await page.getByTestId('nav-projects').click();
-  await page.getByTestId('projects-view').getByText('Gokhale Residence').click();
+  await page.getByTestId('projects-view').getByText('Gokhale Farmhouse').click();
   await expect(page.getByTestId('client-panel')).toContainText('Active');
 });
