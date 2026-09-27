@@ -20,7 +20,7 @@ ALLOWED_KEYS = {
     "uploaded_at", "viewed",
 }
 FORBIDDEN_TEXT = ["audit", "rework", "red_flag", "Critical issue", "problem", "Seepage", "completion_note",
-                  "confirmed_by", "siteflow.local", "reasons", "legal"]
+                  "confirmed_by", "siteflow.local", "reasons", "legal", "TBD", "PLACEHOLDER"]
 
 
 def _keys(obj, out=None):

@@ -68,8 +68,9 @@ STAGES = [
 
     _stage("design_freeze_signoff", "11", "Client sign-off: design freeze", 5, "Studio", "client", ["elevations_package"],
            gate="client_signoff", detail="Approval of all elevations. Changes after this stage are costly."),
+    # TBD_PARVEZ (D-05): whether the 50% is on the total fee, the stage fee or another basis.
     _stage("payment_gate", "12", "50% upfront gate", 5, "Both", "admin", ["design_freeze_signoff"],
-           detail="Payment milestone cleared before detailed drawings (basis TBD_PARVEZ, D-05)."),
+           detail="Payment milestone cleared before detailed drawings."),
 
     _stage("detailed_drawings", "13", "Detailed drawings and controlled issue", 6, "Studio", "architect", ["payment_gate"],
            detail="Detailed architectural, structural and MEP drawings, issued with version control."),

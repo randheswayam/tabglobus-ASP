@@ -92,6 +92,21 @@ const SiteFlowAPI = (() => {
     stages: pid => request('GET', `/projects/${pid}/stages`),
     projectClients: pid => request('GET', `/projects/${pid}/clients`),
     signoffs: pid => request('GET', `/projects/${pid}/signoffs`),
+    /* ---------- customer app (/client/*) ---------- */
+    clientProjects: () => request('GET', '/client/projects'),
+    clientProject: id => request('GET', `/client/projects/${id}`),
+    clientSignoff: id => request('GET', `/client/signoffs/${id}`),
+    approveSignoff: (id, signer_name) => request('POST', `/client/signoffs/${id}/approve`, {confirm: true, signer_name}),
+    requestChanges: (id, comment) => request('POST', `/client/signoffs/${id}/request-changes`, {comment}),
+    // Opening a document through this URL is what records the client's review of it.
+    async clientDocumentUrl(sid, aid){
+      const key = `c${sid}-${aid}`;
+      if (mediaUrls[key]) return mediaUrls[key];
+      const t = token();
+      const r = await fetch(`${base()}/client/signoffs/${sid}/attachments/${aid}`, {headers: t ? {Authorization: 'Bearer ' + t} : {}});
+      if (!r.ok) throw new ApiError(r.status, 'Could not open the document');
+      return (mediaUrls[key] = URL.createObjectURL(await r.blob()));
+    },
     createSignoff: (pid, body) => request('POST', `/projects/${pid}/signoffs`, body),
     sendSignoff: id => request('POST', `/signoffs/${id}/send`),
     removeSignoffAttachment: (id, aid) => request('DELETE', `/signoffs/${id}/attachments/${aid}`),

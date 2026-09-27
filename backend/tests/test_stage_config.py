@@ -81,3 +81,10 @@ def test_gates_sit_on_the_right_stages():
     assert sc.SIGNOFF_STAGES == ["requirements_signoff", "design_freeze_signoff", "interiors_signoff", "handover_signoff"]
     assert all(by_key()[k]["owner_role"] == "client" for k in sc.SIGNOFF_STAGES)
     assert sc.CONSTRUCTION_START == "line_out"
+
+
+def test_client_facing_text_has_no_planning_markers():
+    """Labels and details are shown in the client app."""
+    for s in sc.STAGES:
+        for text in (s["label"], s["detail"]):
+            assert "TBD" not in text and "D-0" not in text, s["key"]

@@ -163,12 +163,13 @@
   - Files: web-src/api.js, web-src/app.js, web-src/app.html, tests/e2e/v3-signoff.spec.js
   - Completed: 2026-09-27. Opening a client sign-off stage shows the Client sign-off section. When nothing is open, the Architect prepares version N (the client-facing title and summary; after a change request both are copied from the last version, with a reminder to attach the updated documents). A draft lists its documents with remove buttons and has 'Attach PDF or image'. 'Send to client' stays disabled until a document is attached, and a note says a sent version can't change and the client must open every document. A sent version shows 'Version N · Sent … Waiting for the client'. The version history shows the signer and time, or the client's comment. 1 new E2E test (20 in total) with 2 screenshots.
 
-- [ ] Task 18: UI: the customer app: my projects and phase timeline (P0)
+- [x] Task 18: UI: the customer app: my projects and phase timeline (P0)
   - Acceptance:
     - Signing in as a client routes to a client home. It shows "My projects" cards (phase, current stage, progress, and "Sign-off waiting for you" badges) and the project timeline (10 phases, current stage highlighted, dates of completed milestones, and signed milestones with the signer's name).
     - The staff navigation is hidden. It's mobile-first and works in the Android shell.
     - The Playwright test at desktop and Pixel 7 width checks that no internal text appears (audit, flags, problems), with screenshots.
   - Files: web-src/api.js, web-src/app.js, web-src/app.html, tests/e2e/v3-client-app.spec.js
+  - Completed: 2026-09-27. Clients land on My projects: cards with the phase, 10 phase bars, current stages, construction progress and a 'Sign-off waiting for you' badge. The project view has a 'Waiting for your sign-off' panel (Review and sign), the stage-by-stage timeline (Completed with date, In progress, Upcoming, Completed before SiteFlow, 'Your sign-off' on milestone stages, 'Signed by … on … (version N)') and the sign-off history. Finished phases fold to one line on the client view. Staff navigation is hidden, and client notifications open the client's project. Fixed a leak found in review: stage 12's description carried a planning marker ('TBD_PARVEZ, D-05'). It's now a code comment, and tests forbid TBD markers in client-facing text (backend and E2E). 2 new E2E tests (22 in total) with 3 screenshots, 1 new backend test (398 in total).
 
 - [ ] Task 19: UI: client sign-off review screen (P0)
   - Acceptance:

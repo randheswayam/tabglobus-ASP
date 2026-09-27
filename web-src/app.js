@@ -98,7 +98,8 @@ function shell(){
   const nav = isClient() ? [['client-home', 'home', 'My projects'], ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : [])]
     : [...(home() === 'dashboard' ? [['dashboard', 'home', 'Dashboard']] : []), ['projects', 'folder', 'Projects'],
       ...(can.review() ? [['queue', 'eye', 'Review queue']] : []), ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : [])];
-  const cur = ui.route === 'review' ? 'queue' : ['project', 'new-project', 'visit'].includes(ui.route) ? 'projects' : ui.route;
+  const cur = ui.route === 'review' ? 'queue' : ['project', 'new-project', 'visit'].includes(ui.route) ? 'projects'
+    : ['client-project', 'client-signoff'].includes(ui.route) ? 'client-home' : ui.route;
   const count = r => r === 'queue' && ui.queueCount ? `<span class="count" data-testid="queue-count">${ui.queueCount}</span>`
     : r === 'alerts' && ui.unread ? `<span class="count" data-testid="unread-count">${ui.unread}</span>` : '';
   const who = `<span data-testid="signed-in-as"><b>${esc(u.name)}</b> <span class="muted small">· ${ROLES[u.role]}</span></span>`;
@@ -327,7 +328,59 @@ V.alerts = {
   }
 };
 
-V['client-home'] = {html: () => `<div data-testid="client-home"><div class="head"><div><h1>My projects</h1></div></div></div>`};
+/* ---------- customer app (Client role) ---------- */
+const CLIENT_STATE = {completed: ['done', 'Completed'], historical: ['', 'Completed before SiteFlow'], in_progress: ['active', 'In progress'], upcoming: ['', 'Upcoming']};
+
+V['client-home'] = {
+  load: async () => { ui.data.myProjects = await API.clientProjects(); },
+  html: () => {
+    const list = ui.data.myProjects;
+    return `<div data-testid="client-home"><div class="head"><div><h1>My projects</h1>
+      <div class="sub">Follow your project from design to handover, and sign off each milestone after you review it.</div></div></div>
+      ${list.length ? `<div class="pcards">${list.map(p => `<button class="pcard" data-act="client-open" data-pid="${p.id}" data-testid="client-card-${p.id}">
+        <div><h3>${esc(p.name)}</h3><div class="loc">${esc(p.location)}</div></div>
+        ${p.waiting_for_you ? `<span class="pill rework"><span class="dot"></span>Sign-off waiting for you</span>` : ''}
+        <div class="ministep" aria-label="Phase ${p.phase ? p.phase.number : 0} of 10">${Array.from({length: 10}, (_, i) => `<i class="${!p.phase ? '' : i + 1 < p.phase.number ? 'done' : i + 1 === p.phase.number ? 'active' : ''}"></i>`).join('')}</div>
+        <div class="now"><span>${p.phase ? `<span class="muted">Phase ${p.phase.number}:</span> <b>${esc(p.phase.name)}</b>` : ''}</span><span class="mono muted">${pct(p.official_progress)}</span></div>
+        <div class="small muted">${esc((p.current_stages || []).join(' + ') || 'All stages complete')}</div></button>`).join('')}</div>`
+      : '<section class="panel"><div class="empty">No project is shared with you yet. Your architect will invite you.</div></section>'}</div>`;
+  }
+};
+
+V['client-project'] = {
+  load: async () => { ui.data.mine = await API.clientProject(ui.p.pid); },
+  html: () => {
+    const p = ui.data.mine;
+    const waiting = p.signoffs.filter(s => s.status === 'sent');
+    return `<div data-testid="client-project"><div class="crumbs"><button data-go="client-home">My projects</button>/<span>${esc(p.name)}</span></div>
+      <div class="head"><div><h1>${esc(p.name)}</h1><div class="sub">${esc(p.location)}</div></div>
+        <div class="row">${p.phase ? `<span class="pill active">Phase ${p.phase.number} · ${esc(p.phase.name)}</span>` : ''}<span class="pill done">Construction progress ${pct(p.official_progress)}</span></div></div>
+      ${waiting.length ? `<section class="panel waiting" data-testid="client-waiting"><div class="panel-h"><h2>Waiting for your sign-off</h2></div>
+        <div class="tasks">${waiting.map(s => `<button class="task" data-act="client-review" data-sid="${s.id}" data-testid="client-review-${s.id}">
+          <span class="ti">${ico('check')}</span><span><b>${esc(s.title)}</b><span class="small muted">${esc(s.stage)} · version ${s.version} · sent ${fmtStamp(s.sent_at)}</span></span>
+          <span class="meta">${pill('rework', 'Review and sign')}</span></button>`).join('')}</div></section>` : ''}
+      <section class="panel"><div class="panel-h"><h2>Your project, stage by stage</h2><span class="small muted">${p.stage_progress ? `${p.stage_progress.done} of ${p.stage_progress.total} done` : ''}</span></div>
+        <div class="phases">${p.phases.map(ph => {
+          const done = ph.stages.every(s => s.state === 'completed' || s.state === 'historical');
+          const cur = ph.stages.some(s => s.state === 'in_progress');
+          // Finished phases fold to one line so the current work stays near the top on a phone.
+          const folded = done && !(ui.p.unfold || []).includes(ph.number);
+          return `<div class="phase ${done ? 'phase-done' : cur ? 'phase-cur' : ''}" data-testid="client-phase-${ph.number}">
+            <div class="phase-h"><span class="phase-n">${ph.number}</span><b>${esc(ph.name)}</b>
+              ${done ? `<button class="btn ghost sm" data-act="client-unfold" data-n="${ph.number}" data-testid="client-unfold-${ph.number}">${folded ? `Completed · show ${ph.stages.length} stage${ph.stages.length === 1 ? '' : 's'}` : 'Hide'}</button>` : ''}</div>
+            ${folded ? '' : ph.stages.map(s => { const [cls, label] = CLIENT_STATE[s.state];
+              return `<div class="cstage" data-testid="client-stage-${s.key}"><div><b>${s.number ? esc(s.number) + '. ' : ''}${esc(s.label)}</b>
+                <div class="small muted">${esc(s.detail)}</div>
+                ${s.signed ? `<div class="small signed">${ico('check')}Signed by ${esc(s.signed.by)} on ${fmtStamp(s.signed.at)} (version ${s.signed.version})</div>`
+                  : s.is_signoff && s.state !== 'historical' ? `<div class="small muted">${ico('flag')}Your sign-off</div>` : ''}</div>
+                <div class="cstage-s">${pill(cls, label)}${s.completed_at ? `<span class="small muted">${fmtDate(s.completed_at.slice(0, 10))}</span>` : ''}</div></div>`; }).join('')}
+          </div>`; }).join('')}</div></section>
+      ${p.signoffs.filter(s => s.status !== 'sent').length ? `<section class="panel"><div class="panel-h"><h3>Your sign-off history</h3></div><div class="panel-b stack" style="gap:8px">
+        ${p.signoffs.filter(s => s.status !== 'sent').map(s => `<div class="so-ver"><b>${esc(s.title)}</b><span class="small muted">${esc(s.stage)} · version ${s.version} ·
+          ${s.status === 'approved' ? `signed by ${esc(s.signer_name)} on ${fmtStamp(s.responded_at)}` : `you asked for changes on ${fmtStamp(s.responded_at)}: “${esc(s.response_comment)}”`}</span></div>`).join('')}</div></section>` : ''}
+    </div>`;
+  }
+};
 
 V.projects = {
   load: async () => { ui.data.projects = await API.projects(); },
@@ -970,6 +1023,10 @@ document.addEventListener('click', async e => {
       } catch (err){ toast(err.message); break; }
       ui.data.draft.problems.splice(n, 1); saveDraft(); rerenderKeepScroll(); break; }
     case 'open-media': ui.lightbox = +a.dataset.id; rerenderKeepScroll(); break;
+    case 'client-open': go('client-project', {pid: +a.dataset.pid}); break;
+    case 'client-unfold': { const n = +a.dataset.n, u = ui.p.unfold || [];
+      ui.p.unfold = u.includes(n) ? u.filter(x => x !== n) : [...u, n]; rerenderKeepScroll(); break; }
+    case 'client-review': go('client-signoff', {sid: +a.dataset.sid}); break;
     case 'signoff-create': {
       const key = a.dataset.key, title = ($('#so-title-' + key).value || '').trim(), summary = ($('#so-sum-' + key).value || '').trim();
       if (!title || !summary){ toast('Add a title and a summary for the client.'); break; }
@@ -1013,7 +1070,7 @@ document.addEventListener('click', async e => {
       rerenderKeepScroll(); break; }
     case 'open-note':
       try { await API.readNotification(+a.dataset.id); } catch (_) {}
-      if (a.dataset.pid) await go('project', {pid: +a.dataset.pid}); else await go('alerts');
+      if (a.dataset.pid) await go(isClient() ? 'client-project' : 'project', {pid: +a.dataset.pid}); else await go('alerts');
       break;
     case 'read-all':
       try { await API.readAllNotifications(); ui.unread = 0; toast('All notifications marked read.'); } catch (err){ toast(err.message); }
