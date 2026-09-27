@@ -126,7 +126,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/routers/auth.py, web-src/app.js, web-src/api.js, backend/tests/test_sessions.py, tests/e2e/v4-sessions.spec.js
   - Completed: 2026-09-28. POST /auth/logout revokes this device's session (get_current_user now records the session id on the request). POST /auth/logout-all revokes every live session of the user. Both return 204 and are audited as auth.logout with scope and count. sessions.revoke_all is ready for deactivation, which Task 12's admin API calls. The web Sign out calls the server (best effort); the sidebar gains 'Sign out on all devices' (signout-all), hidden in the demo. Tests: 4 backend cases, and 2 E2E cases with two browser contexts.
 
-- [ ] Task 11: Audit before-and-after summary (P0)
+- [x] Task 11: Audit before-and-after summary (P0)
   - Acceptance:
     - `audit.record` accepts `changes={field: [old, new]}`, stored in `detail["changes"]`.
     - The Legal Approval update, project edits, and the admin user and membership changes (Task 12) pass their changes.
@@ -134,6 +134,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - Secret fields (password hash, token hashes) are never included; a test asserts this.
     - `test_audit.py` checks a Legal Approval change records old and new status.
   - Files: backend/app/services/audit.py, backend/app/routers/legal.py, backend/tests/test_audit.py
+  - Completed: 2026-09-28. audit.record takes changes={field: [old, new]}, stored in detail['changes']. Secret fields (password, refresh, previous and code hashes, token_hash) are always dropped. audit.diff(obj, new_values) builds the dict with JSON-friendly values (enum values, ISO dates) for changed fields only. The Legal Approval update passes its changes and keeps its existing from, to and fields keys. There is no project edit endpoint yet; the admin user and membership changes (Task 12) and the fee plan (Task 18) use changes when built. Tests: test_audit.py (4).
 
 - [ ] Task 12: Admin API for users and project memberships (P0)
   - Acceptance:

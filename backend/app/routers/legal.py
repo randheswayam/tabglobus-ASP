@@ -72,6 +72,7 @@ def update_legal(
     if merged["approval_date"] and merged["application_date"] and merged["approval_date"] < merged["application_date"]:
         raise _unprocessable("approval_date cannot be before application_date")
 
+    before_after = audit.diff(la, {"status": target, **changes})
     for f, v in changes.items():
         setattr(la, f, v)
     la.status = target
@@ -83,6 +84,7 @@ def update_legal(
         entity_type="legal_approval",
         entity_id=la.id,
         detail={"from": current.value, "to": target.value, "fields": sorted(changes)},
+        changes=before_after,
     )
 
     if target == LegalStatus.approved:
