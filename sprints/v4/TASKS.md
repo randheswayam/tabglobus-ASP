@@ -38,7 +38,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: eslint.config.js, package.json, .pre-commit-config.yaml, web-src/*.js, tests/e2e/*.js
   - Completed: 2026-09-28. eslint 9 flat config (recommended rules; browser globals for web-src, node for tests), with the npm script 'lint', a pre-commit local hook, and tests/e2e/lint.spec.js. Removed eight unused helpers inside app.js's closure, three unused test variables, and a useless regex escape. Globals are declared with /* global */ and /* exported */. Found, not fixed: demo-api.js uploadSignoffAttachment strips only '/' from file names, not '\' as intended (demo frozen; noted for sprint close).
 
-- [ ] Task 4: GitHub Actions: backend lint, tests on SQLite and PostgreSQL, and scans (P0)
+- [x] Task 4: GitHub Actions: backend lint, tests on SQLite and PostgreSQL, and scans (P0)
   - Acceptance:
     - `.github/workflows/ci.yml` runs on push and pull request, with jobs for:
       - ruff;
@@ -50,6 +50,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - The existing `build-apk.yml` is untouched.
     - `backend/README.md` documents how to run the same commands locally.
   - Files: .github/workflows/ci.yml, backend/README.md
+  - Completed: 2026-09-28. .github/workflows/ci.yml runs on push to main and on pull requests, with four jobs on Python 3.12: backend-lint (ruff check and format), backend-tests-sqlite, backend-tests-postgres (postgres:16 service, TEST_DATABASE_URL), and backend-scans (semgrep with the scan.sh rulesets and --error, plus pip-audit). build-apk.yml is untouched. The backend README documents the local equivalents. test_ci_config.py pins the jobs. Verified locally: 420 tests pass on PostgreSQL 16. Not yet run on GitHub, because nothing has been pushed.
 
 - [ ] Task 5: GitHub Actions: eslint, Playwright and npm audit (P0)
   - Acceptance:

@@ -52,3 +52,16 @@ DATABASE_URL=sqlite+pysqlite:///scratch.db .venv/Scripts/python -m alembic revis
 ```
 
 `tests/test_migrations.py` fails if the migrations and the models disagree.
+
+## Checks and CI
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request. Each job below can be run locally with the same commands, from `backend/` after `.venv/Scripts/python -m pip install -r requirements-dev.txt`:
+
+| CI job | Local command |
+|---|---|
+| `backend-lint` | `.venv/Scripts/ruff check .` and `.venv/Scripts/ruff format --check .` |
+| `backend-tests-sqlite` | `.venv/Scripts/python -m pytest -q` |
+| `backend-tests-postgres` | `TEST_DATABASE_URL=postgresql+psycopg://siteflow:siteflow@localhost:5432/siteflow_test .venv/Scripts/python -m pytest -q` |
+| `backend-scans` | `semgrep scan --error --metrics=off --config p/python --config p/fastapi --config p/secrets --config p/jwt --config p/sql-injection app/` and `pip-audit -r requirements.txt` |
+
+`pre-commit install` (run once, from the repository root) runs ruff and eslint on every commit. `tests/test_ci_config.py` fails if a job above is removed from the workflow.
