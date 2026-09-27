@@ -30,13 +30,14 @@
   - Files: backend/app/models.py, backend/migrations/versions/0006_project_stages.py, backend/tests/test_migrations.py
   - Completed: 2026-09-27. The ProjectStage model stores locked, active, completed or historical; ready and blocked are computed by the engine (Task 4). Migration 0006 creates the table and backfills v2 projects from a frozen key list. Stages before Site line-out become historical (confirmed by 'SiteFlow v2 migration'). Line-out is completed when submitted visits exist, otherwise active. Construction is active once line-out is done. 1 new test, 243 in total.
 
-- [ ] Task 4: Stage engine: readiness, gates and "why blocked" (P0)
+- [x] Task 4: Stage engine: readiness, gates and "why blocked" (P0)
   - Acceptance:
     - `services/stages.py` provides `evaluate(project)`. It returns each stage's status with human-readable blocked reasons: the missing predecessors by name, "Waiting for client sign-off", "Legal Approval is Applied, not Approved" or "2 open High or Critical problems".
     - `release(project)` activates stages whose predecessors are completed or historical. Parallel branches release together.
     - It is a pure function over the state, plus a thin database wrapper.
     - Unit tests cover: both parallel branches opening together, stage 9 waiting on 8A and 8B, a gate that blocks with a reason, and historical stages counting as done.
   - Files: backend/app/services/stages.py, backend/tests/test_stage_engine.py
+  - Completed: 2026-09-27. services/stages.py has the pure functions to_release() (locked stages whose predecessors are completed or historical, so parallel branches release together) and evaluate(). evaluate() reports each stage as locked (with 'Waiting for: …'), active, blocked (with gate reasons for client sign-off, Legal Approval and major problems), completed or historical. Database helpers: create_stages (with historical onboarding), stage_rows, facts and release (audited stage.activated). 9 unit tests, 252 in total.
 
 - [ ] Task 5: Stage tracker API and legacy onboarding at project creation (P0)
   - Acceptance:
