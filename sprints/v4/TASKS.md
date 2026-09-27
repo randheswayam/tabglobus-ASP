@@ -63,7 +63,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: .github/workflows/ci.yml, playwright.config.js (only if CI needs a flag)
   - Completed: 2026-09-28. The CI web job, on Node 22 and Python 3.12: npm ci, and backend/.venv built the way playwright.config.js expects, so the config is unchanged. It runs npm run lint, installs Chromium, runs the full Playwright suite, then semgrep (p/javascript, p/xss, p/secrets on web-src and tests/e2e) and npm audit --audit-level=high. On failure it uploads tests/screenshots and test-results. test_ci_config.py covers the job. Not yet run on GitHub, because nothing has been pushed.
 
-- [ ] Task 6: Docker Compose: api and web services (P0)
+- [x] Task 6: Docker Compose: api and web services (P0)
   - Acceptance:
     - `backend/Dockerfile` builds the API on `python:3.12-slim`, runs `alembic upgrade head`, then uvicorn.
     - `docker-compose.yml` at the repository root has:
@@ -74,6 +74,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - Secrets come from `.env`; a `.env.example` is added and `.env` is git-ignored.
     - `backend/docker-compose.yml` is removed, and README.md is updated.
   - Files: backend/Dockerfile, docker-compose.yml, .env.example, .gitignore, README.md, backend/docker-compose.yml
+  - Completed: 2026-09-28. backend/Dockerfile (python:3.12-slim, runs as a non-root user) and docker-entrypoint.sh (alembic upgrade head, seed when SEED_PASSWORD is set, then uvicorn). The root docker-compose.yml has three services: db (postgres:16 with a health check, keeping the backend_siteflow-db volume), api (waits for a healthy db, health check on /health, port 8000, media volume) and web (nginx:alpine serving www/ on 8080). Secrets come from .env, which is git-ignored, with .env.example as the template. backend/docker-compose.yml is removed, .gitattributes keeps *.sh as LF, and both READMEs are updated. Verified: docker compose up --build, all three healthy, a seeded sign-in returns a token, and CORS from :8080 is allowed. nginx is the local alpine tag, because Docker Hub pulls of new tags were refused on this network.
 
 ### S01 — Identity, roles, sessions, admin
 

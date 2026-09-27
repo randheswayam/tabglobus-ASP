@@ -16,7 +16,7 @@ The database schema is managed by Alembic. The app runs `alembic upgrade head` a
 
 ## Run on PostgreSQL
 
-1. Start Docker Desktop, then start the database: `docker compose up -d db` (PostgreSQL 16, user and password `siteflow`, port 5432).
+1. Start Docker Desktop, then start the database from the repository root: `docker compose up -d db` (PostgreSQL 16, user `siteflow`, the password from `.env`, port 5432). The full stack setup is in the root [README](../README.md).
 2. Point the app at it and run:
 
    ```

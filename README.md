@@ -4,6 +4,17 @@ SiteFlow by TAN GLOBUS AI, for residential projects. One codebase runs as the we
 
 The app talks to the FastAPI backend in `backend/` (see [backend/README.md](backend/README.md)). To run both locally: `backend/.venv/Scripts/python run_local.py`, then open http://localhost:8080/index.html.
 
+## Run the whole stack with Docker
+
+1. Copy `.env.example` to `.env` and fill in `POSTGRES_PASSWORD`, `JWT_SECRET` and, for the first start, `SEED_PASSWORD`. `.env` is git-ignored.
+2. Run `docker compose up --build`. This starts three services:
+   - `db`: PostgreSQL 16 on port 5432. It uses the same `backend_siteflow-db` volume as the earlier database-only setup, so existing local data is kept.
+   - `api`: the FastAPI backend on port 8000. It runs `alembic upgrade head`, creates any missing seed users with `SEED_PASSWORD`, then serves; its health check is `/health`.
+   - `web`: nginx serving `www/` on port 8080.
+3. Open http://localhost:8080/index.html. Rebuild the web app with `backend/.venv/Scripts/python web-src/build.py` after changing `web-src/`.
+
+`docker compose down` stops the stack; `docker compose down -v` also deletes the database and media volumes.
+
 ## What it does
 
 | Area | What the app does |

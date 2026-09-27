@@ -9,3 +9,4 @@ tests/e2e/.data/
 test-results/
 playwright-report/
 web-src/siteflow.html
+.env
