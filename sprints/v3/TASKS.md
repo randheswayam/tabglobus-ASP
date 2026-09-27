@@ -146,13 +146,14 @@
   - Files: web-src/api.js, web-src/app.js, web-src/app.html, tests/e2e/v3-stages.spec.js, tests/e2e/task9-signin-projects-legal.spec.js
   - Completed: 2026-09-27. The project page has a Project stages tracker: 10 phase blocks (complete, current or upcoming), the Phase 2 Site and Studio workstreams as two columns, 8A and 8B on one row, and stages with a number, owner, workstream and status text plus colour (Done, In progress, Blocked, Locked, Historical). Opening a stage shows its detail, the reasons it's blocked, the historical record with its confirmer, the completion record, and for owners 'Mark complete' with a required note. A Phase N pill is added, and project cards show 10 phase bars with the current stages. The v1 Legal Approval, site visit and review strip and cards sit under 'Construction: Legal Approval, site visits and review', so the v1 and v2 E2E tests are unchanged. Audit wording added for stage, invite and sign-off events. 3 new E2E tests (18 in total) with 4 screenshots, including phone width.
 
-- [ ] Task 16: UI: invite the client and client activation (P0)
+- [x] Task 16: UI: invite the client and client activation (P0)
   - Acceptance:
     - The project page has a Client panel: Invite client (name, email), which shows the one-time code once with a copy button and a note that nothing is sent automatically, and re-invite.
     - The sign-in screen has "I have an invite code", which takes the email, code and new password.
     - Errors are in plain words.
     - The Playwright test invites a client, activates, and signs in as the client, with screenshots.
   - Files: web-src/api.js, web-src/app.js, tests/e2e/v3-client-invite.spec.js
+  - Completed: 2026-09-27. The project page's Client panel lists clients (Invited or Active). The Architect invites or re-invites, and the one-time code is shown once, with a Copy button, its expiry, and a note that SiteFlow doesn't send it. The sign-in screen has 'I have an invite code' (email, code, a new password of at least 10 characters). Clients get their own navigation (My projects, Notifications; the staff items are hidden) and land on a client home, filled in by Task 18. Fixed during testing: the browser's minlength check hid the app's message, and a password error wiped the typed code. The code is now kept unless the server rejects it. 1 new E2E test (19 in total) with 3 screenshots.
 
 - [ ] Task 17: UI: sign-off composer for the Architect (P0)
   - Acceptance:

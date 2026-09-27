@@ -62,7 +62,9 @@ const pct = n => (n == null ? '—' : `${Number(n).toFixed(1).replace(/\.0$/, ''
 
 /* ---------- state ---------- */
 const ui = {route: 'login', p: {}, me: null, data: {}, error: null, loadError: null};
-const home = () => API.dashboard && ui.me && ['architect', 'team_lead'].includes(ui.me.role) ? 'dashboard' : 'projects';
+const isClient = () => !!ui.me && ui.me.role === 'client';
+const home = () => isClient() ? 'client-home'
+  : API.dashboard && ui.me && ['architect', 'team_lead'].includes(ui.me.role) ? 'dashboard' : 'projects';
 const can = {
   create: () => ui.me && ui.me.role === 'architect',
   legal: () => ui.me && ui.me.role === 'admin',
@@ -93,8 +95,9 @@ API.onSignedOut(() => showLogin('Your session has ended. Sign in again.'));
 function shell(){
   if (!ui.me) return '';
   const u = ui.me;
-  const nav = [...(home() === 'dashboard' ? [['dashboard', 'home', 'Dashboard']] : []), ['projects', 'folder', 'Projects'],
-    ...(can.review() ? [['queue', 'eye', 'Review queue']] : []), ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : [])];
+  const nav = isClient() ? [['client-home', 'home', 'My projects'], ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : [])]
+    : [...(home() === 'dashboard' ? [['dashboard', 'home', 'Dashboard']] : []), ['projects', 'folder', 'Projects'],
+      ...(can.review() ? [['queue', 'eye', 'Review queue']] : []), ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : [])];
   const cur = ui.route === 'review' ? 'queue' : ['project', 'new-project', 'visit'].includes(ui.route) ? 'projects' : ui.route;
   const count = r => r === 'queue' && ui.queueCount ? `<span class="count" data-testid="queue-count">${ui.queueCount}</span>`
     : r === 'alerts' && ui.unread ? `<span class="count" data-testid="unread-count">${ui.unread}</span>` : '';
@@ -172,11 +175,19 @@ V.login = {html: () => `<div class="login panel" data-testid="login-view">
       <div class="brand"><span class="brand-mark">${ico('logo')}</span><div><b>SiteFlow</b><small>Residential · MVP</small></div></div>
       <h1>Sign in</h1>
       ${ui.error ? `<div class="errbox" data-testid="login-error">${esc(ui.error)}</div>` : ''}
-      <form class="form" data-form="login">
+      ${ui.activating ? `<form class="form" data-form="activate">
+        <p class="small muted">Your architect gave you an 8-character invite code. Use it once to choose your password.</p>
+        <div class="field"><label for="ac-email">Email</label><input id="ac-email" data-testid="activate-email" type="email" autocomplete="username" value="${esc(ui.loginEmail)}" required></div>
+        <div class="field"><label for="ac-code">Invite code</label><input id="ac-code" data-testid="activate-code" autocomplete="one-time-code" autocapitalize="characters" maxlength="12" value="${esc(ui.activateCode)}" required></div>
+        <div class="field"><label for="ac-pass">Choose a password</label><input id="ac-pass" data-testid="activate-password" type="password" autocomplete="new-password" required><span class="small muted">At least 10 characters.</span></div>
+        <button class="btn primary" type="submit" data-testid="activate-submit">Set password and sign in</button>
+        <button class="btn ghost sm" type="button" data-act="hide-activate">Back to sign in</button>
+      </form>` : `<form class="form" data-form="login">
         <div class="field"><label for="li-email">Email</label><input id="li-email" data-testid="login-email" type="email" autocomplete="username" value="${esc(ui.loginEmail)}" required></div>
         <div class="field"><label for="li-pass">Password</label><input id="li-pass" data-testid="login-password" type="password" autocomplete="current-password" required></div>
         <button class="btn primary" type="submit" data-testid="login-submit">Sign in</button>
-      </form>
+        ${API.demo ? '' : `<button class="btn ghost sm" type="button" data-act="show-activate" data-testid="show-activate">I have an invite code</button>`}
+      </form>`}
       ${API.demo ? demoPanel() : `<details class="small muted"><summary>Server</summary>
         <div class="field" style="margin-top:8px"><label for="li-api">SiteFlow server address</label><input id="li-api" data-testid="login-server" value="${esc(API.base())}"></div>
         <button class="btn sm" data-act="set-server" style="margin-top:8px">Use this server</button>
@@ -316,6 +327,8 @@ V.alerts = {
   }
 };
 
+V['client-home'] = {html: () => `<div data-testid="client-home"><div class="head"><div><h1>My projects</h1></div></div></div>`};
+
 V.projects = {
   load: async () => { ui.data.projects = await API.projects(); },
   html: () => {
@@ -346,9 +359,10 @@ V['new-project'] = {
 
 V.project = {
   load: async () => {
-    const [p, visits, problems, stages] = await Promise.all([API.project(ui.p.pid), API.visits ? API.visits(ui.p.pid) : null,
-      API.problems ? API.problems(ui.p.pid) : null, API.stages ? API.stages(ui.p.pid) : null]);
-    ui.data.project = p; ui.data.visits = visits; ui.data.problems = problems; ui.data.stages = stages;
+    const [p, visits, problems, stages, clients] = await Promise.all([API.project(ui.p.pid), API.visits ? API.visits(ui.p.pid) : null,
+      API.problems ? API.problems(ui.p.pid) : null, API.stages ? API.stages(ui.p.pid) : null,
+      API.projectClients ? API.projectClients(ui.p.pid) : null]);
+    ui.data.project = p; ui.data.visits = visits; ui.data.problems = problems; ui.data.stages = stages; ui.data.clients = clients;
   },
   html: () => {
     const p = ui.data.project;
@@ -367,6 +381,7 @@ V.project = {
           <dt>Location</dt><dd>${esc(p.location)}</dd>
           <dt>Civil Engineer</dt><dd>${esc(p.civil_engineer ? p.civil_engineer.name : '—')}</dd>
           <dt>Template</dt><dd>Residential v${p.template.version}</dd></dl></div></section>
+        ${ui.data.clients ? clientPanel(ui.data.clients) : ''}
         ${ui.data.visits ? visitHistory(ui.data.visits) : ''}
         <section class="panel"><div class="panel-h"><h3>Audit trail</h3></div><div class="panel-b audit" data-testid="audit-list">${p.audit.slice().reverse().map(e => `<div><span class="mono muted small">${fmtStamp(e.at)}</span><span>${esc(auditText(e))} <span class="muted">· ${esc(e.actor || 'SiteFlow')}</span></span></div>`).join('')}</div></section>
       </div>
@@ -395,6 +410,26 @@ function problemsPanel(list){
   return `<section class="panel" data-testid="problems-panel"><div class="panel-h"><h3>${ico('alert')}Open problems</h3><span class="small muted">${open.length} open</span></div>
     <div class="panel-b stack" style="gap:12px">${open.length ? open.map(row).join('') : '<span class="small muted">No open problems.</span>'}
     ${done.length ? `<details data-testid="resolved-problems"><summary class="small">Resolved (${done.length})</summary><div class="stack" style="gap:12px;margin-top:10px">${done.map(row).join('')}</div></details>` : ''}</div></section>`;
+}
+
+/* The client who tracks the project and signs off milestones in the client app. */
+function clientPanel(clients){
+  const inv = ui.data.invite;
+  return `<section class="panel" data-testid="client-panel"><div class="panel-h"><h3>Client</h3></div><div class="panel-b stack" style="gap:12px">
+    ${clients.length ? clients.map(c => `<div class="person"><span class="av">${esc(initials(c.name))}</span><div><b>${esc(c.name)}</b>
+      <div class="small muted">${esc(c.email)} · ${pill(c.status === 'active' ? 'done' : 'active', c.status === 'active' ? 'Active' : 'Invited')}</div></div></div>`).join('')
+      : '<span class="small muted">No client invited yet.</span>'}
+    ${inv && inv.code ? `<div class="banner info invite-code-box"><span><b>Invite code for ${esc(inv.client.name)}:</b>
+      <span class="mono code-text" data-testid="invite-code">${esc(inv.code)}</span>
+      <button class="btn sm" data-act="copy-code">Copy</button><br>
+      <span class="small">Share this code with the client yourself; SiteFlow does not send it. It works once and expires ${fmtStamp(inv.expires_at)}.
+      The client opens SiteFlow, taps “I have an invite code” and chooses a password.</span></span></div>`
+      : inv ? `<div class="banner ok"><span>${esc(inv.client.name)} already uses the client app and can now see this project.</span></div>` : ''}
+    ${can.create() ? `<div class="fgrid">
+      <div class="field"><label for="iv-name">Client name</label><input id="iv-name" data-testid="invite-name" placeholder="As they will sign"></div>
+      <div class="field"><label for="iv-email">Client email</label><input id="iv-email" data-testid="invite-email" type="email"></div>
+      <div class="field full"><button class="btn" data-act="invite-client" data-testid="invite-submit">${ico('plus')}${clients.length ? 'Invite or re-invite' : 'Invite client'}</button></div></div>` : ''}
+  </div></section>`;
 }
 
 /* ---------- stage tracker (the 18-stage residential flow) ---------- */
@@ -860,6 +895,19 @@ document.addEventListener('click', async e => {
   switch (a.dataset.act){
     case 'open-project': go('project', {pid: +a.dataset.pid}); break;
     case 'sign-out': API.logout(); showLogin(); break;
+    case 'show-activate': ui.activating = true; ui.error = null; render(); break;
+    case 'hide-activate': ui.activating = false; ui.error = null; render(); break;
+    case 'invite-client': {
+      const name = ($('#iv-name').value || '').trim(), email = ($('#iv-email').value || '').trim();
+      if (!name || !email){ toast('Enter the client\'s name and email.'); break; }
+      a.disabled = true;
+      try { ui.data.invite = await API.inviteClient(ui.data.project.id, name, email); ui.data.clients = await API.projectClients(ui.data.project.id); ui.error = null; }
+      catch (err){ setError(err); }
+      rerenderKeepScroll(); break; }
+    case 'copy-code': {
+      const code = ui.data.invite && ui.data.invite.code;
+      try { await navigator.clipboard.writeText(code); toast('Code copied.'); } catch (_) { toast('Select the code and copy it.'); }
+      break; }
     case 'set-server': API.setBase($('#li-api').value.trim()); toast(`Server set to ${API.base()}`); break;
     case 'start-visit': go('visit', {pid: +a.dataset.pid}); break;
     case 'demo-login':
@@ -954,6 +1002,16 @@ document.addEventListener('submit', async e => {
   const btn = form.querySelector('[type=submit]'); if (btn) btn.disabled = true;
   try {
     switch (form.dataset.form){
+      case 'activate': {
+        ui.loginEmail = $('#ac-email').value.trim();
+        ui.activateCode = $('#ac-code').value.trim();
+        const password = $('#ac-pass').value;
+        // Keep what was typed across the re-render; only a rejected code is cleared.
+        if (password.length < 10){ ui.error = 'Choose a password of at least 10 characters.'; render(); return; }
+        try { ui.me = await API.activate(ui.loginEmail, ui.activateCode, password); }
+        catch (err){ ui.error = err.message; if (err.status === 400) ui.activateCode = ''; render(); return; }
+        ui.error = null; ui.activating = false; ui.activateCode = ''; toast('Welcome to SiteFlow.'); await go(home()); break;
+      }
       case 'login': {
         ui.loginEmail = $('#li-email').value.trim();
         try { ui.me = await API.login(ui.loginEmail, $('#li-pass').value); }

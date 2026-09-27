@@ -59,6 +59,11 @@ const SiteFlowAPI = (() => {
       store.set(K_TOKEN, r.access_token);
       return r.user;
     },
+    async activate(email, code, password){
+      const r = await request('POST', '/auth/activate', {email, code, password});
+      store.set(K_TOKEN, r.access_token);
+      return r.user;
+    },
     logout(){ store.set(K_TOKEN, null); },
     me: () => request('GET', '/auth/me'),
     template: () => request('GET', '/template'),
@@ -75,6 +80,8 @@ const SiteFlowAPI = (() => {
     /* ---------- media (v2) ---------- */
     openDraft: pid => request('POST', `/projects/${pid}/site-visits/draft`),
     stages: pid => request('GET', `/projects/${pid}/stages`),
+    projectClients: pid => request('GET', `/projects/${pid}/clients`),
+    inviteClient: (pid, name, email) => request('POST', `/projects/${pid}/client-invite`, {name, email}),
     completeStage: (pid, key, note) => request('POST', `/projects/${pid}/stages/${key}/complete`, {note}),
     visits: pid => request('GET', `/projects/${pid}/visits`),
     dashboard: filters => request('GET', '/dashboard' + (Object.keys(filters || {}).length ? '?' + new URLSearchParams(filters) : '')),
