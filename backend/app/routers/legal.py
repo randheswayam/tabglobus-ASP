@@ -5,12 +5,12 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import get_visible_project, require_role
+from app.deps import get_visible_project, require_role, require_staff
 from app.models import LegalStatus, Project, Role, User
 from app.schemas import project_detail
 from app.services import audit, notify, red_flags, workflow
 
-router = APIRouter(tags=["legal"])
+router = APIRouter(tags=["legal"], dependencies=[Depends(require_staff)])
 
 # Not started → Applied → Approved or Rejected (plan section 4, Step 1). Approved and Rejected are final.
 _NEXT = {

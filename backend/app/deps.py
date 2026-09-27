@@ -34,6 +34,13 @@ def get_current_user(
     return user
 
 
+def require_staff(user: User = Depends(get_current_user)) -> User:
+    """Router-level guard for every staff API. Clients use /client/* only."""
+    if user.role == Role.client:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This area is for the SiteFlow team. Clients use the client app.")
+    return user
+
+
 def require_role(*roles: Role):
     allowed = set(roles)
 

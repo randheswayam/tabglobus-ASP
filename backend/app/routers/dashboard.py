@@ -10,14 +10,14 @@ from sqlalchemy.orm import Session
 from app import template_config as tc
 from app.clock import business_date
 from app.db import get_db
-from app.deps import get_current_user, visible_projects
+from app.deps import get_current_user, require_staff, visible_projects
 from app.models import Problem, ProblemStatus, Project, RedFlag, User
 from app.routers.reviews import queue_rows
 from app.schemas import approved_at, civil_engineer_of, current_step_name, user_brief
 from app.services.problems import problem_out, problem_photo
 from app.services.red_flags import flag_out, sync_red_flags
 
-router = APIRouter(tags=["dashboard"])
+router = APIRouter(tags=["dashboard"], dependencies=[Depends(require_staff)])
 
 _SEVERITY_ORDER = {"Critical": 0, "High": 1}
 

@@ -4,14 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import get_current_user, get_visible_project, require_role, visible_projects
+from app.deps import get_current_user, get_visible_project, require_role, require_staff, visible_projects
 from app.models import Project, Role, SiteVisit, User, VisitStatus
 from app.schemas import visit_out
 from app.services import audit, notify, red_flags, stages, workflow
 from app.services.progress import derive_progress
 from app.services.validation import SiteVisitIn, missing_evidence, validate_site_visit
 
-router = APIRouter(tags=["site visits"])
+router = APIRouter(tags=["site visits"], dependencies=[Depends(require_staff)])
 
 
 def _clean(s: str | None) -> str | None:

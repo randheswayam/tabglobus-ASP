@@ -68,12 +68,13 @@
   - Files: backend/app/routers/site_visits.py, backend/app/routers/legal.py, backend/app/routers/reviews.py, backend/tests/conftest.py, backend/tests/test_site_visits.py, tests/e2e/helpers.js
   - Completed: 2026-09-27. Site visit draft and submit return 409 until Site line-out has started (and still need Legal Approval via the v1 step). Approving the first construction visit completes line-out ('Completed when the first construction visit was approved.'), which opens stage 15. The ready_project, dashboard and E2E fixtures onboard at line-out. Also fixed a date bug exposed when the clock passed midnight: overdue checks and the dashboard visit-date filter used the UTC date. They now use BUSINESS_TIMEZONE=Asia/Kolkata (app/clock.py, tzdata added), and the app uses the device's local date. 3 new tests, 275 backend in total, 15 E2E.
 
-- [ ] Task 8: Client role, client membership and staff-only routes (P0)
+- [x] Task 8: Client role, client membership and staff-only routes (P0)
   - Acceptance:
     - `Role.client` is added, with a `ProjectMember` flag `is_client`.
     - `require_staff` is applied to every existing router, so a client gets 403 on all staff APIs, including `/projects`, `/dashboard`, `/media/{id}`, `/notifications` and `/users`.
     - An authorization test enumerates every route in `app.routes` and asserts the client role gets 403 (or 401 without a token), except `/auth/*`, `/health`, `/template` and the future `/client/*`.
   - Files: backend/app/models.py, backend/migrations/versions/0007_client_role.py, backend/app/deps.py, backend/app/routers/*.py, backend/tests/test_client_access.py
+  - Completed: 2026-09-27. Added Role.client. require_staff is a router-level dependency on all 9 staff routers, so a client gets 403 ('This area is for the SiteFlow team…') before any other check. Clients keep /auth/*, /template, /notifications (their own rows only; the customer app needs the alerts) and /client/*. There is no is_client column or migration: a membership whose user has the Client role is the client membership. The route walk enumerates every path and method from the OpenAPI schema, because this FastAPI version nests included routers. 47 new tests, 322 in total.
 
 - [ ] Task 9: Client invite and activation with a one-time code (P0)
   - Acceptance:

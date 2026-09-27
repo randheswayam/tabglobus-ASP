@@ -8,13 +8,13 @@ from sqlalchemy.orm import Session
 
 from app import workflow_config as wc
 from app.db import get_db
-from app.deps import get_current_user, require_role, visible_projects
+from app.deps import get_current_user, require_role, require_staff, visible_projects
 from app.models import Media, MediaKind, Project, Role, SiteVisit, User, VisitStatus
 from app.schemas import media_out
 from app.services import audit
 from app.services.storage import get_storage
 
-router = APIRouter(tags=["media"])
+router = APIRouter(tags=["media"], dependencies=[Depends(require_staff)])
 
 _EXT = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "video/mp4": ".mp4", "video/webm": ".webm"}
 _CHUNK = 1024 * 1024

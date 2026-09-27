@@ -4,11 +4,11 @@ from sqlalchemy.orm import Session
 
 from app import stage_config as sc
 from app.db import get_db
-from app.deps import get_current_user, get_visible_project
+from app.deps import get_current_user, get_visible_project, require_staff
 from app.models import Project, User
 from app.services import stages
 
-router = APIRouter(tags=["stages"])
+router = APIRouter(tags=["stages"], dependencies=[Depends(require_staff)])
 
 
 @router.get("/projects/{project_id}/stages")

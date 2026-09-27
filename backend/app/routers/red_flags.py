@@ -6,12 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import get_visible_project, require_role
+from app.deps import get_visible_project, require_role, require_staff
 from app.models import Project, RedFlag, Role, User
 from app.services import audit
 from app.services.red_flags import RULES, flag_out
 
-router = APIRouter(tags=["red flags"])
+router = APIRouter(tags=["red flags"], dependencies=[Depends(require_staff)])
 
 
 class ClearIn(BaseModel):

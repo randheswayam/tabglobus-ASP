@@ -6,12 +6,12 @@ from sqlalchemy.orm import Session
 
 from app import template_config as tc
 from app.db import get_db
-from app.deps import get_current_user, get_visible_project, require_role, visible_projects
+from app.deps import get_current_user, get_visible_project, require_role, require_staff, visible_projects
 from app.models import LegalApproval, Project, ProjectMember, Role, StepStatus, User, WorkflowStep
 from app.schemas import ProjectIn, project_detail, project_summary, visit_history_row
 from app.services import audit, stages
 
-router = APIRouter(tags=["projects"])
+router = APIRouter(tags=["projects"], dependencies=[Depends(require_staff)])
 
 
 @router.post("/projects", status_code=status.HTTP_201_CREATED)

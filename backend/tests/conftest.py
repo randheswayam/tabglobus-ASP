@@ -182,3 +182,23 @@ def workflow_actions(audit: list[dict]) -> list[str]:
     """Audit actions without media, red flag and stage-tracker events, for tests about the order of the
     v1 workflow steps. Those other events have their own tests."""
     return [e["action"] for e in audit if not e["action"].startswith(("media.", "red_flag.", "stage."))]
+
+
+@pytest.fixture
+def client_user(db):
+    """A client account (the customer app), not yet a member of any project."""
+    from app import models as m
+    from app.passwords import hash_password
+
+    u = m.User(name="Mr. Gokhale", email="gokhale@client.example", role=m.Role.client,
+               password_hash=hash_password(TEST_PASSWORD))
+    db.add(u)
+    db.commit()
+    return u
+
+
+@pytest.fixture
+def client_headers(client, client_user):
+    r = client.post("/auth/login", json={"email": client_user.email, "password": TEST_PASSWORD})
+    assert r.status_code == 200, r.text
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}

@@ -25,6 +25,7 @@ class Role(str, enum.Enum):
     team_lead = "team_lead"
     civil_engineer = "civil_engineer"
     admin = "admin"
+    client = "client"  # the customer app: sees only their own projects through /client/*
 
 
 class StepStatus(str, enum.Enum):

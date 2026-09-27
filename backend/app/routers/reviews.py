@@ -6,12 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import require_role, visible_projects
+from app.deps import require_role, require_staff, visible_projects
 from app.models import Project, Review, ReviewDecision, Role, SiteVisit, User, VisitStatus
 from app.schemas import iso_utc, user_brief, visit_out
 from app.services import audit, notify, problems, red_flags, stages, workflow
 
-router = APIRouter(tags=["reviews"])
+router = APIRouter(tags=["reviews"], dependencies=[Depends(require_staff)])
 
 
 class ReviewIn(BaseModel):

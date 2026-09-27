@@ -6,12 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import get_visible_project, require_role, visible_projects
+from app.deps import get_visible_project, require_role, require_staff, visible_projects
 from app.models import Problem, ProblemStatus, Project, Role, User
 from app.services import audit, red_flags
 from app.services.problems import problem_out, problem_photo
 
-router = APIRouter(tags=["problems"])
+router = APIRouter(tags=["problems"], dependencies=[Depends(require_staff)])
 
 
 class ResolveIn(BaseModel):
