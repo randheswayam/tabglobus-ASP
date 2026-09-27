@@ -1,11 +1,13 @@
 """The Architect's dashboard (plan section 5.1): All Projects, Needs Architect Attention, Major Problems
 and Review Queue, for the projects the signed-in user can see."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from typing import Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import template_config as tc
 from app.db import get_db
 from app.deps import get_current_user, visible_projects
 from app.models import Media, MediaKind, Problem, ProblemStatus, Project, RedFlag, User
@@ -34,8 +36,24 @@ def _problem_photo(db: Session, problem: Problem) -> int | None:
     return (tagged or photos[0]).id
 
 
+Step = Literal["Legal Approval", "Site Visit", "Team Lead Review"]
+Severity = Literal["Low", "Medium", "High", "Critical"]
+
+
 @router.get("/dashboard")
-def dashboard(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
+def dashboard(q: str | None = None, location: str | None = None, step: Step | None = None,
+              engineer_id: int | None = None, red_flag: bool | None = None, severity: Severity | None = None,
+              category: str | None = None, progress_min: float | None = Query(None, ge=0, le=100),
+              progress_max: float | None = Query(None, ge=0, le=100), visit_from: date | None = None,
+              visit_to: date | None = None,
+              db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
+    """Filters (plan section 5.2) narrow every panel. Severity and category match open problems."""
+    if category is not None and category not in tc.PROBLEMS:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Unknown problem category: {category}")
+    if progress_min is not None and progress_max is not None and progress_min > progress_max:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "progress_min is above progress_max")
+    if visit_from and visit_to and visit_from > visit_to:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "visit_from is after visit_to")
     now = datetime.now(timezone.utc)
     projects = db.scalars(visible_projects(user)).all()
     for p in projects:  # time-based rules (overdue review, no recent visit) move with the clock
@@ -61,13 +79,35 @@ def dashboard(db: Session = Depends(get_db), user: User = Depends(get_current_us
             "civil_engineer": user_brief(civil_engineer_of(p)),
         })
 
+    def problem_matches(x: Problem) -> bool:
+        return (severity is None or x.severity == severity) and (category is None or x.category == category)
+
+    def keep(r: dict) -> bool:
+        last = date.fromisoformat(r["last_visit_at"][:10]) if r["last_visit_at"] else None
+        return all([
+            q is None or q.strip().lower() in r["name"].lower(),
+            location is None or location.strip().lower() in r["location"].lower(),
+            step is None or r["current_step"] == step,
+            engineer_id is None or (r["civil_engineer"] or {}).get("id") == engineer_id,
+            red_flag is None or bool(r["flags"]) == red_flag,
+            (severity is None and category is None)
+            or any(x.project_id == r["id"] and problem_matches(x) for x in open_problems),
+            progress_min is None or r["official_progress"] >= progress_min,
+            progress_max is None or r["official_progress"] <= progress_max,
+            visit_from is None or (last is not None and last >= visit_from),
+            visit_to is None or (last is not None and last <= visit_to),
+        ])
+
+    rows = [r for r in rows if keep(r)]
+    kept = {r["id"] for r in rows}
     attention = sorted((r for r in rows if r["flags"]),
                        key=lambda r: (-r["flags"][0]["rank"], min(f["raised_at"] for f in r["flags"])))
-    major = sorted((x for x in open_problems if x.severity in _SEVERITY_ORDER),
+    major = sorted((x for x in open_problems
+                    if x.project_id in kept and x.severity in _SEVERITY_ORDER and problem_matches(x)),
                    key=lambda x: (_SEVERITY_ORDER[x.severity], x.target_date, x.id))
     return {
         "all_projects": rows,
         "needs_attention": attention,
         "major_problems": [{**problem_out(x), "photo_id": _problem_photo(db, x)} for x in major],
-        "review_queue": queue_rows(db, ids),
+        "review_queue": queue_rows(db, sorted(kept)),
     }

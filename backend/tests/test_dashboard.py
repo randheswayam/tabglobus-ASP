@@ -104,3 +104,60 @@ def test_engineer_sees_only_their_projects(client, auth_headers, portfolio):
 
 def test_dashboard_needs_sign_in(client):
     assert client.get("/dashboard").status_code == 401
+
+
+# ---------- Task 12: filters ----------
+
+ALL = {"Aundh Villa", "Baner Heights", "Kothrud House", "Deccan Row House"}
+
+
+@pytest.mark.parametrize("params,expected", [
+    ({"q": "VILLA"}, {"Aundh Villa"}),
+    ({"location": "kothrud"}, {"Kothrud House"}),
+    ({"step": "Legal Approval"}, {"Baner Heights"}),
+    ({"step": "Site Visit"}, {"Aundh Villa", "Deccan Row House"}),
+    ({"step": "Team Lead Review"}, {"Kothrud House"}),
+    ({"red_flag": "true"}, {"Aundh Villa", "Baner Heights"}),
+    ({"red_flag": "false"}, {"Kothrud House", "Deccan Row House"}),
+    ({"severity": "High"}, {"Aundh Villa"}),
+    ({"severity": "Critical"}, set()),  # Kothrud's Critical problem is not approved yet, so it is not an open item
+    ({"category": "Water"}, {"Aundh Villa"}),
+    ({"progress_min": "10"}, {"Aundh Villa"}),
+    ({"progress_max": "10"}, {"Baner Heights", "Kothrud House", "Deccan Row House"}),
+    ({"progress_min": "0", "progress_max": "100"}, ALL),
+    ({"visit_to": "2026-09-01"}, set()),
+    ({"red_flag": "true", "location": "baner"}, {"Baner Heights"}),
+])
+def test_filters_narrow_all_projects(client, auth_headers, portfolio, params, expected):
+    assert {p["name"] for p in _dash(client, auth_headers("architect"), **params)["all_projects"]} == expected
+
+
+def test_engineer_filter(client, auth_headers, portfolio):
+    rows = _dash(client, auth_headers("architect"), engineer_id=portfolio["other_engineer"].id)["all_projects"]
+    assert [p["name"] for p in rows] == ["Deccan Row House"]
+
+
+def test_visit_date_range_uses_the_last_approved_visit(client, auth_headers, portfolio):
+    from datetime import date, timedelta
+
+    today = date.today().isoformat()
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    assert {p["name"] for p in _dash(client, auth_headers("architect"), visit_from=today)["all_projects"]} == {"Aundh Villa"}
+    assert _dash(client, auth_headers("architect"), visit_from=tomorrow)["all_projects"] == []
+
+
+def test_filters_apply_to_every_panel(client, auth_headers, portfolio):
+    d = _dash(client, auth_headers("team_lead"), location="aundh")
+    assert [p["name"] for p in d["needs_attention"]] == ["Aundh Villa"]
+    assert [p["project"]["name"] for p in d["major_problems"]] == ["Aundh Villa"]
+    assert d["review_queue"] == []
+    assert _dash(client, auth_headers("team_lead"), category="Structural")["major_problems"] == []
+
+
+@pytest.mark.parametrize("params", [
+    {"step": "Roofing"}, {"severity": "Severe"}, {"category": "Termites"}, {"progress_min": "120"},
+    {"progress_min": "50", "progress_max": "10"}, {"visit_from": "yesterday"}, {"red_flag": "maybe"},
+    {"visit_from": "2026-10-10", "visit_to": "2026-10-01"},
+])
+def test_invalid_filters_are_422(client, auth_headers, portfolio, params):
+    assert client.get("/dashboard", params=params, headers=auth_headers("architect")).status_code == 422

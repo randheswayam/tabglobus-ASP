@@ -111,13 +111,14 @@
   - Files: backend/app/routers/dashboard.py, backend/app/main.py, backend/tests/test_dashboard.py
   - Completed: 2026-09-27. GET /dashboard syncs flags for the visible projects, then returns all_projects (open problem count, last approved visit, flag labels and flags), needs_attention (sorted by highest rank, then oldest flag), major_problems (open High and Critical, Critical first then by target date, with the tagged or first photo id) and review_queue (built by queue_rows, which is now shared with /reviews/queue). Scoped by visibility. 6 new tests, 199 in total.
 
-- [ ] Task 12: Dashboard filters (P0)
+- [x] Task 12: Dashboard filters (P0)
   - Acceptance:
     - `GET /dashboard` accepts these filters: `q` (name), `location`, `step`, `engineer_id`, `red_flag` (true or false), `severity`, `category`, `progress_min`, `progress_max`, `visit_from` and `visit_to`.
     - Filters narrow `all_projects`, `needs_attention` and `major_problems` consistently. Severity and category apply to problems.
     - Invalid values return 422.
     - A parametrised test checks each filter against a seeded set of 4 projects.
   - Files: backend/app/routers/dashboard.py, backend/tests/test_dashboard.py
+  - Completed: 2026-09-27. The filters are q, location, step, engineer_id, red_flag, severity, category, progress_min, progress_max, visit_from and visit_to. They narrow all_projects, needs_attention, major_problems and review_queue consistently. Severity and category match open problems. Visit dates use the last approved visit (UTC date). Typed parameters, plus checks on category, min above max and from after to, return 422. 26 new tests, 225 in total.
 
 - [ ] Task 13: UI: photo and video capture in the site visit form (P0)
   - Acceptance:
