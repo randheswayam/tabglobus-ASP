@@ -9,3 +9,10 @@ repos:
       - id: ruff-format
         args: [--config, backend/pyproject.toml]
         files: ^backend/
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: npx eslint
+        language: system
+        files: ^(web-src|tests/e2e)/.*\.js$|^(playwright|eslint)\.config\.js$

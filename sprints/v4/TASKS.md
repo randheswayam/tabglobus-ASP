@@ -28,7 +28,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/pyproject.toml, backend/requirements-dev.txt, .pre-commit-config.yaml, backend/app/**
   - Completed: 2026-09-28. ruff config in backend/pyproject.toml (line 120; E, F, I, B, UP). UP042 is ignored, because the str Enums are stored by value and StrEnum changes str() output. FastAPI Depends and require_role are treated as immutable defaults. Autofixes (datetime.UTC, import order), five manual fixes (raise from None, lambda, loop variable, two long SQL strings) and ruff format across the backend; no behaviour change. .pre-commit-config.yaml runs ruff and ruff-format. backend/requirements-dev.txt added. test_lint.py runs both checks.
 
-- [ ] Task 3: eslint for web-src and the E2E tests (P0)
+- [x] Task 3: eslint for web-src and the E2E tests (P0)
   - Acceptance:
     - `npx eslint web-src tests/e2e` passes, with a flat `eslint.config.js` (recommended rules, browser globals for `web-src`, node globals for `tests/`).
     - Built files (`www/`, `demo/`) are ignored.
@@ -36,6 +36,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - The eslint hook is added to pre-commit.
     - The E2E suite still passes.
   - Files: eslint.config.js, package.json, .pre-commit-config.yaml, web-src/*.js, tests/e2e/*.js
+  - Completed: 2026-09-28. eslint 9 flat config (recommended rules; browser globals for web-src, node for tests), with the npm script 'lint', a pre-commit local hook, and tests/e2e/lint.spec.js. Removed eight unused helpers inside app.js's closure, three unused test variables, and a useless regex escape. Globals are declared with /* global */ and /* exported */. Found, not fixed: demo-api.js uploadSignoffAttachment strips only '/' from file names, not '\' as intended (demo frozen; noted for sprint close).
 
 - [ ] Task 4: GitHub Actions: backend lint, tests on SQLite and PostgreSQL, and scans (P0)
   - Acceptance:

@@ -1,18 +1,13 @@
+/* global SiteFlowAPI */
 (function(){
 'use strict';
 /* ---------- helpers ---------- */
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const uid = p => p + Math.random().toString(36).slice(2, 8);
-const clone = o => JSON.parse(JSON.stringify(o));
 const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const parseYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d, 12); };
 const today = () => ymd(new Date());
-const addDays = (n, base) => { const d = base ? parseYmd(base) : new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n); return ymd(d); };
-const daysUntil = s => { const t = new Date(); t.setHours(12, 0, 0, 0); return Math.round((parseYmd(s) - t) / 864e5); };
 const fmtDate = s => s ? parseYmd(s).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'}) : '—';
-const fmtShort = s => s ? parseYmd(s).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'}) : '—';
-const fmtTime = t => { const d = new Date(t); const same = ymd(d) === today(); return same ? d.toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) : d.toLocaleDateString('en-IN', {day: 'numeric', month: 'short'}); };
 const initials = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
 const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 
@@ -215,7 +210,6 @@ function demoPanel(){
 const K_FILTERS = 'siteflow.dashboard.filters';
 function savedFilters(){ try { return JSON.parse(localStorage.getItem(K_FILTERS) || '{}') || {}; } catch (_) { return {}; } }
 function saveFilters(f){ try { localStorage.setItem(K_FILTERS, JSON.stringify(f)); } catch (_) {} }
-const FILTERS = ['q', 'location', 'phase', 'client_pending', 'step', 'engineer_id', 'red_flag', 'severity', 'category', 'progress_min', 'progress_max', 'visit_from', 'visit_to'];
 
 V.dashboard = {
   load: async () => {
@@ -717,7 +711,6 @@ function readDraft(pid){ try { return JSON.parse(localStorage.getItem(draftKey(p
 function saveDraft(){ try { localStorage.setItem(draftKey(ui.p.pid), JSON.stringify(ui.data.draft)); ui.data.savedAt = Date.now(); } catch (_) {} const l = $('#savedlbl'); if (l) l.textContent = 'Draft saved on this device'; }
 function dropDraft(pid){ try { localStorage.removeItem(draftKey(pid)); } catch (_) {} }
 const localNow = () => { const d = new Date(); d.setSeconds(0, 0); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); };
-const toLocalInput = iso => { const d = new Date(iso); return isNaN(d) ? localNow() : new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); };
 const blankProblem = () => ({category: '', problem: '', other_text: '', severity: '', location: '', responsible_party: '', target_date: ''});
 
 function draftFromVisit(v){

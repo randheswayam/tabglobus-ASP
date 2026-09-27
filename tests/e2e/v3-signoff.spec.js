@@ -107,7 +107,6 @@ test.describe.serial('client sign-off at a milestone', () => {
     await expect(page.getByTestId('signoff-approve')).toBeEnabled();
     await shot(page, 'v3-19-02-ready-to-sign');
     await page.getByTestId('signoff-approve').click();
-    const view = page.getByTestId('client-project');
     await page.getByTestId('client-unfold-1').click();
     await expect(page.getByTestId('client-stage-requirements_signoff')).toContainText('Signed by ms. kale');
     await expect(page.getByTestId('client-stage-predesign_site_visit')).toContainText('In progress');

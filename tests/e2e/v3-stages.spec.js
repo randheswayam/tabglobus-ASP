@@ -7,7 +7,7 @@ async function newProject(request, name, extra = {}){
 }
 
 test('architect works through the first stages; the client sign-off stage waits for the client', async ({ page, request }) => {
-  const p = await newProject(request, 'Kulkarni Residence');
+  await newProject(request, 'Kulkarni Residence');
   await signIn(page, 'architect');
   await page.getByTestId('nav-projects').click();
   await page.getByTestId('projects-view').getByText('Kulkarni Residence').click();

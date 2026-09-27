@@ -1,4 +1,5 @@
 /* ---------- SiteFlow API client ---------- */
+/* exported SiteFlowAPI */
 const SiteFlowAPI = (() => {
   'use strict';
   const K_BASE = 'siteflow.api', K_TOKEN = 'siteflow.token';

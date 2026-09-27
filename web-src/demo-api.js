@@ -6,6 +6,8 @@
    the 18-stage tracker, client invites, milestone sign-offs, the client app and shared site updates.
    DEMO_TEMPLATE is injected by build.py from the backend's template and workflow config, so stages,
    checklists, the problem list, media limits and red flag thresholds stay in step. */
+/* global DEMO_TEMPLATE */
+/* exported SiteFlowAPI */
 const SiteFlowAPI = (() => {
   'use strict';
   const T = DEMO_TEMPLATE;
@@ -862,7 +864,7 @@ const SiteFlowAPI = (() => {
       const data = file.type === 'application/pdf' ? await fileAsDataUrl(file) : await readAsImage(file);
       return run(() => {
         const u = staff(), r = editableSignoff(u, id);
-        const a = {id: nextId('attachment'), filename: String(file.name || 'document').split(/[\/]/).pop().slice(0, 120),
+        const a = {id: nextId('attachment'), filename: String(file.name || 'document').split(/\//).pop().slice(0, 120),
           content_type: file.type === 'application/pdf' ? 'application/pdf' : 'image/jpeg', size: file.size, data, uploaded_at: now()};
         r.attachments.push(a);
         audit(byId(db.projects, r.project_id), u, 'signoff.attachment_added', {version: r.version, filename: a.filename});
