@@ -700,7 +700,7 @@ Running the suite:
   - Tokens live in `localStorage`, which a script injected into the page could read.
   - There is no rate limiting on sign-in, and no refresh or revocation of tokens.
   - The audit guard protects against the application, not against direct database access.
-- **Frontend structure**: one large file (`app.js`, about 700 lines) that renders HTML strings. It works and is tested end to end, but it has no JavaScript unit tests and will get harder to change as screens are added.
+- **Frontend structure**: one large file (`app.js`, about 600 lines) that renders HTML strings. It works and is tested end to end, but it has no JavaScript unit tests and will get harder to change as screens are added.
 - **The offline draft is saved but not sent**: submitting needs a connection. There is no sync queue (D6, as planned).
 - **Timestamps**: always stored and sent as UTC. The app shows them in the device's local time.
 
