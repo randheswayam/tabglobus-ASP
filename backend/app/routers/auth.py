@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app import workflow_config as wc
 from app.db import get_db
 from app.deps import get_current_user
-from app.models import ClientInvite, Role, User
+from app.models import ClientInvite, Role, User, UserSession
 from app.modules.identity import sessions
 from app.passwords import hash_password, verify_password
 from app.services import audit
@@ -71,6 +71,38 @@ def refresh(body: RefreshIn, db: Session = Depends(get_db)) -> TokenOut:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Your session has ended. Please sign in again.") from None
     db.commit()
     return TokenOut(access_token=access, refresh_token=new_refresh, user=UserOut.of(user))
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    """Sign out of this device: its session ends, other devices stay signed in."""
+    sessions.revoke(db, db.get(UserSession, request.state.session_id))
+    audit.record(
+        db,
+        user,
+        "auth.logout",
+        project_id=None,
+        entity_type="user",
+        entity_id=user.id,
+        detail={"scope": "this device", "sessions": 1},
+    )
+    db.commit()
+
+
+@router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
+def logout_all(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    """Sign out everywhere, for example after losing a phone."""
+    n = sessions.revoke_all(db, user)
+    audit.record(
+        db,
+        user,
+        "auth.logout",
+        project_id=None,
+        entity_type="user",
+        entity_id=user.id,
+        detail={"scope": "all devices", "sessions": n},
+    )
+    db.commit()
 
 
 @router.get("/me", response_model=UserOut)

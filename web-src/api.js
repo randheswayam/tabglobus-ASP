@@ -105,7 +105,15 @@ const SiteFlowAPI = (() => {
       saveTokens(r);
       return r.user;
     },
-    logout(){ store.set(K_TOKEN, null); store.set(K_REFRESH, null); },
+    // Ending the session on the server is best effort: the device forgets its tokens either way.
+    async logout(){
+      if (token()) await request('POST', '/auth/logout').catch(() => null);
+      store.set(K_TOKEN, null); store.set(K_REFRESH, null);
+    },
+    async logoutAll(){
+      await request('POST', '/auth/logout-all');
+      store.set(K_TOKEN, null); store.set(K_REFRESH, null);
+    },
     me: () => request('GET', '/auth/me'),
     template: () => request('GET', '/template'),
     projects: () => request('GET', '/projects'),

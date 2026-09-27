@@ -94,3 +94,45 @@ def test_activation_opens_a_session(client, auth_headers, new_project):
     assert r.status_code == 200, r.text
     assert r.json()["refresh_token"]
     assert decode_access_token(r.json()["access_token"]).session_id
+
+
+def _actions(db, user):
+    from app.models import AuditEvent
+
+    return [(e.action, e.detail) for e in db.query(AuditEvent).filter_by(actor_id=user.id).order_by(AuditEvent.id)]
+
+
+def test_logout_ends_only_this_session(client, users, db):
+    a, b = _login(client, users, ua="phone"), _login(client, users, ua="laptop")
+    r = client.post("/auth/logout", headers=_bearer(a))
+    assert r.status_code == 204
+    assert client.get("/auth/me", headers=_bearer(a)).status_code == 401
+    assert client.post("/auth/refresh", json={"refresh_token": a["refresh_token"]}).status_code == 401
+    assert client.get("/auth/me", headers=_bearer(b)).status_code == 200
+    assert ("auth.logout", {"scope": "this device", "sessions": 1}) in _actions(db, users["architect"])
+
+
+def test_logout_all_ends_every_session_of_the_user_only(client, users, db):
+    a, b = _login(client, users, ua="phone"), _login(client, users, ua="laptop")
+    other = _login(client, users, role="team_lead")
+    r = client.post("/auth/logout-all", headers=_bearer(a))
+    assert r.status_code == 204
+    for tok in (a, b):
+        assert client.get("/auth/me", headers=_bearer(tok)).status_code == 401
+        assert client.post("/auth/refresh", json={"refresh_token": tok["refresh_token"]}).status_code == 401
+    assert client.get("/auth/me", headers=_bearer(other)).status_code == 200
+    assert ("auth.logout", {"scope": "all devices", "sessions": 2}) in _actions(db, users["architect"])
+
+
+def test_logout_needs_sign_in(client):
+    assert client.post("/auth/logout").status_code == 401
+    assert client.post("/auth/logout-all").status_code == 401
+
+
+def test_revoke_all_for_a_user(client, users, db):
+    from app.modules.identity.sessions import revoke_all
+
+    tok = _login(client, users)
+    assert revoke_all(db, users["architect"]) == 1
+    db.commit()
+    assert client.get("/auth/me", headers=_bearer(tok)).status_code == 401

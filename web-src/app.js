@@ -106,6 +106,7 @@ function shell(){
     <div class="side-foot">
       <div class="whois"><span class="eyebrow">Signed in</span>${who}</div>
       <button class="btn ghost sm" data-act="sign-out" data-testid="sign-out">Sign out</button>
+      ${API.demo ? '' : `<button class="btn ghost sm" data-act="sign-out-all" data-testid="signout-all">Sign out on all devices</button>`}
       ${API.demo ? `<button class="btn ghost sm" data-act="reset-demo" data-testid="reset-demo">Reset demo data</button>` : ''}
       <div class="credit">${API.demo ? 'Demo with sample data · ' : ''}SiteFlow by TAN GLOBUS AI</div>
     </div>`;
@@ -1073,7 +1074,11 @@ document.addEventListener('click', async e => {
   const a = e.target.closest('[data-act]'); if (!a) return;
   switch (a.dataset.act){
     case 'open-project': go('project', {pid: +a.dataset.pid}); break;
-    case 'sign-out': API.logout(); showLogin(); break;
+    case 'sign-out': await API.logout(); showLogin(); break;
+    case 'sign-out-all':
+      try { await API.logoutAll(); showLogin('You are signed out on all your devices.'); }
+      catch (err){ setError(err); render(); }
+      break;
     case 'show-activate': ui.activating = true; ui.error = null; render(); break;
     case 'hide-activate': ui.activating = false; ui.error = null; render(); break;
     case 'invite-client': {

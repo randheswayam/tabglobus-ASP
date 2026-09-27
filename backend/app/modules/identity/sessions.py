@@ -68,3 +68,21 @@ def rotate(db: Session, refresh: str) -> tuple[User, str, str]:
     session.last_used_at = now
     db.flush()
     return user, create_access_token(user.id, session.id), new_refresh
+
+
+def revoke(db: Session, session: UserSession) -> None:
+    session.revoked_at = session.revoked_at or datetime.now(UTC)
+
+
+def revoke_all(db: Session, user: User) -> int:
+    """End every live session of this user (sign out everywhere, or deactivation). Returns how many."""
+    now = datetime.now(UTC)
+    live = [
+        s
+        for s in db.scalars(select(UserSession).where(UserSession.user_id == user.id, UserSession.revoked_at.is_(None)))
+        if is_live(s, now)
+    ]
+    for s in live:
+        s.revoked_at = now
+    db.flush()
+    return len(live)
