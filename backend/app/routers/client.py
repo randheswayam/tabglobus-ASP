@@ -13,11 +13,12 @@ from app import stage_config as sc
 from app import workflow_config as wc
 from app.db import get_db
 from app.deps import get_current_user
-from app.models import Project, ProjectMember, Role, SignoffAttachment, SignoffRequest, SignoffStatus, SignoffView, User
+from app.models import Project, ProjectMember, Role, SharedUpdate, SignoffAttachment, SignoffRequest, SignoffStatus, SignoffView, User
 from app.routers.signoffs import file_response
 from app.schemas import iso_utc
 from app.services import audit, client_view, notify, red_flags, stages
 from app.services.signoffs import attachment_out
+from app.services.storage import get_storage
 
 router = APIRouter(prefix="/client", tags=["client app"])
 
@@ -94,6 +95,18 @@ def my_project(project_id: int, user: User = Depends(require_client), db: Sessio
     if project_id not in _member_project_ids(db, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
     return client_view.project_detail(db, db.get(Project, project_id), user, client_signoff_out)
+
+
+@router.get("/updates/{update_id}/media/{media_id}")
+def shared_photo(update_id: int, media_id: int, user: User = Depends(require_client), db: Session = Depends(get_db)) -> Response:
+    """Only photos the Architect put in this update, on one of the client's projects."""
+    update = db.get(SharedUpdate, update_id)
+    photo = None if update is None or update.project_id not in _member_project_ids(db, user) else next(
+        (ph.media for ph in update.photos if ph.media_id == media_id), None)
+    if photo is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo not found")
+    return Response(get_storage().open(photo.storage_key), media_type=photo.content_type, headers={
+        "Content-Disposition": "inline", "X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=3600"})
 
 
 @router.get("/signoffs")

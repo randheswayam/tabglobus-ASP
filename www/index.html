@@ -265,6 +265,11 @@ button.ph{padding:0;cursor:zoom-in}
 /* stage tracker */
 .section-h{font-size:15px;margin:18px 0 10px}
 .so-summary{white-space:pre-wrap}
+.share-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.share-ph{position:relative;display:block;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid var(--line);cursor:pointer}
+.share-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.share-ph input{position:absolute;top:5px;left:5px;width:18px;height:18px;accent-color:var(--accent)}
+.cupdate{border-left:3px solid var(--accent);padding-left:12px;display:flex;flex-direction:column;gap:6px}
 .doc-row .pill{margin-left:auto}
 .doc-viewer{display:flex;flex-direction:column;gap:8px;padding:0 16px 16px}
 .doc-viewer iframe{width:100%;height:min(70vh,640px);border:1px solid var(--line);border-radius:8px;background:#fff}
@@ -522,6 +527,16 @@ const SiteFlowAPI = (() => {
     stages: pid => request('GET', `/projects/${pid}/stages`),
     projectClients: pid => request('GET', `/projects/${pid}/clients`),
     signoffs: pid => request('GET', `/projects/${pid}/signoffs`),
+    sharedUpdates: pid => request('GET', `/projects/${pid}/shared-updates`),
+    shareUpdate: (vid, note, media_ids) => request('POST', `/site-visits/${vid}/share`, {note, media_ids}),
+    async clientUpdatePhotoUrl(uid, mid){
+      const key = `u${uid}-${mid}`;
+      if (mediaUrls[key]) return mediaUrls[key];
+      const t = token();
+      const r = await fetch(`${base()}/client/updates/${uid}/media/${mid}`, {headers: t ? {Authorization: 'Bearer ' + t} : {}});
+      if (!r.ok) throw new ApiError(r.status, 'Could not load the photo');
+      return (mediaUrls[key] = URL.createObjectURL(await r.blob()));
+    },
     /* ---------- customer app (/client/*) ---------- */
     clientProjects: () => request('GET', '/client/projects'),
     clientProject: id => request('GET', `/client/projects/${id}`),
@@ -1022,8 +1037,11 @@ V['client-project'] = {
                 <div class="small muted">${esc(s.detail)}</div>
                 ${s.signed ? `<div class="small signed">${ico('check')}Signed by ${esc(s.signed.by)} on ${fmtStamp(s.signed.at)} (version ${s.signed.version})</div>`
                   : s.is_signoff && s.state !== 'historical' ? `<div class="small muted">${ico('flag')}Your sign-off</div>` : ''}</div>
-                <div class="cstage-s">${pill(cls, label)}${s.completed_at ? `<span class="small muted">${fmtDate(s.completed_at.slice(0, 10))}</span>` : ''}</div></div>`; }).join('')}
+                <div class="cstage-s">${pill(cls, label)}${s.completed_at ? `<span class="small muted">${fmtDate(ymd(new Date(s.completed_at)))}</span>` : ''}</div></div>`; }).join('')}
           </div>`; }).join('')}</div></section>
+      ${p.shared_updates.length ? `<section class="panel" data-testid="client-updates"><div class="panel-h"><h2>Updates from your architect</h2></div>
+        <div class="panel-b stack" style="gap:14px">${p.shared_updates.map(u => `<div class="cupdate"><div class="small muted">${fmtStamp(u.shared_at)}${u.stage ? ` · ${esc(u.stage)} stage` : ''}</div>
+          <p>${esc(u.note)}</p>${u.photos.length ? `<div class="photos">${u.photos.map(ph => `<div class="ph"><img data-cuid="${u.id}" data-cmid="${ph.id}" alt="Site photo"></div>`).join('')}</div>` : ''}</div>`).join('')}</div></section>` : ''}
       ${p.signoffs.filter(s => s.status !== 'sent').length ? `<section class="panel"><div class="panel-h"><h3>Your sign-off history</h3></div><div class="panel-b stack" style="gap:8px">
         ${p.signoffs.filter(s => s.status !== 'sent').map(s => `<div class="so-ver"><b>${esc(s.title)}</b><span class="small muted">${esc(s.stage)} · version ${s.version} ·
           ${s.status === 'approved' ? `signed by ${esc(s.signer_name)} on ${fmtStamp(s.responded_at)}` : `you asked for changes on ${fmtStamp(s.responded_at)}: “${esc(s.response_comment)}”`}</span></div>`).join('')}</div></section>` : ''}
@@ -1534,7 +1552,11 @@ V.queue = {
 };
 
 V.review = {
-  load: async () => { [ui.data.visit] = await Promise.all([API.visit(ui.p.vid), template()]); },
+  load: async () => {
+    [ui.data.visit] = await Promise.all([API.visit(ui.p.vid), template()]);
+    ui.data.shared = ui.data.visit.status === 'approved' && API.sharedUpdates
+      ? (await API.sharedUpdates(ui.data.visit.project.id)).filter(u => u.visit_id === ui.data.visit.id) : [];
+  },
   html: () => {
     const v = ui.data.visit, f = v.form || {}, loc = f.location || {};
     const stage = TEMPLATE.stages.find(s => s.name === v.current_stage);
@@ -1561,10 +1583,23 @@ V.review = {
       ${canAct ? `<div class="field"><label for="rv-c">Comment</label><textarea id="rv-c" rows="4" data-testid="review-comment" placeholder="Required when requesting rework">${esc(ui.p.comment)}</textarea></div>
         <button class="btn primary" data-act="review-approve" data-testid="review-approve">${ico('check')}Approve</button>
         <button class="btn danger" data-act="review-rework" data-testid="review-rework">Request rework</button>` : `<p class="muted">This visit is ${esc(VISIT_LABEL[v.status].toLowerCase())}; no decision is pending.</p>`}
+      ${v.status === 'approved' && (can.create() || can.review()) ? shareUpdateForm(v) : ''}
       ${v.reviews.length ? `<div class="subh" style="margin-top:6px">History</div>${v.reviews.slice().reverse().map(r => `<div class="small"><b>${esc(r.reviewer ? r.reviewer.name : '')}</b> <span class="muted">${fmtStamp(r.at)} · ${r.decision === 'rework' ? 'Rework' : 'Approved'}</span>${r.comment ? `<div>${esc(r.comment)}</div>` : ''}</div>`).join('')}` : ''}
     </div></div></div>`;
   }
 };
+
+/* Share an approved visit with the client: a note and the photos the Architect picks. Nothing else is shown. */
+function shareUpdateForm(v){
+  const photos = (v.media || []).filter(m => m.kind === 'photo');
+  const done = ui.data.shared || [];
+  return `<div class="form so-form" data-testid="share-update"><div class="subh">Share with the client</div>
+    ${done.map(u => `<div class="banner ok">${ico('check')}<span><b>Shared with the client</b> ${fmtStamp(u.shared_at)} by ${esc(u.shared_by.name)}: “${esc(u.note)}” (${u.photo_ids.length} photo${u.photo_ids.length === 1 ? '' : 's'})</span></div>`).join('')}
+    <p class="small muted">The client sees only this note and the photos you tick. Problems, comments and the rest of the visit stay internal.</p>
+    <div class="share-photos">${photos.map(m => `<label class="share-ph"><input type="checkbox" value="${m.id}" data-testid="share-photo-${m.id}"><img data-mid="${m.id}" alt="Site photo"></label>`).join('')}</div>
+    <div class="field"><label for="sh-note">Note for the client</label><textarea id="sh-note" rows="3" data-testid="share-note" placeholder="What has been done and what comes next"></textarea></div>
+    <button class="btn primary sm" data-act="share-update" data-testid="share-submit">${ico('eye')}Share with the client</button></div>`;
+}
 
 /* Read-only media grid; a tap opens the larger view with capture time and GPS. */
 function reviewMedia(list, where){
@@ -1610,7 +1645,10 @@ function render(){
 
 /* Thumbnails are fetched with the sign-in token after each render. */
 function hydrateMedia(){
-  if (!MEDIA) return;
+  if (API.clientUpdatePhotoUrl) document.querySelectorAll('img[data-cuid]:not([src])').forEach(async img => {
+    try { img.src = await API.clientUpdatePhotoUrl(+img.dataset.cuid, +img.dataset.cmid); } catch (_) { img.alt = 'Photo could not be loaded'; }
+  });
+  if (!MEDIA || isClient()) return;
   document.querySelectorAll('img[data-mid]:not([src])').forEach(async img => {
     try { img.src = await API.mediaUrl(+img.dataset.mid); } catch (_) { img.alt = 'Photo could not be loaded'; }
   });
@@ -1673,6 +1711,14 @@ document.addEventListener('click', async e => {
       ui.data.draft.problems.splice(n, 1); saveDraft(); rerenderKeepScroll(); break; }
     case 'open-media': ui.lightbox = +a.dataset.id; rerenderKeepScroll(); break;
     case 'client-open': go('client-project', {pid: +a.dataset.pid}); break;
+    case 'share-update': {
+      const note = ($('#sh-note').value || '').trim();
+      const ids = [...document.querySelectorAll('[data-testid^="share-photo-"]:checked')].map(x => +x.value);
+      if (!note){ toast('Write a short note for the client.'); break; }
+      a.disabled = true;
+      try { await API.shareUpdate(ui.data.visit.id, note, ids); toast('Shared with the client.'); await V.review.load(); ui.error = null; }
+      catch (err){ setError(err); }
+      rerenderKeepScroll(); break; }
     case 'client-unfold': { const n = +a.dataset.n, u = ui.p.unfold || [];
       ui.p.unfold = u.includes(n) ? u.filter(x => x !== n) : [...u, n]; rerenderKeepScroll(); break; }
     case 'client-review': go('client-signoff', {sid: +a.dataset.sid}); break;

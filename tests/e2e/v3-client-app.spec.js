@@ -1,5 +1,5 @@
 const { test, expect, devices } = require('@playwright/test');
-const { API, APP, PDF, shot, api, plinthVisit, submitVisitViaApi } = require('./helpers');
+const { API, APP, PDF, shot, signIn, signOut, api, plinthVisit, submitVisitViaApi } = require('./helpers');
 
 const CLIENT = {name: 'Mr. Bapat', email: 'bapat@client.example', password: 'bapat-bungalow-26'};
 const INTERNAL = ['TBD', 'Audit', 'Red flag', 'rework', 'Rework', 'Legal Approval', 'problem', 'Critical issue', 'siteflow.local'];
@@ -81,5 +81,30 @@ test.describe.serial('the customer app', () => {
     }
     await shot(page, 'v3-18-03-client-phone');
     await context.close();
+  });
+
+  test('architect shares a site update; the client sees the note and only the chosen photos', async ({ page }) => {
+    await signIn(page, 'architect');
+    await page.getByTestId('nav-projects').click();
+    await page.getByTestId('projects-view').getByText('Bapat Bungalow').click();
+    await page.getByTestId('visit-history').locator('[data-testid^="history-"]').first().click();
+    const share = page.getByTestId('share-update');
+    await expect(share).toBeVisible();
+    await share.locator('[data-testid^="share-photo-"]').nth(0).check();
+    await share.locator('[data-testid^="share-photo-"]').nth(1).check();
+    await page.getByTestId('share-note').fill('Plinth beam and filling are done. Damp proof course starts next week.');
+    await shot(page, 'v3-21-01-share');
+    await page.getByTestId('share-submit').click();
+    await expect(share).toContainText('Shared with the client');
+    await signOut(page);
+
+    await signInClient(page);
+    await page.getByTestId('client-home').locator('[data-testid^="client-card-"]', {hasText: 'Bapat Bungalow'}).click();
+    const updates = page.getByTestId('client-updates');
+    await expect(updates).toContainText('Damp proof course starts next week.');
+    await expect(updates.locator('img')).toHaveCount(2);
+    await expect(updates.locator('img').first()).toHaveAttribute('src', /^blob:/);
+    for (const word of INTERNAL) await expect(page.getByTestId('client-project')).not.toContainText(word);
+    await shot(page, 'v3-21-02-client-update');
   });
 });

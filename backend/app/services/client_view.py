@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import stage_config as sc
-from app.models import Project, SignoffRequest, SignoffStatus, StageStatus, User
+from app.models import Project, SharedUpdate, SignoffRequest, SignoffStatus, StageStatus, User
 from app.schemas import iso_utc, stage_summary
 
 _STATE = {StageStatus.completed: "completed", StageStatus.historical: "historical",
@@ -49,5 +49,9 @@ def project_detail(db: Session, project: Project, user: User, signoff_out) -> di
         "phases": [{"number": p["number"], "name": p["name"],
                     "stages": [stage(s) for s in sc.STAGES if s["phase"] == p["number"]]} for p in sc.PHASES],
         "signoffs": [signoff_out(db, user, r) for r in requests],
-        "shared_updates": [],
+        "shared_updates": [{"id": u.id, "note": u.note, "shared_at": iso_utc(u.created_at),
+                            "stage": u.site_visit.current_stage,
+                            "photos": [{"id": ph.media_id, "captured_at": iso_utc(ph.media.captured_at)} for ph in u.photos]}
+                           for u in db.scalars(select(SharedUpdate).where(SharedUpdate.project_id == project.id)
+                                               .order_by(SharedUpdate.id.desc()))],
     }

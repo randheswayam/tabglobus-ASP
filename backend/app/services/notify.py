@@ -43,6 +43,11 @@ def stage_ready(db: Session, project: Project, stage: dict, actor: User | None) 
     _send(db, users, "stage_ready", project, f"{stage['label']} is open on {project.name}.", actor)
 
 
+def update_shared(db: Session, project: Project, actor: User) -> None:
+    _send(db, _members_with_role(db, project, "client"), "update_shared", project,
+          f"Your architect shared a site update on {project.name}.", actor, include_invited=True)
+
+
 def signoff_sent(db: Session, project: Project, stage_label: str, version: int, actor: User) -> None:
     _send(db, _members_with_role(db, project, "client"), "signoff_requested", project,
           f"Please review and sign off: {stage_label} (version {version}) on {project.name}.", actor, include_invited=True)

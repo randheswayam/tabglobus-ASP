@@ -355,6 +355,34 @@ class SignoffView(Base):
     viewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class SharedUpdate(Base):
+    """A site update the Architect chose to show the client: a note and selected photos from an approved visit.
+    Nothing about a visit reaches the client unless it is shared this way."""
+    __tablename__ = "shared_updates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    site_visit_id: Mapped[int] = mapped_column(ForeignKey("site_visits.id"))
+    note: Mapped[str] = mapped_column(Text)
+    shared_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    photos: Mapped[list["SharedUpdatePhoto"]] = relationship(order_by="SharedUpdatePhoto.id", cascade="all, delete-orphan")
+    site_visit: Mapped[SiteVisit] = relationship()
+    shared_by: Mapped[User] = relationship()
+
+
+class SharedUpdatePhoto(Base):
+    __tablename__ = "shared_update_photos"
+    __table_args__ = (UniqueConstraint("update_id", "media_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    update_id: Mapped[int] = mapped_column(ForeignKey("shared_updates.id"), index=True)
+    media_id: Mapped[int] = mapped_column(ForeignKey("media.id"))
+
+    media: Mapped[Media] = relationship()
+
+
 class ClientInvite(Base):
     """A one-time code the Architect shares with a client to set their password. Only a hash is stored."""
     __tablename__ = "client_invites"

@@ -92,6 +92,16 @@ const SiteFlowAPI = (() => {
     stages: pid => request('GET', `/projects/${pid}/stages`),
     projectClients: pid => request('GET', `/projects/${pid}/clients`),
     signoffs: pid => request('GET', `/projects/${pid}/signoffs`),
+    sharedUpdates: pid => request('GET', `/projects/${pid}/shared-updates`),
+    shareUpdate: (vid, note, media_ids) => request('POST', `/site-visits/${vid}/share`, {note, media_ids}),
+    async clientUpdatePhotoUrl(uid, mid){
+      const key = `u${uid}-${mid}`;
+      if (mediaUrls[key]) return mediaUrls[key];
+      const t = token();
+      const r = await fetch(`${base()}/client/updates/${uid}/media/${mid}`, {headers: t ? {Authorization: 'Bearer ' + t} : {}});
+      if (!r.ok) throw new ApiError(r.status, 'Could not load the photo');
+      return (mediaUrls[key] = URL.createObjectURL(await r.blob()));
+    },
     /* ---------- customer app (/client/*) ---------- */
     clientProjects: () => request('GET', '/client/projects'),
     clientProject: id => request('GET', `/client/projects/${id}`),

@@ -13,7 +13,7 @@ ALLOWED_KEYS = {
     "id", "name", "location", "phase", "number", "current_stages", "stage_progress", "done", "total",
     "official_progress", "waiting_for_you", "phases", "stages", "key", "label", "detail", "workstream", "state",
     "started_at", "completed_at", "historical", "is_signoff", "signed", "by", "at", "version", "signoffs",
-    "shared_updates",
+    "shared_updates", "note", "shared_at", "photos", "captured_at",
     # sign-off summaries (same shape as /client/signoffs)
     "project", "stage_key", "stage", "status", "title", "summary", "sent_at", "responded_at", "response_comment",
     "signer_name", "confirmation_text", "can_respond", "attachments", "filename", "content_type", "size",

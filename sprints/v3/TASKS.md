@@ -190,13 +190,14 @@
   - Files: web-src/app.js, tests/e2e/v2-dashboard.spec.js, tests/e2e/v3-dashboard.spec.js
   - Completed: 2026-09-27. The All Projects table shows the Stage (Phase N plus the current stages) and the Client (name, or 'Not invited', plus a Waiting for client badge). A 'Waiting for client' panel lists each project's stage, version, client and days waiting, in red once the Client decision overdue flag is raised; that flag also shows in Needs Architect Attention through the existing flag chips. New Phase and Waiting for client filters; the v1 step filter is now labelled 'Construction step'. 1 new E2E test (26 in total) with 2 screenshots.
 
-- [ ] Task 21: Share approved site updates with the client (P1)
+- [x] Task 21: Share approved site updates with the client (P1)
   - Acceptance:
     - On an approved visit, the Architect can share an update: a short note plus chosen photos.
     - `SharedUpdate` model and migration 0010 are added.
     - The client sees shared updates on their project timeline, with photos served through `/client/updates/{id}/media/{mid}` (client access only).
     - Unshared visits, photos and problems stay invisible. API and E2E tests cover this.
   - Files: backend/app/models.py, backend/migrations/versions/0010_shared_updates.py, backend/app/routers/client.py, backend/app/routers/projects.py, web-src/app.js, backend/tests/test_shared_updates.py, tests/e2e/v3-client-app.spec.js
+  - Completed: 2026-09-27. SharedUpdate and SharedUpdatePhoto models and migration 0009 (numbered 0009, since two earlier planned migrations weren't needed). POST /site-visits/{id}/share (Architect or Team Lead, approved visits only) takes a required note and photo ids that must belong to that visit. It audits update.shared and notifies the clients. GET /projects/{id}/shared-updates lists them for staff. The client view adds shared_updates (note, time, stage, photo ids), and photos come through /client/updates/{id}/media/{mid}, only for photos in that update on the client's own project. The staff /media route stays closed to clients. UI: 'Share with the client' on an approved visit's review screen (tick photos, write a note), and 'Updates from your architect' in the client app. Also fixed the client timeline completion date, which used the UTC date, to use the device's local date. 6 new backend tests (404 in total), 1 new E2E test (27 in total).
 
 - [ ] Task 22: UI: legacy onboarding on the New project form (P1)
   - Acceptance:
