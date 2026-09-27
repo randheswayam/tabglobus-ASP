@@ -17,6 +17,11 @@ SEED_USERS = [
     {"name": "Parvez", "email": "parvez@siteflow.local", "role": Role.team_lead},
     {"name": "Farhan Shaikh", "email": "engineer@siteflow.local", "role": Role.civil_engineer},
     {"name": "Office Coordinator", "email": "admin@siteflow.local", "role": Role.admin},
+    {"name": "Rahul Deshpande", "email": "structural@siteflow.local", "role": Role.structural_consultant},
+    {"name": "Sana Mirza", "email": "mep@siteflow.local", "role": Role.mep_consultant},
+    {"name": "Aditi Rao", "email": "interiors@siteflow.local", "role": Role.interior_designer},
+    {"name": "Vikram Mehta", "email": "accounts@siteflow.local", "role": Role.accounts},
+    {"name": "Neha Patil", "email": "office@siteflow.local", "role": Role.office_coordinator},
 ]
 
 

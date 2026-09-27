@@ -26,7 +26,19 @@ def test_all_tables_created_on_startup(client):
 
 
 def test_enum_values_match_prd():
-    assert {r.value for r in m.Role} == {"architect", "team_lead", "civil_engineer", "admin", "client"}
+    assert {r.value for r in m.Role} == {
+        "architect",
+        "team_lead",
+        "civil_engineer",
+        "admin",
+        "client",
+        # PRD v3.2 section 5, added in sprint v4
+        "structural_consultant",
+        "mep_consultant",
+        "interior_designer",
+        "accounts",
+        "office_coordinator",
+    }
     assert {s.value for s in m.StepStatus} == {"locked", "active", "completed"}
     assert {s.value for s in m.VisitStatus} == {"draft", "submitted", "rework", "approved"}
     assert {s.value for s in m.LegalStatus} == {"Not started", "Applied", "Approved", "Rejected"}

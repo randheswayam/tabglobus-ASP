@@ -23,7 +23,9 @@ The repository was built in sprints v1 to v3 with a flat layout: `backend/app/ro
 | `civil_engineer` | Civil / Site Engineer |
 | `client` | Client / External Reviewer |
 
-The roles still missing (Structural Consultant, MEP Consultant, Interior Designer, Accounts, Office Coordinator) are added in sprint v4 Task 7.
+Sprint v4 Task 7 added the remaining PRD roles, stored as `structural_consultant`, `mep_consultant`, `interior_designer`, `accounts` and `office_coordinator`. They are staff roles. Like the Civil Engineer, they see only the projects they are members of.
+
+The role column is a 32-character string with no database check constraint, so adding a role needs no migration.
 
 ## Consequences
 - The paths in the V4 implementation-plan prompts resolve as written.

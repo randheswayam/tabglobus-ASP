@@ -35,11 +35,21 @@ def _enum(cls):
 
 
 class Role(str, enum.Enum):
+    """Stored values never change. Mapping to PRD v3.2 section 5 (decision 0003):
+    admin = Principal Architect / Admin; architect = Project Architect / Project Manager and Architect / Designer;
+    team_lead = Reviewer / Team Lead; civil_engineer = Civil / Site Engineer; client = Client / External Reviewer.
+    """
+
     architect = "architect"
     team_lead = "team_lead"
     civil_engineer = "civil_engineer"
     admin = "admin"
     client = "client"  # the customer app: sees only their own projects through /client/*
+    structural_consultant = "structural_consultant"
+    mep_consultant = "mep_consultant"
+    interior_designer = "interior_designer"
+    accounts = "accounts"
+    office_coordinator = "office_coordinator"
 
 
 class StepStatus(str, enum.Enum):

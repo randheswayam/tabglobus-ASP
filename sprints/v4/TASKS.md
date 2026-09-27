@@ -78,7 +78,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
 
 ### S01 — Identity, roles, sessions, admin
 
-- [ ] Task 7: Add the PRD staff roles (P0)
+- [x] Task 7: Add the PRD staff roles (P0)
   - Acceptance:
     - `Role` gains `structural_consultant`, `mep_consultant`, `interior_designer`, `accounts` and `office_coordinator`.
     - The existing roles keep their values. `architect` is the Project Architect and Architect, `team_lead` the Reviewer and Team Lead, `civil_engineer` the Civil and Site Engineer, and `admin` the Principal Architect and Admin. This mapping is documented in `models.py` and in decision 0003.
@@ -87,6 +87,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - The route-walk test still passes: the new roles are staff, and clients are still refused.
     - A new test shows each new role can sign in and reach `/auth/me`.
   - Files: backend/app/models.py, backend/app/seed.py, backend/migrations/versions/0010_*.py (if needed), backend/tests/test_roles.py
+  - Completed: 2026-09-28. Role gains structural_consultant, mep_consultant, interior_designer, accounts and office_coordinator, with the PRD mapping documented on the Role class and in decision 0003. No migration is needed: the column is a 32-character string with no check constraint, confirmed on PostgreSQL. The seed adds one user per new role. test_roles.py (18 cases) covers sign-in and /auth/me, member-only project visibility, and refusal by the client app. test_models' enum test now includes the new values.
 
 - [ ] Task 8: Assign stages to the new roles (P0)
   - Acceptance:
