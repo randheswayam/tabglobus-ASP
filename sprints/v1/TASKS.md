@@ -7,9 +7,10 @@
   - Files: backend/requirements.txt, backend/app/main.py, backend/app/config.py, backend/app/template_config.py, backend/docker-compose.yml, backend/.env.example, backend/tests/conftest.py, backend/tests/test_health.py
   - Completed: 2026-09-27. FastAPI app with /health and CORS, settings loaded from env, residential template config with 8 stages (equal 12.5 placeholder weights), problem list and MIN_PHOTOS placeholder of 5. Four tests pass on Python 3.12 venv. docker-compose.yml validates, but PostgreSQL wasn't started because Docker Desktop isn't running.
 
-- [ ] Task 2: Create database models and seed script (P0)
+- [x] Task 2: Create database models and seed script (P0)
   - Acceptance: SQLAlchemy models exist for User (role: architect, team_lead, civil_engineer, admin), Project, ProjectMember, WorkflowStep (order 1–3, status locked, active or completed), LegalApproval, SiteVisit (status draft, submitted, rework or approved; submission_count; JSON form, checklist and problems; computed_progress), Review and AuditEvent. Tables are created on startup. `python -m app.seed` creates one user per role, including "Parvez" as team_lead, with hashed passwords. A test confirms that all tables are created on SQLite.
   - Files: backend/app/db.py, backend/app/models.py, backend/app/seed.py, backend/tests/test_models.py
+  - Completed: 2026-09-27. Eight tables with enums stored as values, and JSONB on PostgreSQL with JSON elsewhere. The legal expected date lives on LegalApproval. AuditEvent is append-only, and editing or deleting one raises AuditImmutableError. Added app/passwords.py (stdlib PBKDF2-SHA256, 600k iterations, count set by env for tests). The seed script is idempotent, takes its password from SEED_PASSWORD or prints a random one. Seven new tests, 11 in total. Verified on SQLite; PostgreSQL not run yet because Docker Desktop is off.
 
 - [ ] Task 3: Implement sign-in, role checks and project visibility (P0)
   - Acceptance: `POST /auth/login` returns a JWT for valid credentials and 401 otherwise. `GET /auth/me` returns the user and role. The `require_role(...)` dependency returns 403 for the wrong role. The `visible_projects(user)` helper returns all projects for architect and team_lead, and only member projects for the others. Tests cover each case.

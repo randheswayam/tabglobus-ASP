@@ -1,9 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.db import create_all
 
-app = FastAPI(title="SiteFlow API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    create_all()
+    yield
+
+
+app = FastAPI(title="SiteFlow API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
