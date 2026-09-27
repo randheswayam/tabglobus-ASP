@@ -49,6 +49,16 @@ const SiteFlowAPI = (() => {
     return data;
   }
 
+  async function requestForm(path, form){
+    const headers = {}, t = token(); if (t) headers.Authorization = 'Bearer ' + t;
+    let r;
+    try { r = await fetch(base() + path, {method: 'POST', headers, body: form}); }
+    catch (_) { throw new ApiError(0, `Cannot reach the SiteFlow server at ${base()}. Check your connection.`); }
+    const data = await r.json().catch(() => null);
+    if (!r.ok) throw new ApiError(r.status, messageOf(data, r.status), data && data.detail);
+    return data;
+  }
+
   return {
     ApiError, base, isNative: native,
     setBase(url){ store.set(K_BASE, url ? url.replace(/\/+$/, '') : null); },
@@ -81,6 +91,11 @@ const SiteFlowAPI = (() => {
     openDraft: pid => request('POST', `/projects/${pid}/site-visits/draft`),
     stages: pid => request('GET', `/projects/${pid}/stages`),
     projectClients: pid => request('GET', `/projects/${pid}/clients`),
+    signoffs: pid => request('GET', `/projects/${pid}/signoffs`),
+    createSignoff: (pid, body) => request('POST', `/projects/${pid}/signoffs`, body),
+    sendSignoff: id => request('POST', `/signoffs/${id}/send`),
+    removeSignoffAttachment: (id, aid) => request('DELETE', `/signoffs/${id}/attachments/${aid}`),
+    uploadSignoffAttachment(id, file){ const fd = new FormData(); fd.append('file', file); return requestForm(`/signoffs/${id}/attachments`, fd); },
     inviteClient: (pid, name, email) => request('POST', `/projects/${pid}/client-invite`, {name, email}),
     completeStage: (pid, key, note) => request('POST', `/projects/${pid}/stages/${key}/complete`, {note}),
     visits: pid => request('GET', `/projects/${pid}/visits`),

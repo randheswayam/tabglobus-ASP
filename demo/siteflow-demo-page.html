@@ -257,6 +257,10 @@ button.ph{padding:0;cursor:zoom-in}
 .overdue-text{color:var(--bad);font-weight:600}
 /* stage tracker */
 .section-h{font-size:15px;margin:18px 0 10px}
+.signoff{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line-2);padding-top:10px}
+.so-form{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 12px;gap:10px}
+.so-hist{display:flex;flex-direction:column;gap:8px}
+.so-ver{border-left:3px solid var(--line);padding-left:10px;display:flex;flex-direction:column;gap:2px}
 .invite-code-box .code-text{font-size:20px;letter-spacing:.15em;font-weight:600;margin:0 8px;user-select:all}
 .tracker{margin-bottom:18px}
 .phases{display:flex;flex-direction:column;gap:12px;padding:14px 16px}
@@ -1337,6 +1341,7 @@ V.project = {
       API.problems ? API.problems(ui.p.pid) : null, API.stages ? API.stages(ui.p.pid) : null,
       API.projectClients ? API.projectClients(ui.p.pid) : null]);
     ui.data.project = p; ui.data.visits = visits; ui.data.problems = problems; ui.data.stages = stages; ui.data.clients = clients;
+    ui.data.signoffs = API.signoffs ? await API.signoffs(ui.p.pid) : [];
   },
   html: () => {
     const p = ui.data.project;
@@ -1385,6 +1390,43 @@ function problemsPanel(list){
     <div class="panel-b stack" style="gap:12px">${open.length ? open.map(row).join('') : '<span class="small muted">No open problems.</span>'}
     ${done.length ? `<details data-testid="resolved-problems"><summary class="small">Resolved (${done.length})</summary><div class="stack" style="gap:12px;margin-top:10px">${done.map(row).join('')}</div></details>` : ''}</div></section>`;
 }
+
+/* ---------- client sign-off packages (Architect) ---------- */
+const SIGNOFF_LABEL = {draft: 'Draft', sent: 'Sent', approved: 'Approved', changes_requested: 'Changes requested'};
+const SIGNOFF_PILL = {draft: '', sent: 'submitted', approved: 'done', changes_requested: 'rework'};
+function signoffComposer(stage){
+  const history = (ui.data.signoffs || []).filter(r => r.stage_key === stage.key);
+  const last = history[history.length - 1];
+  const open = last && (last.status === 'draft' || last.status === 'sent') ? last : null;
+  const canPrepare = can.create() && stage.state !== 'completed' && !open;
+  const next = last ? last.version + 1 : 1;
+  const hist = history.slice().reverse().map(r => `<div class="so-ver" data-testid="signoff-version-${r.version}">
+    <div class="row" style="justify-content:space-between"><b>Version ${r.version} · ${esc(SIGNOFF_LABEL[r.status])}</b>${pill(SIGNOFF_PILL[r.status], SIGNOFF_LABEL[r.status])}</div>
+    <div class="small muted">${esc(r.title)}${r.sent_at ? ` · sent ${fmtStamp(r.sent_at)}` : ''} · ${r.attachments.length} document${r.attachments.length === 1 ? '' : 's'}</div>
+    ${r.status === 'approved' ? `<div class="small"><b>Signed by ${esc(r.signer_name)}</b> ${fmtStamp(r.responded_at)} in the client app.</div>` : ''}
+    ${r.status === 'changes_requested' ? `<div class="small"><b>The client asked for changes</b> ${fmtStamp(r.responded_at)}: “${esc(r.response_comment)}”</div>` : ''}</div>`).join('');
+  return `<div class="signoff" data-testid="signoff-composer"><div class="subh">Client sign-off</div>
+    ${!history.length ? `<p class="small muted">No sign-off package yet.${canPrepare ? ' Prepare one for the client to review and sign in the client app.' : ''}</p>` : ''}
+    ${open && open.status === 'draft' && can.create() ? draftEditor(open) : ''}
+    ${open && open.status === 'sent' ? `<div class="banner info">${ico('eye')}<span><b>Version ${open.version} · Sent</b> ${fmtStamp(open.sent_at)}. Waiting for the client to review and sign off.</span></div>` : ''}
+    ${canPrepare ? `<div class="form so-form"><b class="small">Prepare version ${next}</b>
+      <div class="field"><label for="so-title-${stage.key}">Title the client sees</label><input id="so-title-${stage.key}" data-testid="signoff-title" value="${esc(last ? last.title.replace(/version \d+/i, 'version ' + next) : '')}"></div>
+      <div class="field"><label for="so-sum-${stage.key}">Summary for the client</label><textarea id="so-sum-${stage.key}" rows="3" data-testid="signoff-summary">${esc(last ? last.summary : '')}</textarea></div>
+      ${last ? '<p class="small muted">Attach the updated documents to the new version.</p>' : ''}
+      <button class="btn sm primary" data-act="signoff-create" data-key="${stage.key}" data-testid="signoff-create">${ico('plus')}Create version ${next}</button></div>` : ''}
+    ${hist ? `<div class="so-hist">${hist}</div>` : ''}
+  </div>`;
+}
+function draftEditor(r){
+  return `<div class="form so-form" data-testid="signoff-draft"><b class="small">Version ${r.version} · Draft: ${esc(r.title)}</b>
+    <p class="small">${esc(r.summary)}</p>
+    <div class="mlist" data-testid="signoff-attachments">${r.attachments.map(a => `<div class="mitem">${ico(a.content_type === 'application/pdf' ? 'doc' : 'image')}<span>${esc(a.filename)}</span>
+      <span class="muted mono small">${(a.size / 1024).toFixed(0)} KB</span><button class="x" data-act="signoff-remove" data-id="${r.id}" data-aid="${a.id}" aria-label="Remove">${ico('x')}</button></div>`).join('') || '<span class="small muted">No documents yet.</span>'}</div>
+    <div class="row"><button class="btn sm" data-act="signoff-attach" data-id="${r.id}" data-testid="signoff-attach">${ico('doc')}Attach PDF or image</button>
+      <button class="btn sm primary" data-act="signoff-send" data-id="${r.id}" data-testid="signoff-send" ${r.attachments.length ? '' : 'disabled'}>${ico('check')}Send to client</button></div>
+    <p class="small muted">Once sent, this version cannot change. The client must open every document before signing.</p></div>`;
+}
+async function reloadSignoffs(){ ui.data.signoffs = await API.signoffs(ui.data.project.id); }
 
 /* The client who tracks the project and signs off milestones in the client app. */
 function clientPanel(clients){
@@ -1447,7 +1489,7 @@ function stageDetail(s){
     ${s.reasons.length ? `<ul class="reasons">${s.reasons.map(r => `<li>${ico('alert')}<span>${esc(r)}</span></li>`).join('')}</ul>` : ''}
     ${s.historical ? `<div class="banner info">${ico('flag')}<span><b>${esc(s.historical.label)}</b>. Confirmed by ${esc(s.historical.confirmed_by || 'not recorded')}. ${esc(s.historical.note || '')}</span></div>` : ''}
     ${s.state === 'completed' ? `<div class="small"><b>Completed</b> ${fmtStamp(s.completed_at)}${s.completed_by ? ` by ${esc(s.completed_by.name)}` : ''}${s.completion_note ? `: ${esc(s.completion_note)}` : ''}</div>` : ''}
-    ${s.gate === 'client_signoff' && s.state !== 'completed' && s.state !== 'historical' ? `<p class="small muted">Completes when the client approves the sign-off package.</p>` : ''}
+    ${s.gate === 'client_signoff' && s.state !== 'historical' ? signoffComposer(s) : ''}
     ${s.can_complete ? `<div class="flag-clear-form"><input class="inp" id="st-note-${s.key}" data-testid="stage-note-${s.key}" placeholder="What was completed? (required)" aria-label="Completion note">
       <button class="btn sm primary" data-act="stage-complete" data-key="${s.key}" data-testid="stage-complete-${s.key}">${ico('check')}Mark complete</button></div>` : ''}
   </div>`;
@@ -1906,6 +1948,29 @@ document.addEventListener('click', async e => {
       } catch (err){ toast(err.message); break; }
       ui.data.draft.problems.splice(n, 1); saveDraft(); rerenderKeepScroll(); break; }
     case 'open-media': ui.lightbox = +a.dataset.id; rerenderKeepScroll(); break;
+    case 'signoff-create': {
+      const key = a.dataset.key, title = ($('#so-title-' + key).value || '').trim(), summary = ($('#so-sum-' + key).value || '').trim();
+      if (!title || !summary){ toast('Add a title and a summary for the client.'); break; }
+      try { await API.createSignoff(ui.data.project.id, {stage_key: key, title, summary}); await reloadSignoffs(); ui.error = null; }
+      catch (err){ setError(err); }
+      rerenderKeepScroll(); break; }
+    case 'signoff-attach': {
+      const id = +a.dataset.id, inp = document.createElement('input');
+      inp.type = 'file'; inp.hidden = true; inp.accept = 'application/pdf,image/jpeg,image/png,image/webp';
+      inp.addEventListener('change', async () => {
+        const f = inp.files[0]; inp.remove(); if (!f) return;
+        try { await API.uploadSignoffAttachment(id, f); await reloadSignoffs(); ui.error = null; } catch (err){ toast(err.message); }
+        rerenderKeepScroll();
+      });
+      document.body.appendChild(inp); inp.click(); break; }
+    case 'signoff-remove':
+      try { await API.removeSignoffAttachment(+a.dataset.id, +a.dataset.aid); await reloadSignoffs(); } catch (err){ toast(err.message); }
+      rerenderKeepScroll(); break;
+    case 'signoff-send':
+      a.disabled = true;
+      try { await API.sendSignoff(+a.dataset.id); toast('Sent. The client sees it in the client app.'); await V.project.load(); ui.error = null; }
+      catch (err){ setError(err); }
+      rerenderKeepScroll(); break;
     case 'open-stage': ui.p.openStage = ui.p.openStage === a.dataset.key ? null : a.dataset.key; rerenderKeepScroll(); break;
     case 'stage-complete': {
       const key = a.dataset.key, note = (($('#st-note-' + key) || {}).value || '').trim();

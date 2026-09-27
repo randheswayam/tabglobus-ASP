@@ -77,6 +77,7 @@ function makePng(w = 96, h = 72, seed = 0){
   return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr),
     chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
+const PDF = Buffer.from(['%PDF-1.7', '1 0 obj', '<< /Type /Catalog >>', 'endobj', 'trailer', '<< /Root 1 0 R >>', '%%EOF', ''].join('\n'));
 const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypmp42'), Buffer.alloc(256)]);
 
 const mediaTiles = page => page.locator('[data-testid^="media-"]:not([data-testid^="media-remove"])');
@@ -116,5 +117,5 @@ async function submitVisitViaApi(request, pid, body){
   return r.json();
 }
 
-module.exports = { API, APP, EMAIL, PASSWORD, MP4, shot, signIn, signOut, api, createApprovedProject, makePng, addMedia,
+module.exports = { API, APP, EMAIL, PASSWORD, MP4, PDF, shot, signIn, signOut, api, createApprovedProject, makePng, addMedia,
   mediaTiles, plinthVisit, submitVisitViaApi };

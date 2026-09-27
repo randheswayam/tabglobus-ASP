@@ -155,12 +155,13 @@
   - Files: web-src/api.js, web-src/app.js, tests/e2e/v3-client-invite.spec.js
   - Completed: 2026-09-27. The project page's Client panel lists clients (Invited or Active). The Architect invites or re-invites, and the one-time code is shown once, with a Copy button, its expiry, and a note that SiteFlow doesn't send it. The sign-in screen has 'I have an invite code' (email, code, a new password of at least 10 characters). Clients get their own navigation (My projects, Notifications; the staff items are hidden) and land on a client home, filled in by Task 18. Fixed during testing: the browser's minlength check hid the app's message, and a password error wiped the typed code. The code is now kept unless the server rejects it. 1 new E2E test (19 in total) with 3 screenshots.
 
-- [ ] Task 17: UI: sign-off composer for the Architect (P0)
+- [x] Task 17: UI: sign-off composer for the Architect (P0)
   - Acceptance:
     - On an active client sign-off stage, the Architect has "Prepare sign-off". It covers the title, summary for the client, attachments (PDF and images, with upload progress), send, and the history of versions with the client's responses, comments and the signer's name and time.
     - After changes are requested, "Prepare version N+1" opens with the previous content copied.
     - The Playwright test prepares and sends version 1, with screenshots.
   - Files: web-src/api.js, web-src/app.js, web-src/app.html, tests/e2e/v3-signoff.spec.js
+  - Completed: 2026-09-27. Opening a client sign-off stage shows the Client sign-off section. When nothing is open, the Architect prepares version N (the client-facing title and summary; after a change request both are copied from the last version, with a reminder to attach the updated documents). A draft lists its documents with remove buttons and has 'Attach PDF or image'. 'Send to client' stays disabled until a document is attached, and a note says a sent version can't change and the client must open every document. A sent version shows 'Version N · Sent … Waiting for the client'. The version history shows the signer and time, or the client's comment. 1 new E2E test (20 in total) with 2 screenshots.
 
 - [ ] Task 18: UI: the customer app: my projects and phase timeline (P0)
   - Acceptance:
