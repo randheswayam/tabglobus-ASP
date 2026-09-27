@@ -221,5 +221,5 @@
   - Put a request size cap in front of the API, because multipart bodies are spooled before the per-file limit check.
   - Move media to S3-compatible storage with encryption at rest.
   - Harden secrets, token storage and rate limiting (S1 to S4).
-- **Filters on the dashboard:** time-based flags are recomputed on every dashboard read (one sync per visible project). That's fine at pilot scale; move it to a scheduled job if the project count grows.
+- **Dashboard load:** time-based flags are recomputed on every dashboard read (one sync per visible project). That's fine at pilot scale; move it to a scheduled job if the project count grows.
 
