@@ -81,11 +81,12 @@
   - Files: backend/app/services/validation.py, backend/app/routers/site_visits.py, backend/app/routers/template.py, backend/tests/conftest.py, backend/tests/test_site_visits.py
   - Completed: 2026-09-27. Submission now also requires MIN_PHOTOS photos on the open visit (videos don't count), and a photo tagged to each High or Critical problem (missing entries like problems[N].photo). Both are listed alongside the other missing fields. /template exposes the photo and video limits and types. Added a shared evidence fixture, and updated the v1 tests to photograph before submitting. The v1 site visit E2E tests fail until Task 13 adds photo capture to the app. 5 new tests, 171 in total.
 
-- [ ] Task 9: Red flag rule engine as a pure function (P0)
+- [x] Task 9: Red flag rule engine as a pure function (P0)
   - Acceptance:
     - `evaluate_flags(project_state, now, cfg)` returns a set of `(rule, key)` pairs for the six rules in the PRD table. Keys: the problem id for critical_issue and overdue_fix, the visit id for review_overdue and repeated_rework, and `project` for legal_delay and no_recent_visit.
     - Unit tests give each rule one case where it holds and one where it doesn't, using a fixed `now` and small in-memory states. No database is involved.
   - Files: backend/app/services/red_flags.py, backend/tests/test_red_flag_rules.py
+  - Completed: 2026-09-27. evaluate_flags(ProjectState, now, cfg) is a pure function returning (rule, key) pairs for all six rules. A problem due today is not overdue. A Rejected Legal Approval also counts as delayed. Repeated rework applies only to visits not yet approved. No recent visit applies only while Step 2 is open, counting from the last approval or from Legal Approval. RULES gives each rule a label and a rank for the dashboard's sort order. 13 unit tests, 184 in total.
 
 - [ ] Task 10: Red flag persistence, automatic sync and manual clear (P0)
   - Acceptance:
