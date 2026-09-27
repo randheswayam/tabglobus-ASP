@@ -1,6 +1,6 @@
 # Sprint v2 — Tasks
 
-## Status: In Progress
+## Status: 20 of 21 done. Task 20 (Android build and device check) is blocked on the toolchain
 
 - [x] Task 1: v2 setup: dependencies, workflow config and storage interface (P0)
   - Acceptance:
@@ -204,3 +204,22 @@
     - The shared demo link is republished.
   - Files: web-src/demo-api.js, web-src/build.py, tests/e2e/demo.spec.js, demo/
   - Completed: 2026-09-27. demo-api.js is rebuilt with v2 parity: drafts and media (photos shrunk to 800px JPEG data URLs, videos kept for the browser session only), photo evidence rules, recurring visits, open problems and resolve, red flags (the same six rules, manual clear, re-arm), the dashboard with all filters, notifications and visit history. The limits, rule labels and thresholds come from the backend config through build.py (RED_FLAG_RULES moved into workflow_config.py so build.py still runs on a plain Python). Sample data has canvas-drawn photos, a Critical issue on Kapoor House (second approved visit), a Legal delay on Gokhale Residence and a submission waiting for Parvez. The demo E2E test now covers the dashboard, photos, notifications and clearing a flag. The shared link is republished.
+
+## Sprint v2 totals
+- 234 backend tests pass on SQLite and on PostgreSQL 16. 15 Playwright E2E tests pass, including desktop and phone-width checks and the client demo.
+- Security scans: semgrep (python, fastapi, secrets, jwt, sql-injection, javascript, xss, java) has no findings; pip-audit and npm audit report no known vulnerabilities.
+- Migrations: 0001 to 0005, applied at startup. A sprint v1 database is adopted automatically.
+
+## Open items and notes for the next sprint
+- **Task 20:** build the APK (JDK 21 and Android SDK 35, or the GitHub Actions workflow), then run the emulator check. Otherwise do it during T3 with the field engineers.
+- **Placeholders pending Parvez:**
+  - Stage weights and checklists (D2).
+  - MIN_PHOTOS, MAX_PHOTO_MB and MAX_VIDEO_MB (D3).
+  - REVIEW_SLA_HOURS (D4).
+  - VISIT_INTERVAL_DAYS (D5).
+- **Before production (v3):**
+  - Put a request size cap in front of the API, because multipart bodies are spooled before the per-file limit check.
+  - Move media to S3-compatible storage with encryption at rest.
+  - Harden secrets, token storage and rate limiting (S1 to S4).
+- **Filters on the dashboard:** time-based flags are recomputed on every dashboard read (one sync per visible project). That's fine at pilot scale; move it to a scheduled job if the project count grows.
+
