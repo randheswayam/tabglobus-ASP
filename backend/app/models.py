@@ -1,7 +1,7 @@
 import enum
 from datetime import date, datetime, timezone
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text, UniqueConstraint, event
+from sqlalchemy import Boolean, Date, DateTime, Enum, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, event, inspect
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
@@ -323,6 +323,7 @@ class SignoffRequest(Base):
     supersedes_id: Mapped[int | None] = mapped_column(ForeignKey("signoff_requests.id"))
 
     attachments: Mapped[list["SignoffAttachment"]] = relationship(back_populates="request", order_by="SignoffAttachment.id")
+    project: Mapped[Project] = relationship()
     created_by: Mapped[User] = relationship(foreign_keys=[created_by_id])
     signer: Mapped["User | None"] = relationship(foreign_keys=[signer_id])
 
@@ -384,8 +385,29 @@ class AuditEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class SignoffImmutableError(Exception):
+    """Raised when code tries to change a sign-off version the client has already answered."""
+
+
 class AuditImmutableError(Exception):
     """Raised when code tries to change or remove a recorded audit event."""
+
+
+_ANSWERED = (SignoffStatus.approved, SignoffStatus.changes_requested)
+
+
+@event.listens_for(Session, "before_flush")
+def _block_answered_signoff_changes(session, _ctx, _instances):
+    """An answered sign-off is evidence: its content, response and attachments never change afterwards."""
+    for obj in list(session.dirty) + list(session.deleted):
+        if isinstance(obj, SignoffRequest) and (obj in session.deleted or session.is_modified(obj)):
+            history = inspect(obj).attrs.status.history
+            original = history.deleted[0] if history.deleted else obj.status
+            if original in _ANSWERED:
+                raise SignoffImmutableError(f"Sign-off version {obj.version} was answered and cannot change")
+    for obj in list(session.new) + list(session.deleted):
+        if isinstance(obj, SignoffAttachment) and obj.request is not None and obj.request.status != SignoffStatus.draft:
+            raise SignoffImmutableError("Documents of a sent sign-off cannot change")
 
 
 @event.listens_for(Session, "before_flush")
