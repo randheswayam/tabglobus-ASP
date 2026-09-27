@@ -7,6 +7,8 @@ from app.db import engine
 from app.passwords import verify_password
 from app.seed import seed
 
+STAFF = [r for r in m.Role if r != m.Role.client]
+
 EXPECTED_TABLES = {
     "users", "projects", "project_members", "workflow_steps", "legal_approvals",
     "site_visits", "reviews", "audit_events",
@@ -18,7 +20,7 @@ def test_all_tables_created_on_startup(client):
 
 
 def test_enum_values_match_prd():
-    assert {r.value for r in m.Role} == {"architect", "team_lead", "civil_engineer", "admin"}
+    assert {r.value for r in m.Role} == {"architect", "team_lead", "civil_engineer", "admin", "client"}
     assert {s.value for s in m.StepStatus} == {"locked", "active", "completed"}
     assert {s.value for s in m.VisitStatus} == {"draft", "submitted", "rework", "approved"}
     assert {s.value for s in m.LegalStatus} == {"Not started", "Applied", "Approved", "Rejected"}
@@ -27,7 +29,7 @@ def test_enum_values_match_prd():
 def test_seed_creates_one_user_per_role_with_hashed_passwords(db):
     seed(db, password="test-pass-123")
     users = db.query(m.User).all()
-    assert sorted(u.role.value for u in users) == sorted(r.value for r in m.Role)
+    assert sorted(u.role.value for u in users) == sorted(r.value for r in STAFF)  # clients come by invite
     parvez = db.query(m.User).filter_by(role=m.Role.team_lead).one()
     assert parvez.name == "Parvez"
     for u in users:
@@ -39,7 +41,7 @@ def test_seed_creates_one_user_per_role_with_hashed_passwords(db):
 def test_seed_is_idempotent(db):
     seed(db, password="x-pass-1")
     seed(db, password="x-pass-1")
-    assert db.query(m.User).count() == len(m.Role)
+    assert db.query(m.User).count() == len(STAFF)
 
 
 def _project(db):
