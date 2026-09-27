@@ -1,0 +1,19 @@
+{
+  "name": "siteflow-android",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SiteFlow MVP Android app (Capacitor wrapper around the field capture web app)",
+  "scripts": {
+    "sync": "npx cap sync android",
+    "open": "npx cap open android",
+    "apk": "npx cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}

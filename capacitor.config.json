@@ -1,0 +1,6 @@
+{
+  "appId": "ai.tanglobus.siteflow",
+  "appName": "SiteFlow",
+  "webDir": "www",
+  "android": { "backgroundColor": "#ECEEEA" }
+}
