@@ -165,7 +165,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
 
 ### S02 and S03 — Workflow engine and template
 
-- [ ] Task 14: Gate evaluator registry and multiple gates per stage (P0)
+- [x] Task 14: Gate evaluator registry and multiple gates per stage (P0)
   - Acceptance:
     - `backend/app/modules/workflow/gates.py` has `register(gate_type)` as a decorator and `reasons(stage, facts)`, which concatenates the reasons from every gate on the stage.
     - `stage_config` stages use `gates: [...]` instead of `gate`. Current stages keep their current gates, and `SIGNOFF_STAGES` is derived from the lists.
@@ -173,6 +173,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - An unknown gate type fails `test_stage_config.py`.
     - Every existing stage-engine, API and E2E test passes unchanged, apart from the `gate` to `gates` key.
   - Files: backend/app/modules/workflow/__init__.py, backend/app/modules/workflow/gates.py, backend/app/stage_config.py, backend/app/services/stages.py, backend/app/routers/stages.py, backend/tests/test_stage_config.py, backend/tests/test_gates.py
+  - Completed: 2026-09-28. modules/workflow/gates.py is a registry: register() decorator, unregister, registered, and reasons(stage, facts), which concatenates the reasons of every gate on the stage in order; an unknown type raises. The three v3 gates are registered with unchanged wording. stage_config stages carry gates: [...]; SIGNOFF_STAGES and the new is_signoff() are derived from them. The engine, stages router, client view and web app use gates. The API returns gates instead of gate. build.py still gives the frozen v3 demo one v3 gate per stage. Tests: test_gates.py (6), and test_stage_config checks that every gate is registered.
 
 - [ ] Task 15: In-process domain event bus (P0)
   - Acceptance:

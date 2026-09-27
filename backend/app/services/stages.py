@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app import stage_config as sc
 from app.models import LegalStatus, Problem, ProblemStatus, Project, ProjectStage, StageStatus, User
+from app.modules.workflow import gates
 from app.schemas import iso_utc, user_brief
 from app.services import audit, notify
 from app.services.signoffs import latest_by_stage
@@ -37,26 +38,8 @@ def to_release(statuses: dict[str, str], config=sc.STAGES) -> list[str]:
     ]
 
 
-def _date(iso: str | None) -> str:
-    return datetime.fromisoformat(iso).strftime("%d %b %Y").lstrip("0") if iso else ""
-
-
 def gate_reasons(stage: dict, facts: GateFacts) -> list[str]:
-    gate = stage["gate"]
-    if gate == "legal_approval" and facts.legal_status != "Approved":
-        return [f"Legal Approval is {facts.legal_status}, not Approved"]
-    if gate == "no_open_major_problems" and facts.open_major_problems:
-        n = facts.open_major_problems
-        return [f"{n} open High or Critical problem{'s' if n != 1 else ''}"]
-    if gate == "client_signoff":
-        req = facts.signoffs.get(stage["key"])
-        if req is None or req["status"] == "draft":
-            return ["Sign-off package not sent to the client yet"]
-        if req["status"] == "sent":
-            return [f"Waiting for client sign-off on version {req['version']}, sent {_date(req['sent_at'])}"]
-        if req["status"] == "changes_requested":
-            return [f"The client asked for changes on version {req['version']}; prepare version {req['version'] + 1}"]
-    return []
+    return gates.reasons(stage, facts)
 
 
 def evaluate(statuses: dict[str, str], facts: GateFacts, config=sc.STAGES) -> dict[str, dict]:
@@ -127,7 +110,7 @@ STAFF_COMPLETERS = ("architect", "team_lead")
 
 def can_complete(user: User, stage: dict, state: str) -> bool:
     """Owners (and the Architect or Team Lead) finish active stages; client sign-off stages finish only by approval."""
-    if state != "active" or stage["gate"] == "client_signoff":
+    if state != "active" or sc.is_signoff(stage):
         return False
     return user.role.value == stage["owner_role"] or user.role.value in STAFF_COMPLETERS
 
@@ -153,7 +136,7 @@ def project_view(db: Session, project: Project, user: User) -> dict:
             "detail": s["detail"],
             "workstream": s["workstream"],
             "owner_role": s["owner_role"],
-            "gate": s["gate"],
+            "gates": s["gates"],
             "state": v["state"],
             "reasons": v["reasons"],
             "can_complete": can_complete(user, s, v["state"]),

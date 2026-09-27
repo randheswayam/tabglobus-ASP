@@ -33,7 +33,9 @@ def test_new_project_starts_at_project_setup(client, auth_headers, new_project):
 
 def test_stage_fields_describe_owner_gate_and_workstream(client, auth_headers, new_project):
     s = _flat(_stages(client, auth_headers("architect"), new_project()["id"]))
-    assert s["requirements_signoff"]["gate"] == "client_signoff" and s["requirements_signoff"]["owner_role"] == "client"
+    assert (
+        s["requirements_signoff"]["gates"] == ["client_signoff"] and s["requirements_signoff"]["owner_role"] == "client"
+    )
     assert s["predesign_site_visit"]["workstream"] == "Site" and s["predesign_site_visit"]["number"] is None
     assert s["architectural_package"]["number"] == "8A"
 

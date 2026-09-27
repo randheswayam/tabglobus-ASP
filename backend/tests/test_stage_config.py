@@ -2,6 +2,7 @@
 
 from app import stage_config as sc
 from app.models import Role
+from app.modules.workflow.gates import registered
 
 
 def by_key():
@@ -60,7 +61,8 @@ def test_every_stage_is_well_formed():
     for s in sc.STAGES:
         assert s["label"] and s["workstream"] in ("Studio", "Site", "Both")
         assert s["owner_role"] in {r.value for r in Role}
-        assert s["gate"] in (None, "client_signoff", "legal_approval", "no_open_major_problems")
+        assert isinstance(s["gates"], list) and "gate" not in s
+        assert set(s["gates"]) <= set(registered()), s["key"]
         assert set(s["predecessors"]) <= keys, s["key"]
 
 
@@ -105,7 +107,7 @@ def test_parallel_branches_match_the_diagram():
 
 
 def test_gates_sit_on_the_right_stages():
-    gates = {s["number"]: s["gate"] for s in sc.STAGES if s["gate"]}
+    gates = {s["number"]: s["gates"][0] for s in sc.STAGES if s["gates"]}
     assert gates == {
         "4": "client_signoff",
         "11": "client_signoff",
@@ -141,3 +143,13 @@ def test_stage_owners_use_the_prd_roles():
     from app.models import Role
 
     assert set(owners.values()) <= {r.value for r in Role}
+
+
+def test_signoff_stages_are_derived_from_the_gates():
+    assert sc.SIGNOFF_STAGES == [s["key"] for s in sc.STAGES if "client_signoff" in s["gates"]]
+    assert sc.SIGNOFF_STAGES == [
+        "requirements_signoff",
+        "design_freeze_signoff",
+        "interiors_signoff",
+        "handover_signoff",
+    ]

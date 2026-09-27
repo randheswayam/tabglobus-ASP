@@ -55,7 +55,7 @@ def project_detail(db: Session, project: Project, user: User, signoff_out) -> di
             "detail": s["detail"],
             "workstream": s["workstream"],
             "state": _STATE[r.status],
-            "is_signoff": s["gate"] == "client_signoff",
+            "is_signoff": sc.is_signoff(s),
             "started_at": iso_utc(r.started_at),
             "completed_at": iso_utc(r.completed_at),
             "historical": "Completed before SiteFlow" if r.status == StageStatus.historical else None,

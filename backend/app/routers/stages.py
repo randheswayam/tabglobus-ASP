@@ -39,7 +39,7 @@ def complete_stage(
     view = stages.evaluate(
         {k: r.status.value for k, r in rows.items()}, stages.facts(db, project, stages.signoff_facts(db, project))
     )[key]
-    if stage["gate"] == "client_signoff":
+    if sc.is_signoff(stage):
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             {

@@ -26,7 +26,7 @@ PHASES = [
 ]
 
 
-def _stage(key, number, label, phase, workstream, owner, predecessors, gate=None, detail=""):
+def _stage(key, number, label, phase, workstream, owner, predecessors, gates=(), detail=""):
     return {
         "key": key,
         "number": number,
@@ -35,7 +35,7 @@ def _stage(key, number, label, phase, workstream, owner, predecessors, gate=None
         "workstream": workstream,
         "owner_role": owner,
         "predecessors": predecessors,
-        "gate": gate,
+        "gates": list(gates),
         "detail": detail,
     }
 
@@ -79,7 +79,7 @@ STAGES = [
         "Studio",
         "client",
         ["baseline"],
-        gate="client_signoff",
+        gates=["client_signoff"],
         detail="Approval to proceed to design. Triggers the parallel workstreams.",
     ),
     _stage(
@@ -200,7 +200,7 @@ STAGES = [
         "Studio",
         "client",
         ["elevations_package"],
-        gate="client_signoff",
+        gates=["client_signoff"],
         detail="Approval of all elevations. Changes after this stage are costly.",
     ),
     # TBD_PARVEZ (D-05): whether the 50% is on the total fee, the stage fee or another basis.
@@ -232,7 +232,7 @@ STAGES = [
         "Site",
         "civil_engineer",
         ["detailed_drawings"],
-        gate="legal_approval",
+        gates=["legal_approval"],
         detail="Site marking and verification as per approved drawings.",
     ),
     _stage(
@@ -253,7 +253,7 @@ STAGES = [
         "Site",
         "team_lead",
         ["construction"],
-        gate="no_open_major_problems",
+        gates=["no_open_major_problems"],
         detail="Civil completion checklist and quality sign-off; ready for interiors.",
     ),
     _stage(
@@ -264,7 +264,7 @@ STAGES = [
         "Both",
         "client",
         ["civil_completion"],
-        gate="client_signoff",
+        gates=["client_signoff"],
         detail="Material and tile selection approvals.",
     ),
     _stage(
@@ -275,11 +275,17 @@ STAGES = [
         "Both",
         "client",
         ["interiors_signoff"],
-        gate="client_signoff",
+        gates=["client_signoff"],
         detail="Final inspection, snag list and handover documents.",
     ),
 ]
 
-SIGNOFF_STAGES = [s["key"] for s in STAGES if s["gate"] == "client_signoff"]
+SIGNOFF_STAGES = [s["key"] for s in STAGES if "client_signoff" in s["gates"]]
+
+
+def is_signoff(stage: dict) -> bool:
+    return "client_signoff" in stage["gates"]
+
+
 CONSTRUCTION_START = "line_out"
 BY_KEY = {s["key"]: s for s in STAGES}
