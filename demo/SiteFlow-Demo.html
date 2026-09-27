@@ -1,3 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E6B6F">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>SiteFlow Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#ECEEEA; --surface:#FFFFFF; --surface-2:#F4F5F2; --ink:#1B2428; --ink-2:#56625F; --ink-3:#7F8A87;
+  --line:#D5DAD4; --line-2:#E4E7E2;
+  --accent:#0E6B6F; --accent-2:#0A5558; --accent-ink:#FFFFFF; --accent-soft:#DCECEA;
+  --hivis:#D99613; --hivis-soft:#FBF0D6;
+  --ok:#2E7A4D; --ok-soft:#DDEFE3; --warn:#A8660F; --warn-soft:#F8E9D0; --bad:#B42318; --bad-soft:#F9E0DC;
+  --shadow:0 1px 2px rgba(20,35,38,.06),0 4px 14px rgba(20,35,38,.06);
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#111719; --surface:#192124; --surface-2:#1F292C; --ink:#E5EBE8; --ink-2:#9DAAA6; --ink-3:#72807C;
+    --line:#2D393C; --line-2:#253033;
+    --accent:#4CB2AE; --accent-2:#6CC7C3; --accent-ink:#08191A; --accent-soft:#1B3637;
+    --hivis:#EDB23D; --hivis-soft:#3A2F17;
+    --ok:#5DBB82; --ok-soft:#18342A; --warn:#E3A948; --warn-soft:#3A2D16; --bad:#F2786D; --bad-soft:#3D1F1C;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#111719; --surface:#192124; --surface-2:#1F292C; --ink:#E5EBE8; --ink-2:#9DAAA6; --ink-3:#72807C;
+  --line:#2D393C; --line-2:#253033;
+  --accent:#4CB2AE; --accent-2:#6CC7C3; --accent-ink:#08191A; --accent-soft:#1B3637;
+  --hivis:#EDB23D; --hivis-soft:#3A2F17;
+  --ok:#5DBB82; --ok-soft:#18342A; --warn:#E3A948; --warn-soft:#3A2D16; --bad:#F2786D; --bad-soft:#3D1F1C;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--ground);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--f-display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:26px;font-weight:700}
+h2{font-size:18px;font-weight:700}
+h3{font-size:15px;font-weight:600}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-2)}
+.small{font-size:12.5px}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* shell */
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100%}
+.side{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:18px;padding:20px 14px;background:var(--surface);border-right:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px}
+.brand-mark{width:30px;height:30px;border-radius:7px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}
+.brand-mark svg{width:18px;height:18px}
+.brand b{font-family:var(--f-display);font-size:17px;font-weight:800;letter-spacing:-.02em}
+.brand small{display:block;font-size:10.5px;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;background:none;border-radius:8px;color:var(--ink-2);font-weight:500;text-align:left}
+.nav button:hover{background:var(--surface-2);color:var(--ink)}
+.nav button.on{background:var(--accent-soft);color:var(--accent-2)}
+.nav .count{margin-left:auto;font-size:11px;font-family:var(--f-mono);background:var(--bad);color:#fff;border-radius:99px;padding:0 6px;line-height:18px}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+.whois{display:flex;flex-direction:column;gap:4px;padding:10px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2)}
+.whois select{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:6px 8px;font-size:13px}
+.credit{font-size:10.5px;color:var(--ink-3);padding:0 6px;letter-spacing:.04em}
+
+main{min-width:0;padding-inline:32px;padding-block:24px 48px}
+.mtop,.tabs{display:none}
+.offline{display:flex;gap:8px;align-items:center;background:var(--hivis-soft);color:var(--warn);border:1px solid var(--hivis);padding:8px 12px;border-radius:8px;margin-bottom:16px;font-weight:500}
+
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.head .sub{color:var(--ink-2);margin-top:4px}
+.crumbs{display:flex;gap:6px;align-items:center;color:var(--ink-3);font-size:12.5px;margin-bottom:6px;flex-wrap:wrap}
+.crumbs button{border:0;background:none;padding:0;color:var(--accent);font-weight:500}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:8px;font-weight:600;font-size:13.5px;white-space:nowrap}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn.danger{color:var(--bad);border-color:var(--bad-soft)}
+.btn.ghost{border-color:transparent;background:none;color:var(--ink-2)}
+.btn.sm{padding:5px 10px;font-size:12.5px}
+.btn.icon{padding:6px;width:32px;height:32px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.panel-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line-2)}
+.panel-b{padding:16px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:20px}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font-family:var(--f-display);font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi span{color:var(--ink-2);font-size:12.5px}
+.kpi.alert b{color:var(--bad)}
+.kpi.attn b{color:var(--hivis)}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line-2);white-space:nowrap}
+.pill.active{background:var(--hivis-soft);color:var(--warn);border-color:transparent}
+.pill.submitted,.pill.review{background:var(--accent-soft);color:var(--accent-2);border-color:transparent}
+.pill.done{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.pill.rework,.pill.overdue{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* task list */
+.tasks{display:flex;flex-direction:column}
+.task{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line-2);background:none;border-left:0;border-right:0;border-top:0;text-align:left;width:100%}
+.task:last-child{border-bottom:0}
+.task:hover{background:var(--surface-2)}
+.task .ti{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink-2)}
+.task-capture .ti{background:var(--hivis-soft);color:var(--warn)}
+.task-review .ti{background:var(--accent-soft);color:var(--accent-2)}
+.task b{font-weight:600;display:block}
+.task .meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.empty{padding:22px 16px;color:var(--ink-2);text-align:center}
+
+/* project cards */
+.pcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.pcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;text-align:left;width:100%}
+.pcard:hover{border-color:var(--accent)}
+.pcard h3{font-size:16px}
+.pcard .loc{font-size:12.5px;color:var(--ink-2)}
+.ministep{display:flex;gap:4px}
+.ministep i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.ministep i.done{background:var(--ok)}
+.ministep i.active,.ministep i.rework{background:var(--hivis)}
+.ministep i.submitted{background:var(--accent)}
+.pcard .now{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px}
+
+/* feed */
+.feed{display:flex;flex-direction:column}
+.fi{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;padding:10px 16px;border-bottom:1px solid var(--line-2)}
+.fi:last-child{border-bottom:0}
+.fi .fic{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);color:var(--ink-2)}
+.fi .fic svg{width:15px;height:15px}
+.fi.ok .fic{background:var(--ok-soft);color:var(--ok)}
+.fi.warn .fic{background:var(--bad-soft);color:var(--bad)}
+.fi.ms .fic{background:var(--hivis-soft);color:var(--warn)}
+.fi.unread{background:linear-gradient(90deg,var(--accent-soft),transparent 60%)}
+.fi .when{font-size:11.5px;color:var(--ink-3);display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.ch{font-size:10.5px;padding:0 5px;border:1px solid var(--line);border-radius:4px;color:var(--ink-3)}
+
+/* stepper */
+.stepper-wrap{overflow-x:auto;margin-bottom:20px}
+.stepper{list-style:none;margin:0;padding:0;display:flex;gap:0;min-width:min-content}
+.st{flex:1;min-width:150px;position:relative}
+.st button{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px 12px 0;border:0;background:none;text-align:left}
+.st::before{content:"";position:absolute;top:26px;left:30px;right:0;height:2px;background:var(--line)}
+.st:last-child::before{display:none}
+.st.st-done::before{background:var(--ok)}
+.st-n{position:relative;z-index:1;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-mono);font-weight:500;font-size:13px;background:var(--surface);border:2px solid var(--line);color:var(--ink-3)}
+.st-done .st-n{background:var(--ok);border-color:var(--ok);color:#fff}
+.st-active .st-n,.st-rework .st-n{border-color:var(--hivis);color:var(--warn);background:var(--hivis-soft)}
+.st-submitted .st-n{border-color:var(--accent);color:var(--accent)}
+.st-n svg{width:15px;height:15px;stroke-width:2.6}
+.st-l{font-weight:600;font-size:13.5px;padding-right:10px}
+.st-s{font-size:12px;color:var(--ink-2)}
+
+.steps{display:flex;flex-direction:column;gap:10px}
+.scard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.scard.cur{border-color:var(--hivis);box-shadow:inset 3px 0 0 var(--hivis)}
+.scard .who{font-size:12.5px;color:var(--ink-2)}
+.branches{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.branch{border:1px dashed var(--line);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.thumbs{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.thumbs img{width:64px;height:48px;object-fit:cover;border-radius:5px;border:1px solid var(--line)}
+
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;font-size:13px}
+.kv dt{color:var(--ink-2)}
+.kv dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+.team{display:flex;flex-direction:column;gap:8px}
+.person{display:flex;gap:10px;align-items:center}
+.av{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent-2);display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none}
+.audit{display:flex;flex-direction:column;gap:10px;font-size:12.5px;max-height:320px;overflow:auto}
+.audit div{display:grid;grid-template-columns:78px minmax(0,1fr);gap:8px}
+
+/* forms */
+.form{display:flex;flex-direction:column;gap:14px}
+.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field.full{grid-column:1/-1}
+.field label{font-weight:600;font-size:13px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.req{font-size:10.5px;font-weight:600;color:var(--warn);letter-spacing:.04em;text-transform:uppercase}
+.field input,.field select,.field textarea,.inp{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 11px;font-size:14px}
+.field textarea{resize:vertical;min-height:76px}
+.field input:focus,.field select:focus,.field textarea:focus,.inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.field.miss input,.field.miss textarea,.field.miss select{border-color:var(--bad)}
+.ro{padding:8px 0;white-space:pre-wrap}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.sec-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line-2)}
+.sec-h h3{display:flex;gap:8px;align-items:center}
+.sec-b{padding:16px}
+
+.act{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.reqpanel{position:sticky;top:20px}
+.reqlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.reqlist li{display:flex;gap:8px;align-items:flex-start;font-size:13px}
+.reqlist .ck{width:18px;height:18px;border-radius:50%;flex:none;display:grid;place-items:center;border:1.5px solid var(--line);margin-top:1px}
+.reqlist li.ok .ck{background:var(--ok);border-color:var(--ok);color:#fff}
+.reqlist li.ok .ck svg{width:11px;height:11px;stroke-width:3}
+.reqlist li.no{color:var(--ink-2)}
+.meter{height:6px;background:var(--line-2);border-radius:3px;overflow:hidden;margin:10px 0 14px}
+.meter i{display:block;height:100%;background:var(--ok);transition:width .25s}
+.errbox{border:1px solid var(--bad);background:var(--bad-soft);color:var(--bad);border-radius:8px;padding:10px 12px;font-size:13px}
+.errbox ul{margin:6px 0 0;padding-left:18px}
+.banner{border-radius:8px;padding:10px 12px;font-size:13px;display:flex;gap:8px;align-items:flex-start}
+.banner.rework{background:var(--bad-soft);color:var(--bad)}
+.banner.info{background:var(--accent-soft);color:var(--accent-2)}
+.banner.ok{background:var(--ok-soft);color:var(--ok)}
+.saved{font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:6px}
+
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.ph{position:relative;aspect-ratio:4/3;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--surface-2);max-width:100%}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph button{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;display:grid;place-items:center;padding:0}
+.ph button svg{width:13px;height:13px}
+.addph{aspect-ratio:4/3;border:1.5px dashed var(--line);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--ink-2);background:none;font-size:12.5px;font-weight:600;max-width:100%}
+.addph:hover{border-color:var(--accent);color:var(--accent)}
+.addph svg{width:22px;height:22px}
+.pcount{font-family:var(--f-mono);font-size:12.5px}
+.pcount.short{color:var(--bad)}
+.gps{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.gps .coord{font-family:var(--f-mono);font-size:13.5px;padding:8px 12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--line-2)}
+.media{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mbtn{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--surface);display:flex;flex-direction:column;gap:4px;align-items:flex-start;text-align:left}
+.mbtn:hover{border-color:var(--accent)}
+.mbtn b{font-size:13px}
+.mbtn span{font-size:11.5px;color:var(--ink-2)}
+.mlist{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.mitem{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:6px 10px;border-radius:6px;background:var(--surface-2)}
+.mitem .x{margin-left:auto;border:0;background:none;color:var(--ink-3);padding:2px}
+.checks{display:flex;flex-direction:column;gap:2px}
+.chk{display:flex;gap:10px;align-items:center;padding:8px 4px;border-radius:6px;cursor:pointer}
+.chk:hover{background:var(--surface-2)}
+.chk input{width:18px;height:18px;accent-color:var(--accent)}
+.submitbar{display:none}
+
+/* template editor */
+.tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.flow{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:4px 2px 10px}
+.fnode{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;font-size:12px;font-weight:600;white-space:nowrap;display:flex;flex-direction:column;gap:1px}
+.fnode small{font-weight:400;color:var(--ink-3);font-size:10.5px}
+.fnode.capture{border-color:var(--hivis);background:var(--hivis-soft)}
+.fnode.review{border-color:var(--accent);background:var(--accent-soft)}
+.fpar{display:flex;flex-direction:column;gap:4px;padding:4px;border:1px dashed var(--ink-3);border-radius:10px}
+.farrow{color:var(--ink-3);flex:none}
+.fms{font-size:10.5px;color:var(--warn);font-weight:600}
+.tstep{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.tstep-h{display:flex;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line-2);flex-wrap:wrap}
+.tstep-h .num{font-family:var(--f-mono);width:26px;height:26px;border-radius:6px;background:var(--surface-2);display:grid;place-items:center;font-size:12.5px;flex:none}
+.tstep-h input{flex:1;min-width:140px;font-weight:600;border:1px solid transparent;background:none;border-radius:6px;padding:5px 8px;font-size:14.5px}
+.tstep-h input:hover,.tstep-h input:focus{border-color:var(--line);background:var(--surface)}
+.tstep-b{padding:12px;display:flex;flex-direction:column;gap:12px}
+.tset{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tset label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-2);font-weight:600}
+.tset .inp{padding:7px 9px;font-size:13px}
+.tog{display:flex !important;flex-direction:row !important;align-items:center;gap:8px;color:var(--ink) !important;font-weight:500 !important;font-size:13px !important;padding-top:18px}
+.tog input{width:16px;height:16px;accent-color:var(--accent)}
+.ftable{width:100%;border-collapse:collapse;font-size:13px}
+.ftable th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line-2)}
+.ftable td{padding:4px 8px;border-bottom:1px solid var(--line-2)}
+.ftable td .inp{padding:5px 8px;font-size:13px}
+.ftable input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
+.tbl-wrap{overflow-x:auto}
+.subh{font-size:12px;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:center}
+.bbox{border:1px dashed var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
+
+/* sign-in */
+body.anon .app{grid-template-columns:1fr}
+body.anon .side,body.anon .tabs{display:none}
+.login{max-width:400px;margin:10vh auto 0}
+.login .panel-b{padding:24px;gap:16px}
+.login details summary{cursor:pointer}
+.demo-box{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line-2);padding-top:14px}
+.demo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.demo-acct{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:9px 11px}
+.demo-acct:hover{border-color:var(--accent)}
+.demo-acct b{font-size:13.5px}
+.demo-acct span{font-size:11.5px;color:var(--ink-2)}
+.demo-tour{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;color:var(--ink-2)}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:9px;font-weight:500;font-size:13.5px;transition:.25s;z-index:50;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:1fr}}
+@media (max-width:899px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  main{padding-inline:16px;padding-block:12px 96px}
+  .mtop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 -16px 14px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:10}
+  .mtop select{border:1px solid var(--line);background:var(--surface-2);border-radius:7px;padding:5px 6px;font-size:12.5px;max-width:52vw}
+  .tabs{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:20}
+  .tabs button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;color:var(--ink-3);padding:4px 0;position:relative}
+  .tabs button.on{color:var(--accent)}
+  .tabs button.cap{color:var(--accent-ink)}
+  .tabs button.cap span.c{width:44px;height:44px;margin-top:-18px;border-radius:50%;background:var(--accent);display:grid;place-items:center;box-shadow:var(--shadow)}
+  .tabs button.cap small{color:var(--ink-3)}
+  .tabs .count{position:absolute;top:0;left:calc(50% + 4px);font-size:10px;background:var(--bad);color:#fff;border-radius:99px;padding:0 5px;line-height:16px}
+  h1{font-size:22px}
+  .kpis{gap:8px}
+  .kpi{padding:12px}
+  .kpi b{font-size:24px}
+  .act{grid-template-columns:1fr}
+  .reqpanel{position:static}
+  .fgrid{grid-template-columns:1fr}
+  .media{grid-template-columns:1fr}
+  body.focus .tabs{display:none}
+  body.focus main{padding-bottom:110px}
+  body.focus .submitbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:20;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+  .submitbar .btn{flex:none;padding:11px 18px}
+  #toast{bottom:90px}
+  .st{min-width:128px}
+  .head{margin-bottom:14px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <aside class="side" id="side"></aside>
+  <main id="main"></main>
+  <nav class="tabs" id="tabs"></nav>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const DEMO_TEMPLATE = {"id": "residential", "version": 1, "steps": ["Legal Approval", "Site Visit", "Team Lead Review"], "stages": [{"name": "Foundation", "weight": 12.5, "checklist": [{"id": "fdn-excavation", "label": "Excavation to drawing depth"}, {"id": "fdn-pcc", "label": "PCC bed laid"}, {"id": "fdn-footing-rebar", "label": "Footing reinforcement checked"}, {"id": "fdn-footing-concrete", "label": "Footing concrete poured"}]}, {"name": "Plinth", "weight": 12.5, "checklist": [{"id": "pln-beam", "label": "Plinth beam cast"}, {"id": "pln-filling", "label": "Plinth filling and compaction"}, {"id": "pln-dpc", "label": "Damp proof course laid"}]}, {"name": "Superstructure", "weight": 12.5, "checklist": [{"id": "sup-columns", "label": "Columns cast"}, {"id": "sup-beams", "label": "Beams cast"}, {"id": "sup-slab", "label": "Slab cast"}, {"id": "sup-curing", "label": "Curing completed"}]}, {"name": "Masonry", "weight": 12.5, "checklist": [{"id": "msn-walls", "label": "External walls built"}, {"id": "msn-partitions", "label": "Internal partitions built"}, {"id": "msn-lintels", "label": "Lintels and sills cast"}]}, {"name": "Plastering", "weight": 12.5, "checklist": [{"id": "pls-internal", "label": "Internal plaster"}, {"id": "pls-external", "label": "External plaster"}]}, {"name": "Services", "weight": 12.5, "checklist": [{"id": "svc-plumbing", "label": "Plumbing lines laid"}, {"id": "svc-electrical", "label": "Electrical conduits and wiring"}, {"id": "svc-testing", "label": "Pressure and circuit tests"}]}, {"name": "Finishes", "weight": 12.5, "checklist": [{"id": "fin-flooring", "label": "Flooring and tiling"}, {"id": "fin-doors-windows", "label": "Doors and windows fixed"}, {"id": "fin-painting", "label": "Painting"}, {"id": "fin-fixtures", "label": "Fixtures installed"}]}, {"name": "Handover", "weight": 12.5, "checklist": [{"id": "hnd-snag", "label": "Snag list closed"}, {"id": "hnd-cleaning", "label": "Site cleaned"}, {"id": "hnd-documents", "label": "Handover documents ready"}]}], "checklist_states": ["Done", "In progress", "Not started"], "problems": {"Structural": ["Crack in beam, column or slab", "Honeycombing in concrete", "Rebar spacing or cover not per drawing", "Formwork misalignment"], "Quality": ["Poor curing", "Plaster hollowness", "Level or plumb deviation", "Brickwork joint issues"], "Water": ["Seepage or dampness", "Waterproofing defect", "Drainage slope issue"], "Site": ["Material shortage", "Labour shortage", "Equipment breakdown", "Deviation from approved drawing"], "Safety": ["Missing barricading", "No safety gear in use", "Unsafe scaffolding"], "Other": []}, "severities": ["Low", "Medium", "High", "Critical"], "min_photos": 5};
+/* ---------- SiteFlow demo API ----------
+   Same interface as api.js, but the v1 workflow runs in the browser with sample data, so the
+   demo works as a single file with no server. The rules mirror the FastAPI backend: roles and
+   project visibility, Legal Approval transitions, mandatory site visit validation, derived
+   progress and the Team Lead review. DEMO_TEMPLATE is injected by build.py from
+   backend/app/template_config.py, so the stages, checklists and problem list stay in step. */
+const SiteFlowAPI = (() => {
+  'use strict';
+  const T = DEMO_TEMPLATE;
+  const K_DB = 'siteflow.demo.db.v1', K_TOKEN = 'siteflow.demo.token';
+  const PASSWORD = 'demo';
+  const mem = {};
+  const store = {
+    get(k){ try { return localStorage.getItem(k); } catch (_) { return mem[k] ?? null; } },
+    set(k, v){ try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (_) { if (v == null) delete mem[k]; else mem[k] = v; } }
+  };
+
+  class ApiError extends Error {
+    constructor(status, message, detail){ super(message); this.status = status; this.detail = detail; }
+    get missing(){ return (this.detail && this.detail.missing) || []; }
+    get invalid(){ return (this.detail && this.detail.invalid) || []; }
+  }
+  const fail = (status, message, extra) => { throw new ApiError(status, message, extra ? {message, ...extra} : message); };
+
+  /* ---------- storage ---------- */
+  let db = null, clockOffset = 0, onSignedOut = null;
+  const now = () => new Date(Date.now() - clockOffset).toISOString();
+  const ymd = daysAgo => { const d = new Date(Date.now() - daysAgo * 864e5); return d.toISOString().slice(0, 10); };
+  function load(){ try { db = JSON.parse(store.get(K_DB) || 'null'); } catch (_) { db = null; } if (!db || db.v !== 1) seed(); }
+  const save = () => store.set(K_DB, JSON.stringify(db));
+  const nextId = kind => (db.seq[kind] = (db.seq[kind] || 0) + 1);
+  const user = id => db.users.find(u => u.id === id);
+  const brief = u => u ? {id: u.id, name: u.name, role: u.role} : null;
+
+  /* ---------- auth and access ---------- */
+  function current(){
+    const t = store.get(K_TOKEN), u = t && user(+t);
+    if (!u){ store.set(K_TOKEN, null); if (t && onSignedOut) onSignedOut(); fail(401, 'Not authenticated'); }
+    return u;
+  }
+  function role(u, ...roles){ if (!roles.includes(u.role)) fail(403, 'Your role cannot perform this action'); }
+  const seesAll = u => u.role === 'architect' || u.role === 'team_lead';
+  const visible = u => db.projects.filter(p => seesAll(u) || p.members.includes(u.id));
+  function project(u, id){ const p = visible(u).find(x => x.id === +id); if (!p) fail(404, 'Project not found'); return p; }
+
+  /* ---------- workflow ---------- */
+  const audit = (p, u, action, detail = {}) => db.audit.push({project_id: p.id, actor_id: u.id, action, detail, at: now()});
+  const step = (p, order) => p.steps.find(s => s.order === order);
+  function setStep(p, order, status, u){
+    const s = step(p, order); if (s.status === status) return;
+    s.status = status;
+    audit(p, u, {active: 'step.activated', completed: 'step.completed', locked: 'step.locked'}[status], {step: s.name});
+  }
+  const visitsOf = p => db.visits.filter(v => v.project_id === p.id);
+  const latest = p => { const vs = visitsOf(p); return vs[vs.length - 1] || null; };
+  const engineerOf = p => p.members.map(user).find(u => u && u.role === 'civil_engineer') || null;
+
+  /* ---------- progress (mirrors services/progress.py) ---------- */
+  function deriveProgress(stageName, states){
+    const idx = T.stages.findIndex(s => s.name === stageName);
+    const stage = T.stages[idx];
+    const done = stage.checklist.filter(i => states[i.id] === 'Done').length;
+    const total = T.stages.slice(0, idx).reduce((a, s) => a + s.weight, 0) + stage.weight * done / stage.checklist.length;
+    return Math.round((total + 1e-9) * 10) / 10;
+  }
+
+  /* ---------- validation (mirrors services/validation.py) ---------- */
+  function validate(b){
+    const miss = [], inv = [], blank = v => v == null || (typeof v === 'string' && !v.trim());
+    ['visit_at', 'weather', 'attendees', 'current_stage', 'summary', 'recommended_action'].forEach(f => { if (blank(b[f])) miss.push(f); });
+    const loc = b.location;
+    if (!loc || (!loc.gps && blank(loc.manual))) miss.push('location');
+    else if (loc.gps && !(Math.abs(loc.gps.lat) <= 90 && Math.abs(loc.gps.lng) <= 180)) inv.push('location.gps');
+    const checklist = b.checklist || {}, problems = b.problems || [];
+    if (!blank(b.current_stage)){
+      const stage = T.stages.find(s => s.name === b.current_stage);
+      if (!stage) inv.push('current_stage');
+      else {
+        const ids = stage.checklist.map(i => i.id);
+        ids.forEach(i => { if (!(i in checklist)) miss.push('checklist.' + i); });
+        Object.entries(checklist).forEach(([k, st]) => { if (!ids.includes(k) || !T.checklist_states.includes(st)) inv.push('checklist.' + k); });
+      }
+    }
+    if (b.no_issues && problems.length) inv.push('no_issues');
+    else if (!b.no_issues && !problems.length) miss.push('problems');
+    problems.forEach((p, n) => {
+      const at = `problems[${n}]`;
+      if (blank(p.category)) miss.push(at + '.category');
+      else if (!(p.category in T.problems)) inv.push(at + '.category');
+      else if (p.category === 'Other'){ if (blank(p.other_text)) miss.push(at + '.other_text'); }
+      else if (blank(p.problem)) miss.push(at + '.problem');
+      else if (!T.problems[p.category].includes(p.problem)) inv.push(at + '.problem');
+      if (blank(p.severity)) miss.push(at + '.severity');
+      else if (!T.severities.includes(p.severity)) inv.push(at + '.severity');
+      ['location', 'responsible_party', 'target_date'].forEach(f => { if (blank(p[f])) miss.push(`${at}.${f}`); });
+    });
+    return [miss, inv];
+  }
+
+  /* ---------- serializers (mirror schemas.py) ---------- */
+  function visitBrief(v){
+    if (!v) return null;
+    const rw = db.reviews.filter(r => r.visit_id === v.id && r.decision === 'rework').pop();
+    return {id: v.id, status: v.status, submission_count: v.submission_count, computed_progress: v.computed_progress,
+      submitted_at: v.submitted_at, rework_comment: rw && v.status === 'rework' ? rw.comment : null};
+  }
+  function visitOut(v){
+    const p = db.projects.find(x => x.id === v.project_id);
+    return {...visitBrief(v), project: {id: p.id, name: p.name, location: p.location}, engineer: brief(user(v.engineer_id)),
+      current_stage: v.current_stage, form: v.form, checklist: v.checklist, no_issues: v.no_issues, problems: v.problems,
+      reviews: db.reviews.filter(r => r.visit_id === v.id).map(r => ({decision: r.decision, comment: r.comment, reviewer: brief(user(r.reviewer_id)), at: r.at}))};
+  }
+  function summary(p){
+    const v = latest(p), active = p.steps.find(s => s.status === 'active');
+    return {id: p.id, name: p.name, location: p.location, current_step: active ? active.name : null,
+      official_progress: p.official_progress, latest_visit_status: v ? v.status : null, civil_engineer: brief(engineerOf(p))};
+  }
+  function detail(p){
+    return {...summary(p), template: {id: T.id, version: T.version}, steps: p.steps.map(s => ({...s})), legal_approval: {...p.legal},
+      latest_visit: visitBrief(latest(p)),
+      audit: db.audit.filter(e => e.project_id === p.id).map(e => ({action: e.action, actor: (user(e.actor_id) || {}).name, at: e.at, detail: e.detail}))};
+  }
+
+  /* ---------- operations (mirror the routers) ---------- */
+  function createProject(u, b){
+    role(u, 'architect');
+    const name = (b.name || '').trim(), location = (b.location || '').trim();
+    if (!name || !location) fail(422, 'Project name and location are required');
+    const eng = user(+b.civil_engineer_id);
+    if (!eng || eng.role !== 'civil_engineer') fail(422, 'civil_engineer_id must be an active Civil Engineer');
+    const admins = db.users.filter(x => x.role === 'admin').map(x => x.id);
+    const p = {id: nextId('project'), name, location, official_progress: 0, members: [...new Set([u.id, eng.id, ...admins])],
+      steps: T.steps.map((s, i) => ({order: i + 1, name: s, status: i === 0 ? 'active' : 'locked'})),
+      legal: {status: 'Not started', authority_name: null, application_reference: null, application_date: null,
+        approval_date: null, expected_date: b.legal_expected_date || null, document_reference: null}};
+    db.projects.push(p);
+    audit(p, u, 'project.created', {civil_engineer_id: eng.id});
+    return p;
+  }
+
+  const LEGAL_NEXT = {'Not started': ['Applied'], 'Applied': ['Approved', 'Rejected']};
+  const LEGAL_REQ = {Applied: ['authority_name', 'application_reference', 'application_date'],
+    Approved: ['authority_name', 'application_reference', 'application_date', 'approval_date', 'document_reference']};
+  function updateLegal(u, pid, b){
+    role(u, 'admin');
+    const p = project(u, pid), la = p.legal, cur = la.status, target = b.status || cur;
+    if (!LEGAL_NEXT[cur]) fail(409, `Legal Approval is ${cur} and can no longer change`);
+    if (target !== cur && !LEGAL_NEXT[cur].includes(target)) fail(409, `Cannot move Legal Approval from ${cur} to ${target}`);
+    const changes = {};
+    LEGAL_REQ.Approved.forEach(f => { if (f in b) changes[f] = typeof b[f] === 'string' ? (b[f].trim() || null) : b[f]; });
+    const merged = {...la, ...changes};
+    const missing = (LEGAL_REQ[target] || []).filter(f => !merged[f]);
+    if (missing.length) fail(422, `${target} needs every required field`, {missing});
+    if (merged.approval_date && merged.application_date && merged.approval_date < merged.application_date) fail(422, 'approval_date cannot be before application_date', {missing: []});
+    Object.assign(la, changes, {status: target});
+    audit(p, u, 'legal.updated', {from: cur, to: target, fields: Object.keys(changes).sort()});
+    if (target === 'Approved'){ setStep(p, 1, 'completed', u); setStep(p, 2, 'active', u); }
+    return p;
+  }
+
+  function submitVisit(u, pid, b){
+    role(u, 'civil_engineer');
+    const p = project(u, pid);
+    if (step(p, 2).status !== 'active') fail(409, 'Site Visit step is not open for this project');
+    const [missing, invalid] = validate(b);
+    if (missing.length || invalid.length) fail(422, 'Site visit is incomplete', {missing, invalid});
+    let v = visitsOf(p).find(x => x.status === 'rework');
+    if (!v){ v = {id: nextId('visit'), project_id: p.id, submission_count: 0, created_at: now()}; db.visits.push(v); }
+    Object.assign(v, {engineer_id: u.id, current_stage: b.current_stage,
+      form: {visit_at: b.visit_at, location: b.location, weather: b.weather.trim(), attendees: b.attendees.trim(),
+        summary: b.summary.trim(), recommended_action: b.recommended_action.trim()},
+      checklist: {...b.checklist}, no_issues: !!b.no_issues, problems: (b.problems || []).map(x => ({...x})),
+      computed_progress: deriveProgress(b.current_stage, b.checklist), status: 'submitted',
+      submission_count: v.submission_count + 1, submitted_at: now()});
+    audit(p, u, 'site_visit.submitted', {submission: v.submission_count, computed_progress: v.computed_progress});
+    setStep(p, 2, 'completed', u); setStep(p, 3, 'active', u);
+    return v;
+  }
+
+  function review(u, vid, b){
+    role(u, 'team_lead');
+    const v = db.visits.find(x => x.id === +vid); if (!v) fail(404, 'Site visit not found');
+    if (v.status !== 'submitted') fail(409, `Site visit is ${v.status}, not waiting for review`);
+    const comment = (b.comment || '').trim() || null;
+    if (b.decision === 'rework' && !comment) fail(422, 'Rework needs a comment for the engineer', {missing: ['comment']});
+    if (!['approve', 'rework'].includes(b.decision)) fail(422, 'Decision must be approve or rework');
+    const p = db.projects.find(x => x.id === v.project_id);
+    db.reviews.push({id: nextId('review'), visit_id: v.id, reviewer_id: u.id, decision: b.decision, comment, at: now()});
+    const d = {submission: v.submission_count, comment};
+    if (b.decision === 'approve'){
+      v.status = 'approved'; p.official_progress = v.computed_progress;
+      audit(p, u, 'site_visit.approved', {...d, official_progress: v.computed_progress});
+      setStep(p, 3, 'completed', u);
+    } else {
+      v.status = 'rework';
+      audit(p, u, 'site_visit.rework_requested', d);
+      setStep(p, 3, 'locked', u); setStep(p, 2, 'active', u);
+    }
+    return v;
+  }
+
+  /* ---------- sample data ---------- */
+  function seed(){
+    db = {v: 1, seq: {}, users: [
+      {id: 1, name: 'Meera Joshi', email: 'architect@siteflow.demo', role: 'architect'},
+      {id: 2, name: 'Parvez', email: 'parvez@siteflow.demo', role: 'team_lead'},
+      {id: 3, name: 'Farhan Shaikh', email: 'engineer@siteflow.demo', role: 'civil_engineer'},
+      {id: 4, name: 'Office Coordinator', email: 'admin@siteflow.demo', role: 'admin'}
+    ], projects: [], visits: [], reviews: [], audit: []};
+    db.seq.user = 4;
+    const [arch, lead, eng, admin] = db.users;
+    const at = days => { clockOffset = days * 864e5; };
+    const applied = (p, d, ref) => { at(d); updateLegal(admin, p.id, {status: 'Applied', authority_name: 'Pune Municipal Corporation', application_reference: ref, application_date: ymd(d)}); };
+    const approved = (p, d, ref) => { at(d); updateLegal(admin, p.id, {status: 'Approved', approval_date: ymd(d), document_reference: `PMC building permission ${ref}.pdf`}); };
+    const states = (stage, done) => Object.fromEntries(T.stages.find(s => s.name === stage).checklist.map((i, k) => [i.id, k < done ? 'Done' : k === done ? 'In progress' : 'Not started']));
+    const visit = (stage, done, extra) => ({visit_at: now(), location: {gps: null, manual: extra.where}, weather: extra.weather,
+      attendees: 'Farhan Shaikh (Civil Engineer), site contractor', current_stage: stage, checklist: states(stage, done),
+      no_issues: !extra.problems, problems: extra.problems || [], summary: extra.summary, recommended_action: extra.action});
+
+    // 1. Waiting on the authority: Legal Approval applied.
+    at(6); let p = createProject(arch, {name: 'Gokhale Residence', location: 'Plot 14, Baner Road, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(-20)});
+    applied(p, 4, 'PMC/BP/2026/0142');
+
+    // 2. Approved and ready for the first site visit.
+    at(14); p = createProject(arch, {name: 'Patil Villa', location: 'Survey No. 52, Aundh, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(0)});
+    applied(p, 12, 'PMC/BP/2026/0098'); approved(p, 2, 'PMC/BP/2026/0098');
+
+    // 3. Site visit submitted, waiting for Parvez.
+    at(40); p = createProject(arch, {name: 'Deshmukh Residence', location: 'Karve Road, Kothrud, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(20)});
+    applied(p, 38, 'PMC/BP/2026/0051'); approved(p, 25, 'PMC/BP/2026/0051');
+    at(0.3); submitVisit(eng, p.id, visit('Superstructure', 2, {where: 'Karve Road site, rear block', weather: 'Humid, overcast',
+      problems: [{category: 'Structural', problem: 'Honeycombing in concrete', other_text: null, severity: 'High', location: 'Column C4, ground floor',
+        responsible_party: 'Structural contractor', target_date: ymd(-7)},
+      {category: 'Safety', problem: 'Missing barricading', other_text: null, severity: 'Medium', location: 'Road-side edge of slab',
+        responsible_party: 'Site supervisor', target_date: ymd(-2)}],
+      summary: 'Columns and beams cast for the ground floor. Honeycombing found at column C4.',
+      action: 'Structural engineer to inspect C4 before the first-floor slab is poured.'}));
+
+    // 4. Reviewed once, reworked, then approved: progress is official.
+    at(70); p = createProject(arch, {name: 'Kapoor House', location: 'ITI Road, Aundh, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(50)});
+    applied(p, 68, 'PMC/BP/2026/0017'); approved(p, 55, 'PMC/BP/2026/0017');
+    at(9); let v = submitVisit(eng, p.id, visit('Masonry', 1, {where: 'ITI Road plot, Aundh', weather: 'Clear',
+      summary: 'External walls built. Partitions under way.', action: 'Continue partitions; cast lintels next week.'}));
+    at(8); review(lead, v.id, {decision: 'rework', comment: 'Please confirm the lintel status; it was cast last week per the contractor.'});
+    at(7); v = submitVisit(eng, p.id, visit('Masonry', 2, {where: 'ITI Road plot, Aundh', weather: 'Clear',
+      summary: 'External walls and partitions complete. Lintels in progress.', action: 'Cast remaining lintels; start internal plaster.'}));
+    at(6); review(lead, v.id, {decision: 'approve'});
+
+    clockOffset = 0;
+    save();
+  }
+
+  /* ---------- public interface (same as api.js) ---------- */
+  const run = fn => new Promise((resolve, reject) => {
+    setTimeout(() => {
+      try { load(); const out = fn(); save(); resolve(JSON.parse(JSON.stringify(out))); }
+      catch (e) { if (e instanceof ApiError) reject(e); else reject(new ApiError(500, 'Something went wrong in the demo. Reset the demo data and try again.')); }
+    }, 60);
+  });
+
+  return {
+    ApiError, isNative: false, demo: true,
+    base: () => 'Demo mode: sample data stays in this browser',
+    setBase(){},
+    signedIn: () => !!store.get(K_TOKEN),
+    onSignedOut(fn){ onSignedOut = fn; },
+    demoPassword: PASSWORD,
+    demoAccounts: [
+      {email: 'architect@siteflow.demo', label: 'Meera Joshi', role: 'Architect'},
+      {email: 'admin@siteflow.demo', label: 'Office Coordinator', role: 'Admin'},
+      {email: 'engineer@siteflow.demo', label: 'Farhan Shaikh', role: 'Civil Engineer'},
+      {email: 'parvez@siteflow.demo', label: 'Parvez', role: 'Team Lead'}
+    ],
+    resetDemo(){ store.set(K_DB, null); load(); },
+    login: (email, password) => run(() => {
+      const u = db.users.find(x => x.email === String(email).trim().toLowerCase());
+      if (!u || password !== PASSWORD) fail(401, 'Incorrect email or password');
+      store.set(K_TOKEN, String(u.id));
+      return {id: u.id, name: u.name, email: u.email, role: u.role};
+    }),
+    logout(){ store.set(K_TOKEN, null); },
+    me: () => run(() => { const u = current(); return {id: u.id, name: u.name, email: u.email, role: u.role}; }),
+    template: () => run(() => T),
+    projects: () => run(() => visible(current()).map(summary)),
+    project: id => run(() => detail(project(current(), id))),
+    createProject: body => run(() => detail(createProject(current(), body))),
+    engineers: () => run(() => { role(current(), 'architect'); return db.users.filter(u => u.role === 'civil_engineer').map(brief); }),
+    updateLegal: (id, body) => run(() => detail(updateLegal(current(), id, body))),
+    submitVisit: (id, body) => run(() => visitOut(submitVisit(current(), id, body))),
+    visit: id => run(() => {
+      const u = current(), v = db.visits.find(x => x.id === +id);
+      if (!v || !visible(u).some(p => p.id === v.project_id)) fail(404, 'Site visit not found');
+      return visitOut(v);
+    }),
+    reviewQueue: () => run(() => {
+      const u = current(); role(u, 'team_lead');
+      return db.visits.filter(v => v.status === 'submitted').sort((a, b) => a.submitted_at.localeCompare(b.submitted_at)).map(v => {
+        const p = db.projects.find(x => x.id === v.project_id);
+        return {id: v.id, project: {id: p.id, name: p.name, location: p.location}, engineer: brief(user(v.engineer_id)),
+          current_stage: v.current_stage, submission_count: v.submission_count, computed_progress: v.computed_progress,
+          submitted_at: v.submitted_at, waiting_minutes: Math.max(0, Math.floor((Date.now() - Date.parse(v.submitted_at)) / 6e4))};
+      });
+    }),
+    review: (id, body) => run(() => visitOut(review(current(), id, body)))
+  };
+})();
+
 (function(){
 'use strict';
 /* ---------- helpers ---------- */
@@ -628,3 +1280,8 @@ if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.App){
   catch (e) { showLogin(API.signedIn() ? e.message : null); }
 })();
 })();
+
+</script>
+
+</body>
+</html>

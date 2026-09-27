@@ -287,6 +287,13 @@ body.anon .side,body.anon .tabs{display:none}
 .login{max-width:400px;margin:10vh auto 0}
 .login .panel-b{padding:24px;gap:16px}
 .login details summary{cursor:pointer}
+.demo-box{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line-2);padding-top:14px}
+.demo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.demo-acct{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:9px 11px}
+.demo-acct:hover{border-color:var(--accent)}
+.demo-acct b{font-size:13.5px}
+.demo-acct span{font-size:11.5px;color:var(--ink-2)}
+.demo-tour{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;color:var(--ink-2)}
 
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:9px;font-weight:500;font-size:13.5px;transition:.25s;z-index:50;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -513,7 +520,8 @@ function shell(){
     <div class="side-foot">
       <div class="whois"><span class="eyebrow">Signed in</span>${who}</div>
       <button class="btn ghost sm" data-act="sign-out" data-testid="sign-out">Sign out</button>
-      <div class="credit">SiteFlow by TAN GLOBUS AI</div>
+      ${API.demo ? `<button class="btn ghost sm" data-act="reset-demo" data-testid="reset-demo">Reset demo data</button>` : ''}
+      <div class="credit">${API.demo ? 'Demo with sample data · ' : ''}SiteFlow by TAN GLOBUS AI</div>
     </div>`;
   $('#tabs').innerHTML = nav.map(([r, i, l]) => `<button data-go="${r}" class="${cur === r ? 'on' : ''}">${ico(i)}${l}${count(r)}</button>`).join('');
   return `<div class="mtop"><div class="brand"><span class="brand-mark">${ico('logo')}</span><b>SiteFlow</b></div><div class="row small">${who}<button class="btn ghost sm" data-act="sign-out" data-testid="sign-out">Sign out</button></div></div>
@@ -567,12 +575,27 @@ V.login = {html: () => `<div class="login panel" data-testid="login-view">
         <div class="field"><label for="li-pass">Password</label><input id="li-pass" data-testid="login-password" type="password" autocomplete="current-password" required></div>
         <button class="btn primary" type="submit" data-testid="login-submit">Sign in</button>
       </form>
-      <details class="small muted"><summary>Server</summary>
+      ${API.demo ? demoPanel() : `<details class="small muted"><summary>Server</summary>
         <div class="field" style="margin-top:8px"><label for="li-api">SiteFlow server address</label><input id="li-api" data-testid="login-server" value="${esc(API.base())}"></div>
         <button class="btn sm" data-act="set-server" style="margin-top:8px">Use this server</button>
-      </details>
+      </details>`}
       <div class="credit">SiteFlow by TAN GLOBUS AI</div>
     </div></div>`};
+
+/* Demo build only: one-tap accounts and the order to try them in. */
+function demoPanel(){
+  return `<div class="demo-box" data-testid="demo-accounts">
+    <div class="eyebrow">Demo accounts · password ${esc(API.demoPassword)}</div>
+    <div class="demo-grid">${API.demoAccounts.map(a => `<button class="demo-acct" data-act="demo-login" data-email="${esc(a.email)}" data-testid="demo-${esc(a.email.split('@')[0])}"><b>${esc(a.label)}</b><span>${esc(a.role)}</span></button>`).join('')}</div>
+    <ol class="demo-tour small">
+      <li><b>Office Coordinator</b> approves Legal Approval on Gokhale Residence.</li>
+      <li><b>Farhan Shaikh</b> records a site visit on Patil Villa.</li>
+      <li><b>Parvez</b> reviews Deshmukh Residence: approve, or send back for rework.</li>
+      <li><b>Meera Joshi</b> sees every project and its official progress.</li>
+    </ol>
+    <p class="small muted">Sample projects and people. Changes stay in this browser.</p>
+  </div>`;
+}
 
 V.projects = {
   load: async () => { ui.data.projects = await API.projects(); },
@@ -915,6 +938,15 @@ document.addEventListener('click', async e => {
     case 'sign-out': API.logout(); showLogin(); break;
     case 'set-server': API.setBase($('#li-api').value.trim()); toast(`Server set to ${API.base()}`); break;
     case 'start-visit': go('visit', {pid: +a.dataset.pid}); break;
+    case 'demo-login':
+      try { ui.me = await API.login(a.dataset.email, API.demoPassword); ui.error = null; await go('projects'); }
+      catch (err){ ui.error = err.message; render(); }
+      break;
+    case 'reset-demo':
+      // The viewer blocks confirm(), so a second tap confirms.
+      if (!a.dataset.confirm){ a.dataset.confirm = '1'; a.textContent = 'Tap again to reset'; setTimeout(() => { if (a.isConnected){ delete a.dataset.confirm; a.textContent = 'Reset demo data'; } }, 3000); break; }
+      API.resetDemo(); try { Object.keys(localStorage).filter(k => k.startsWith('siteflow.draft.')).forEach(k => localStorage.removeItem(k)); } catch (_) {}
+      toast('Demo data reset.'); await go('projects'); break;
     case 'open-review': go('review', {vid: +a.dataset.vid}); break;
     case 'add-problem': ui.data.draft.problems.push(blankProblem()); ui.data.draft.no_issues = false; saveDraft(); rerenderKeepScroll(); break;
     case 'del-problem': ui.data.draft.problems.splice(+a.dataset.n, 1); saveDraft(); rerenderKeepScroll(); break;
