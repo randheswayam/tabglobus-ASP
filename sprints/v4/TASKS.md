@@ -149,7 +149,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/modules/identity/__init__.py, backend/app/modules/identity/admin.py, backend/app/main.py, backend/tests/test_admin_users.py
   - Completed: 2026-09-28. modules/identity/admin.py (Admin only, behind require_staff): GET and POST /admin/users (staff roles only; a one-time temporary password is returned once and never logged; duplicate email gets 409); PATCH /admin/users/{id} (role, active; 409 for yourself or a client account; deactivation revokes every session); POST and DELETE /projects/{id}/members/{user_id} (409 for clients, duplicates, and the project's architect or assigned civil engineer). Every change is audited with before and after values. Tests: test_admin_users.py (18); the client route walk covers the new routes.
 
-- [ ] Task 13: Admin web screens for users and memberships (P0)
+- [x] Task 13: Admin web screens for users and memberships (P0)
   - Acceptance:
     - The Admin sees a "Team" navigation item with a users table and an add-user form. The temporary password is shown once.
     - The users table has role and active controls.
@@ -161,6 +161,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
       - the consultant signs in and sees that project.
     - Screenshots are saved.
   - Files: web-src/app.js, web-src/api.js, web-src/app.html, tests/e2e/v4-admin.spec.js
+  - Completed: 2026-09-28. The Admin gets a Team navigation item. The Team view has an add-user form (staff roles; the temporary password shown once), and a people table with role and active controls and a Save per row; the Admin's own row and client rows are read-only. The project page gains 'Team on this project' for the Admin: members with Remove (the architect and assigned civil engineer are marked Required), and a drop-down of active staff not yet on the project. Backend: GET /projects/{id}/members (Admin only, with removable). E2E v4-admin.spec.js (2): add a consultant, add them to a project, and they sign in and see it; change a role and deactivate; non-admins don't see Team.
 
 ### S02 and S03 — Workflow engine and template
 

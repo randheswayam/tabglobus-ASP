@@ -159,6 +159,13 @@ const SiteFlowAPI = (() => {
     removeSignoffAttachment: (id, aid) => request('DELETE', `/signoffs/${id}/attachments/${aid}`),
     uploadSignoffAttachment(id, file){ const fd = new FormData(); fd.append('file', file); return requestForm(`/signoffs/${id}/attachments`, fd); },
     inviteClient: (pid, name, email) => request('POST', `/projects/${pid}/client-invite`, {name, email}),
+    /* ---------- admin: users and project members ---------- */
+    adminUsers: () => request('GET', '/admin/users'),
+    createUser: body => request('POST', '/admin/users', body),
+    updateUser: (id, body) => request('PATCH', `/admin/users/${id}`, body),
+    projectMembers: pid => request('GET', `/projects/${pid}/members`),
+    addMember: (pid, uid) => request('POST', `/projects/${pid}/members/${uid}`),
+    removeMember: (pid, uid) => request('DELETE', `/projects/${pid}/members/${uid}`),
     completeStage: (pid, key, note) => request('POST', `/projects/${pid}/stages/${key}/complete`, {note}),
     visits: pid => request('GET', `/projects/${pid}/visits`),
     dashboard: filters => request('GET', '/dashboard' + (Object.keys(filters || {}).length ? '?' + new URLSearchParams(filters) : '')),

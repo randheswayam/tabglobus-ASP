@@ -1416,7 +1416,8 @@ const I = {
   cloud: '<path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/>',
   logo: '<path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6"/><path d="M4 20h16"/>',
   cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
-  rupee: '<path d="M7 5h10M7 9h10M7 5c6 0 6 8 0 8l7 7"/>'
+  rupee: '<path d="M7 5h10M7 9h10M7 5c6 0 6 8 0 8l7 7"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>'
 };
 const ico = (n, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
 
@@ -1446,7 +1447,8 @@ const can = {
   create: () => ui.me && ui.me.role === 'architect',
   legal: () => ui.me && ui.me.role === 'admin',
   visit: () => ui.me && ui.me.role === 'civil_engineer',
-  review: () => ui.me && ui.me.role === 'team_lead'
+  review: () => ui.me && ui.me.role === 'team_lead',
+  admin: () => ui.me && ui.me.role === 'admin'
 };
 
 /* ---------- toast ---------- */
@@ -1474,7 +1476,8 @@ function shell(){
   const u = ui.me;
   const nav = isClient() ? [['client-home', 'home', 'My projects'], ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : [])]
     : [...(home() === 'dashboard' ? [['dashboard', 'home', 'Dashboard']] : []), ['projects', 'folder', 'Projects'],
-      ...(can.review() ? [['queue', 'eye', 'Review queue']] : []), ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : [])];
+      ...(can.review() ? [['queue', 'eye', 'Review queue']] : []), ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : []),
+      ...(can.admin() && API.adminUsers ? [['team', 'users', 'Team']] : [])];
   const cur = ui.route === 'review' ? 'queue' : ['project', 'new-project', 'visit'].includes(ui.route) ? 'projects'
     : ['client-project', 'client-signoff'].includes(ui.route) ? 'client-home' : ui.route;
   const count = r => r === 'queue' && ui.queueCount ? `<span class="count" data-testid="queue-count">${ui.queueCount}</span>`
@@ -1702,6 +1705,35 @@ async function applyFilter(el){
 /* ---------- notifications ---------- */
 const NOTE_ICON = {step_unlocked: 'flow', submitted: 'eye', approved: 'check', rework: 'alert', red_flag: 'flag'};
 const NOTE_CLASS = {approved: 'ok', rework: 'warn', red_flag: 'warn', submitted: '', step_unlocked: 'ms'};
+V.team = {
+  load: async () => { ui.data.users = await API.adminUsers(); },
+  html: () => {
+    const staff = Object.entries(ROLES).filter(([k]) => k !== 'client');
+    const made = ui.data.created;
+    return `<div data-testid="team-view"><div class="head"><div><h1>Team</h1><div class="sub">${ui.data.users.length} people · staff and clients</div></div></div>
+      ${errBox()}
+      ${made ? `<div class="banner info"><span><b>${esc(made.user.name)} can now sign in.</b> Temporary password:
+        <span class="mono code-text" data-testid="temp-password">${esc(made.temporary_password)}</span><br>
+        <span class="small">Shown only once. Pass it on yourself; SiteFlow does not send it.</span></span></div>` : ''}
+      <section class="panel"><div class="panel-h"><h3>Add a team member</h3></div>
+        <form class="panel-b fgrid" data-form="add-user">
+          <div class="field"><label for="au-name">Name</label><input id="au-name" data-testid="add-user-name" required></div>
+          <div class="field"><label for="au-email">Email</label><input id="au-email" type="email" data-testid="add-user-email" required></div>
+          <div class="field"><label for="au-role">Role</label><select id="au-role" data-testid="add-user-role">${staff.map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}</select></div>
+          <div class="field"><button class="btn primary" type="submit" data-testid="add-user-submit">${ico('plus')}Add</button></div>
+        </form></section>
+      <section class="panel"><div class="panel-h"><h3>People</h3></div><div class="tbl-wrap"><table class="ftable">
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <tbody>${ui.data.users.map(u => {
+          const fixed = u.role === 'client' || u.id === ui.me.id;
+          return `<tr data-testid="user-row-${u.id}"><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td>
+          <td>${fixed ? esc(ROLES[u.role] || u.role) : `<select data-testid="user-role-${u.id}" aria-label="Role of ${esc(u.name)}">${staff.map(([k, v]) => `<option value="${k}" ${k === u.role ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`}</td>
+          <td>${fixed ? pill(u.active ? 'done' : '', u.active ? 'Active' : 'Inactive') : `<label class="row small"><input type="checkbox" data-testid="user-active-${u.id}" ${u.active ? 'checked' : ''}> Active</label> ${u.active ? '' : pill('', 'Inactive')}`}</td>
+          <td>${fixed ? `<span class="small muted">${u.role === 'client' ? 'Managed by invite' : 'You'}</span>` : `<button class="btn sm" data-act="user-save" data-uid="${u.id}" data-testid="user-save-${u.id}">Save</button>`}</td></tr>`;
+        }).join('')}</tbody></table></div></section></div>`;
+  }
+};
+
 V.alerts = {
   load: async () => { ui.data.notes = await API.notifications(); ui.unread = ui.data.notes.unread; },
   html: () => {
@@ -1867,6 +1899,9 @@ V.project = {
       API.projectClients ? API.projectClients(ui.p.pid) : null]);
     ui.data.project = p; ui.data.visits = visits; ui.data.problems = problems; ui.data.stages = stages; ui.data.clients = clients;
     ui.data.signoffs = API.signoffs ? await API.signoffs(ui.p.pid) : [];
+    if (can.admin() && API.projectMembers){
+      [ui.data.members, ui.data.allUsers] = await Promise.all([API.projectMembers(ui.p.pid), API.adminUsers()]);
+    }
   },
   html: () => {
     const p = ui.data.project;
@@ -1886,6 +1921,7 @@ V.project = {
           <dt>Civil Engineer</dt><dd>${esc(p.civil_engineer ? p.civil_engineer.name : '—')}</dd>
           <dt>Template</dt><dd>Residential v${p.template.version}</dd></dl></div></section>
         ${ui.data.clients ? clientPanel(ui.data.clients) : ''}
+        ${ui.data.members ? membersPanel(ui.data.members, ui.data.allUsers || []) : ''}
         ${ui.data.visits ? visitHistory(ui.data.visits) : ''}
         <section class="panel"><div class="panel-h"><h3>Audit trail</h3></div><div class="panel-b audit" data-testid="audit-list">${p.audit.slice().reverse().map(e => `<div><span class="mono muted small">${fmtStamp(e.at)}</span><span>${esc(auditText(e))} <span class="muted">· ${esc(e.actor || 'SiteFlow')}</span></span></div>`).join('')}</div></section>
       </div>
@@ -1954,6 +1990,21 @@ function draftEditor(r){
 async function reloadSignoffs(){ ui.data.signoffs = await API.signoffs(ui.data.project.id); }
 
 /* The client who tracks the project and signs off milestones in the client app. */
+/* Admin only: who is on the project. Clients join through the invite, so they are not offered here. */
+function membersPanel(members, all){
+  const on = new Set(members.map(m => m.id));
+  const candidates = all.filter(u => u.active && u.role !== 'client' && !on.has(u.id));
+  return `<section class="panel" data-testid="members-panel"><div class="panel-h"><h3>Team on this project</h3></div><div class="panel-b stack" style="gap:10px">
+    ${members.map(m => `<div class="person" data-testid="member-${m.id}"><span class="av">${esc(initials(m.name))}</span><div style="flex:1"><b>${esc(m.name)}</b>
+      <div class="small muted">${esc(ROLES[m.role] || m.role)}${m.active ? '' : ' · Inactive'}</div></div>
+      ${m.removable ? `<button class="btn ghost sm" data-act="member-remove" data-uid="${m.id}" data-testid="member-remove-${m.id}">Remove</button>`
+        : `<span class="small muted">${m.role === 'client' ? 'Client' : 'Required'}</span>`}</div>`).join('')}
+    ${candidates.length ? `<div class="row"><select id="mb-add" data-testid="member-add-select" aria-label="Add a team member">
+      ${candidates.map(u => `<option value="${u.id}">${esc(u.name)} · ${esc(ROLES[u.role] || u.role)}</option>`).join('')}</select>
+      <button class="btn sm" data-act="member-add" data-testid="member-add">${ico('plus')}Add to project</button></div>` : ''}
+  </div></section>`;
+}
+
 function clientPanel(clients){
   const inv = ui.data.invite;
   return `<section class="panel" data-testid="client-panel"><div class="panel-h"><h3>Client</h3></div><div class="panel-b stack" style="gap:12px">
@@ -2455,6 +2506,24 @@ document.addEventListener('click', async e => {
   switch (a.dataset.act){
     case 'open-project': go('project', {pid: +a.dataset.pid}); break;
     case 'sign-out': await API.logout(); showLogin(); break;
+    case 'user-save': {
+      const id = +a.dataset.uid;
+      const role = $(`[data-testid="user-role-${id}"]`).value, active = $(`[data-testid="user-active-${id}"]`).checked;
+      try { await API.updateUser(id, {role, active}); await V.team.load(); ui.error = null; toast('Saved.'); }
+      catch (err){ setError(err); }
+      render(); break;
+    }
+    case 'member-add': {
+      const uid = +$('#mb-add').value;
+      try { await API.addMember(ui.p.pid, uid); await V.project.load(); ui.error = null; toast('Added to the project.'); }
+      catch (err){ setError(err); }
+      rerenderKeepScroll(); break;
+    }
+    case 'member-remove': {
+      try { await API.removeMember(ui.p.pid, +a.dataset.uid); await V.project.load(); ui.error = null; toast('Removed from the project.'); }
+      catch (err){ setError(err); }
+      rerenderKeepScroll(); break;
+    }
     case 'sign-out-all':
       try { await API.logoutAll(); showLogin('You are signed out on all your devices.'); }
       catch (err){ setError(err); render(); }
@@ -2632,6 +2701,12 @@ document.addEventListener('submit', async e => {
         try { ui.me = await API.activate(ui.loginEmail, ui.activateCode, password); }
         catch (err){ ui.error = err.message; if (err.status === 400) ui.activateCode = ''; render(); return; }
         ui.error = null; ui.activating = false; ui.activateCode = ''; toast('Welcome to SiteFlow.'); await go(home()); break;
+      }
+      case 'add-user': {
+        const body = {name: $('#au-name').value.trim(), email: $('#au-email').value.trim(), role: $('#au-role').value};
+        try { ui.data.created = await API.createUser(body); ui.data.users = await API.adminUsers(); ui.error = null; }
+        catch (err){ setError(err); }
+        render(); break;
       }
       case 'login': {
         ui.loginEmail = $('#li-email').value.trim();

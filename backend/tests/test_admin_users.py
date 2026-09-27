@@ -122,3 +122,13 @@ def test_membership_guard_rails(client, auth_headers, new_project, users):
         client.post(f"/projects/{pid}/members/{users['accounts'].id}", headers=auth_headers("architect")).status_code
         == 403
     )
+
+
+def test_admin_lists_project_members(client, auth_headers, new_project, users):
+    pid = new_project()["id"]
+    r = client.get(f"/projects/{pid}/members", headers=auth_headers("admin"))
+    assert r.status_code == 200
+    names = {m["name"]: m for m in r.json()}
+    assert names["Meera Joshi"]["role"] == "architect" and names["Meera Joshi"]["removable"] is False
+    assert names["Farhan Shaikh"]["removable"] is False
+    assert client.get(f"/projects/{pid}/members", headers=auth_headers("architect")).status_code == 403

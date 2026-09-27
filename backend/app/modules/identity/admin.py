@@ -141,6 +141,21 @@ def _membership(db: Session, project: Project, user: User) -> ProjectMember | No
     ).first()
 
 
+def _fixed_member_ids(project: Project) -> set[int]:
+    """The project's architect and assigned civil engineer: removing them would break the workflow."""
+    engineer = civil_engineer_of(project)
+    return {project.created_by_id} | ({engineer.id} if engineer is not None else set())
+
+
+@router.get("/projects/{project_id}/members")
+def list_members(project_id: int, _: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+    fixed = _fixed_member_ids(project)
+    return [{**user_out(pm.user), "removable": pm.user_id not in fixed} for pm in project.members]
+
+
 @router.post("/projects/{project_id}/members/{user_id}", status_code=status.HTTP_201_CREATED)
 def add_member(project_id: int, user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     project, user = _project_and_user(db, project_id, user_id)
@@ -170,8 +185,7 @@ def remove_member(
     member = _membership(db, project, user)
     if member is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"{user.name} is not on this project")
-    engineer = civil_engineer_of(project)
-    if user.id == project.created_by_id or (engineer is not None and user.id == engineer.id):
+    if user.id in _fixed_member_ids(project):
         raise HTTPException(
             status.HTTP_409_CONFLICT, "The project's architect and assigned civil engineer stay on the project"
         )
