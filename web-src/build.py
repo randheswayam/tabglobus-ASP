@@ -36,12 +36,18 @@ def demo_template():
     """The /template payload, built from the backend's own config so the demo never drifts from it."""
     sys.path.insert(0, os.path.join(root, 'backend'))
     from app import template_config as tc
+    from app import workflow_config as wc
     return {
         "id": tc.TEMPLATE_ID, "version": tc.TEMPLATE_VERSION, "steps": tc.WORKFLOW_STEPS,
         "stages": [{"name": s["name"], "weight": s["weight"],
                     "checklist": [{"id": i["id"], "label": i["label"]} for i in s["checklist"]]} for s in tc.STAGES],
         "checklist_states": tc.CHECKLIST_STATES, "problems": tc.PROBLEMS,
         "severities": tc.SEVERITIES, "min_photos": tc.MIN_PHOTOS,
+        "max_photo_mb": wc.MAX_PHOTO_MB, "max_video_mb": wc.MAX_VIDEO_MB,
+        "photo_types": wc.PHOTO_TYPES, "video_types": wc.VIDEO_TYPES,
+        "red_flag_rules": wc.RED_FLAG_RULES,
+        "workflow": {"review_sla_hours": wc.REVIEW_SLA_HOURS, "visit_interval_days": wc.VISIT_INTERVAL_DAYS,
+                     "rework_limit": wc.REWORK_LIMIT},
     }
 
 

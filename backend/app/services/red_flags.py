@@ -12,15 +12,7 @@ from app.models import Problem, ProblemStatus, RedFlag, Review, ReviewDecision, 
 from app.schemas import iso_utc, user_brief
 from app.services import audit, notify
 
-# rank orders the "Needs Architect Attention" list: higher first.
-RULES = {
-    "critical_issue": {"label": "Critical issue", "rank": 5},
-    "overdue_fix": {"label": "Overdue fix", "rank": 4},
-    "review_overdue": {"label": "Review overdue", "rank": 3},
-    "repeated_rework": {"label": "Repeated rework", "rank": 3},
-    "legal_delay": {"label": "Legal delay", "rank": 2},
-    "no_recent_visit": {"label": "No recent visit", "rank": 1},
-}
+RULES = wc.RED_FLAG_RULES
 
 
 @dataclass

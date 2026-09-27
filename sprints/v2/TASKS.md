@@ -196,10 +196,11 @@
   - Files: capacitor.config.json, android/app/src/debug/res/xml/network_security_config.xml, android/app/src/debug/AndroidManifest.xml, README.md
   - Status 2026-09-27, partly done and blocked: this machine has no JDK and no Android SDK, so `npm run apk` and the emulator check could not run. Done: a debug-only network security config that permits cleartext, a debug-only mixed-content allowance in MainActivity (the runtime debuggable flag, so no Gradle change), the README section, and a successful `npx cap sync android`. I chose not to change androidScheme to http in capacitor.config.json: it is global, so it would change release builds and the app's storage origin too. The release manifest is unchanged and still blocks cleartext. XML validated, and semgrep's Java rules report nothing. Still open: build with JDK 21 and Android SDK 35 (or the GitHub Actions workflow), then on an emulator sign in, take a photo and submit against run_local.py. Otherwise leave the device check for T3.
 
-- [ ] Task 21: Client demo parity (P2)
+- [x] Task 21: Client demo parity (P2)
   - Acceptance:
     - `demo-api.js` implements the draft, media (stored in the browser as blobs or data URLs, size-capped), problems, red flags, dashboard, filters and notifications endpoints with the same rules.
     - The sample data includes photos drawn on a canvas, one Critical issue flag, one Legal delay flag and a second approved visit on Kapoor House.
     - The demo E2E test is extended to cover the dashboard and clearing a flag.
     - The shared demo link is republished.
   - Files: web-src/demo-api.js, web-src/build.py, tests/e2e/demo.spec.js, demo/
+  - Completed: 2026-09-27. demo-api.js is rebuilt with v2 parity: drafts and media (photos shrunk to 800px JPEG data URLs, videos kept for the browser session only), photo evidence rules, recurring visits, open problems and resolve, red flags (the same six rules, manual clear, re-arm), the dashboard with all filters, notifications and visit history. The limits, rule labels and thresholds come from the backend config through build.py (RED_FLAG_RULES moved into workflow_config.py so build.py still runs on a plain Python). Sample data has canvas-drawn photos, a Critical issue on Kapoor House (second approved visit), a Legal delay on Gokhale Residence and a submission waiting for Parvez. The demo E2E test now covers the dashboard, photos, notifications and clearing a flag. The shared link is republished.
