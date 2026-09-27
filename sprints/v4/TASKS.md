@@ -136,7 +136,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/services/audit.py, backend/app/routers/legal.py, backend/tests/test_audit.py
   - Completed: 2026-09-28. audit.record takes changes={field: [old, new]}, stored in detail['changes']. Secret fields (password, refresh, previous and code hashes, token_hash) are always dropped. audit.diff(obj, new_values) builds the dict with JSON-friendly values (enum values, ISO dates) for changed fields only. The Legal Approval update passes its changes and keeps its existing from, to and fields keys. There is no project edit endpoint yet; the admin user and membership changes (Task 12) and the fee plan (Task 18) use changes when built. Tests: test_audit.py (4).
 
-- [ ] Task 12: Admin API for users and project memberships (P0)
+- [x] Task 12: Admin API for users and project memberships (P0)
   - Acceptance:
     - New module `backend/app/modules/identity/admin.py` (Admin only):
       - `GET /admin/users`;
@@ -147,6 +147,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - Every change is audited with before and after values.
     - Non-admins get 403, and the route walk still passes.
   - Files: backend/app/modules/identity/__init__.py, backend/app/modules/identity/admin.py, backend/app/main.py, backend/tests/test_admin_users.py
+  - Completed: 2026-09-28. modules/identity/admin.py (Admin only, behind require_staff): GET and POST /admin/users (staff roles only; a one-time temporary password is returned once and never logged; duplicate email gets 409); PATCH /admin/users/{id} (role, active; 409 for yourself or a client account; deactivation revokes every session); POST and DELETE /projects/{id}/members/{user_id} (409 for clients, duplicates, and the project's architect or assigned civil engineer). Every change is audited with before and after values. Tests: test_admin_users.py (18); the client route walk covers the new routes.
 
 - [ ] Task 13: Admin web screens for users and memberships (P0)
   - Acceptance:

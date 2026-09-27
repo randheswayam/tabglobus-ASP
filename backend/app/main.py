@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db import create_all, migrate
+from app.modules.identity import admin as identity_admin
 from app.routers import (
     auth,
     client,
@@ -51,6 +52,7 @@ app.include_router(invites.router)
 app.include_router(signoffs.router)
 app.include_router(client.router)
 app.include_router(updates.router)
+app.include_router(identity_admin.router)
 app.include_router(legal.router)
 app.include_router(site_visits.router)
 app.include_router(media.router)
