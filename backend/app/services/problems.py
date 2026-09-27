@@ -1,8 +1,9 @@
 from datetime import date
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Problem, SiteVisit
+from app.models import Media, MediaKind, Problem, SiteVisit
 from app.schemas import iso_utc, user_brief
 
 
@@ -17,6 +18,16 @@ def open_from_visit(db: Session, visit: SiteVisit) -> list[Problem]:
         db.add(item)
         items.append(item)
     return items
+
+
+def problem_photo(db: Session, problem: Problem) -> int | None:
+    """The photo tagged to the problem, else the visit's first photo."""
+    photos = db.scalars(select(Media).where(Media.site_visit_id == problem.site_visit_id,
+                                            Media.kind == MediaKind.photo).order_by(Media.id)).all()
+    if not photos:
+        return None
+    tagged = next((m for m in photos if m.problem_ref == problem.index), None)
+    return (tagged or photos[0]).id
 
 
 def problem_out(p: Problem) -> dict:

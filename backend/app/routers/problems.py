@@ -9,7 +9,7 @@ from app.db import get_db
 from app.deps import get_visible_project, require_role, visible_projects
 from app.models import Problem, ProblemStatus, Project, Role, User
 from app.services import audit, red_flags
-from app.services.problems import problem_out
+from app.services.problems import problem_out, problem_photo
 
 router = APIRouter(tags=["problems"])
 
@@ -24,7 +24,7 @@ def list_problems(status: ProblemStatus | None = None, project: Project = Depend
     stmt = select(Problem).where(Problem.project_id == project.id).order_by(Problem.id)
     if status is not None:
         stmt = stmt.where(Problem.status == status)
-    return [problem_out(p) for p in db.scalars(stmt)]
+    return [{**problem_out(p), "photo_id": problem_photo(db, p)} for p in db.scalars(stmt)]
 
 
 @router.post("/problems/{problem_id}/resolve")

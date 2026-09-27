@@ -169,12 +169,13 @@
   - Files: web-src/api.js, web-src/app.js, tests/e2e/v2-notifications.spec.js
   - Completed: 2026-09-27. The Notifications nav item (sidebar and mobile tabs) shows the unread count, refreshed after each navigation. The list has an icon per kind and marks new items. Opening one marks it read and goes to its project. Mark all read works. Hidden when the API has no notifications (the demo, until Task 21). 1 new E2E test (14 in total).
 
-- [ ] Task 18: UI: resolve open problems (P1)
+- [x] Task 18: UI: resolve open problems (P1)
   - Acceptance:
     - The project page lists open problems with their severity, owner, target date (overdue shown in red) and photos.
     - The engineer and the team lead see Resolve, which needs a note. After resolving, the problem moves to Resolved, and any Critical issue or Overdue fix flag clears on the dashboard.
     - The Playwright test resolves a problem and sees its flag clear.
   - Files: web-src/api.js, web-src/app.js, tests/e2e/v2-problems.spec.js
+  - Completed: 2026-09-27. The project page has an Open problems panel with severity, category, location, owner, target date (overdue shown in red) and the problem photo, which opens in the in-page viewer. Resolve is inline with a required note, for the engineer and the team lead. Resolved problems sit in a collapsed list. Resolving clears the Critical issue or Overdue fix flag, checked on the dashboard. The problem list API now includes photo_id; the helper moved to services/problems.py and is shared with the dashboard. 1 new API test (234 in total), 1 new E2E test (15 in total).
 
 - [ ] Task 19: Run on PostgreSQL (P1)
   - Acceptance:

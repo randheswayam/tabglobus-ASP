@@ -108,3 +108,8 @@ def test_invisible_or_missing_problem_is_404(client, db, auth_headers, approved)
 def test_invalid_status_filter_is_422(client, auth_headers, approved):
     r = client.get(f"/projects/{approved['project_id']}/problems", params={"status": "maybe"}, headers=auth_headers("team_lead"))
     assert r.status_code == 422
+
+
+def test_problem_list_includes_the_problem_photo(client, auth_headers, approved):
+    item = _problems(client, auth_headers("team_lead"), approved["project_id"])[0]
+    assert isinstance(item["photo_id"], int)

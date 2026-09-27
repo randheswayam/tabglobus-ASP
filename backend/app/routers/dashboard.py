@@ -10,10 +10,10 @@ from sqlalchemy.orm import Session
 from app import template_config as tc
 from app.db import get_db
 from app.deps import get_current_user, visible_projects
-from app.models import Media, MediaKind, Problem, ProblemStatus, Project, RedFlag, User
+from app.models import Problem, ProblemStatus, Project, RedFlag, User
 from app.routers.reviews import queue_rows
 from app.schemas import approved_at, civil_engineer_of, current_step_name, user_brief
-from app.services.problems import problem_out
+from app.services.problems import problem_out, problem_photo
 from app.services.red_flags import flag_out, sync_red_flags
 
 router = APIRouter(tags=["dashboard"])
@@ -24,16 +24,6 @@ _SEVERITY_ORDER = {"Critical": 0, "High": 1}
 def _last_visit_at(project: Project) -> str | None:
     times = [approved_at(v) for v in project.site_visits if v.status.value == "approved"]
     return max(times) if times else None
-
-
-def _problem_photo(db: Session, problem: Problem) -> int | None:
-    """The photo tagged to the problem, else the visit's first photo."""
-    photos = db.scalars(select(Media).where(Media.site_visit_id == problem.site_visit_id,
-                                            Media.kind == MediaKind.photo).order_by(Media.id)).all()
-    if not photos:
-        return None
-    tagged = next((m for m in photos if m.problem_ref == problem.index), None)
-    return (tagged or photos[0]).id
 
 
 Step = Literal["Legal Approval", "Site Visit", "Team Lead Review"]
@@ -108,6 +98,6 @@ def dashboard(q: str | None = None, location: str | None = None, step: Step | No
     return {
         "all_projects": rows,
         "needs_attention": attention,
-        "major_problems": [{**problem_out(x), "photo_id": _problem_photo(db, x)} for x in major],
+        "major_problems": [{**problem_out(x), "photo_id": problem_photo(db, x)} for x in major],
         "review_queue": queue_rows(db, sorted(kept)),
     }

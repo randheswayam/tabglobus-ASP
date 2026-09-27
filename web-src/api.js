@@ -78,6 +78,8 @@ const SiteFlowAPI = (() => {
     dashboard: filters => request('GET', '/dashboard' + (Object.keys(filters || {}).length ? '?' + new URLSearchParams(filters) : '')),
     clearFlag: (id, reason) => request('POST', `/red-flags/${id}/clear`, {reason}),
     notifications: () => request('GET', '/notifications'),
+    problems: pid => request('GET', `/projects/${pid}/problems`),
+    resolveProblem: (id, note) => request('POST', `/problems/${id}/resolve`, {note}),
     readNotification: id => request('POST', `/notifications/${id}/read`),
     readAllNotifications: () => request('POST', '/notifications/read-all'),
     deleteMedia: id => request('DELETE', `/media/${id}`),
