@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://siteflow:siteflow@localhost:5432/siteflow"
     jwt_secret: str = "change-me-in-env"
     jwt_expire_minutes: int = 720
+    # Run Alembic migrations at startup. The test suite turns this off and uses create_all.
+    auto_migrate: bool = True
     # Uploaded photos and video. "local" stores files under media_dir; S3 comes later.
     storage_backend: str = "local"
     media_dir: str = str(Path(__file__).resolve().parents[1] / "media")

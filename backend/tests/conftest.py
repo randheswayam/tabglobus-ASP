@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("PASSWORD_HASH_ITERATIONS", "1000")
+os.environ.setdefault("AUTO_MIGRATE", "false")
 
 from app import models  # noqa: E402,F401  (registers tables)
 from app.db import Base, SessionLocal, engine  # noqa: E402

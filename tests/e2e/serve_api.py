@@ -20,11 +20,11 @@ sys.path.insert(0, str(HERE.parents[1] / "backend"))
 
 import uvicorn  # noqa: E402
 
-from app.db import SessionLocal, create_all  # noqa: E402
+from app.db import SessionLocal, migrate  # noqa: E402
 from app.main import app  # noqa: E402
 from app.seed import seed  # noqa: E402
 
-create_all()
+migrate()
 with SessionLocal() as db:
     seed(db, password=os.environ.get("SEED_PASSWORD", "e2e-pass-123"))
 

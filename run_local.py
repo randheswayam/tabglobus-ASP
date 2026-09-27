@@ -28,7 +28,7 @@ sys.path.insert(0, str(BACKEND))
 
 import uvicorn  # noqa: E402
 
-from app.db import SessionLocal, create_all  # noqa: E402
+from app.db import SessionLocal, migrate  # noqa: E402
 from app.models import User  # noqa: E402
 from app.seed import SEED_USERS, seed  # noqa: E402
 
@@ -42,7 +42,7 @@ def main() -> None:
     sys.stdout.reconfigure(line_buffering=True)
     subprocess.run([sys.executable, str(ROOT / "web-src" / "build.py")], check=True)
 
-    create_all()
+    migrate()
     with SessionLocal() as db:
         first_run = db.query(User).count() == 0
         password = (os.environ.get("SEED_PASSWORD") or secrets.token_urlsafe(9)) if first_run else None

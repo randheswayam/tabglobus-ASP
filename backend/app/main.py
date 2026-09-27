@@ -4,13 +4,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.db import create_all
+from app.db import create_all, migrate
 from app.routers import auth, legal, projects, reviews, site_visits, template
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    create_all()
+    if get_settings().auto_migrate:
+        migrate()
+    else:
+        create_all()
     yield
 
 

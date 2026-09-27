@@ -12,7 +12,7 @@
   - Files: backend/requirements.txt, backend/app/workflow_config.py, backend/app/config.py, backend/app/services/storage.py, backend/.gitignore, backend/tests/test_storage.py
   - Completed: 2026-09-27. workflow_config.py holds the D3, D4 and D5 placeholders. Storage protocol with LocalStorage: keys must match a strict pattern (each segment starts with a letter or digit) and must resolve inside MEDIA_DIR. Settings gain MEDIA_DIR and STORAGE_BACKEND. Added alembic and python-multipart. 10 new tests, 121 in total.
 
-- [ ] Task 2: Alembic baseline migration, applied at startup (P0)
+- [x] Task 2: Alembic baseline migration, applied at startup (P0)
   - Acceptance:
     - `alembic.ini` and `migrations/` are set up.
     - Revision `0001_v1_baseline` creates exactly the v1 tables.
@@ -20,6 +20,7 @@
     - A test upgrades an empty SQLite file and compares its tables and columns with `Base.metadata`.
     - Every later v2 schema change in this sprint adds its own revision.
   - Files: backend/alembic.ini, backend/migrations/env.py, backend/migrations/versions/0001_v1_baseline.py, backend/app/db.py, backend/app/main.py, backend/tests/test_migrations.py
+  - Completed: 2026-09-27. Baseline 0001 generated from the v1 models. migrate() runs at startup (AUTO_MIGRATE, off in the test suite). A v1 database made by create_all is stamped 0001 first, so existing local data is kept. run_local.py and the E2E server now migrate too. 3 new tests, 124 in total.
 
 - [ ] Task 3: Recurring site visits (P0)
   - Acceptance:
