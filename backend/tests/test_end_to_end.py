@@ -9,7 +9,8 @@ def test_full_three_step_loop(client, users, auth_headers, evidence):
     # Architect creates the project; only Legal Approval is open.
     p = client.post("/projects", json={"name": "Deshmukh Residence", "location": "Kothrud, Pune",
                                        "civil_engineer_id": users["civil_engineer"].id,
-                                       "legal_expected_date": "2026-10-31"}, headers=architect).json()
+                                       "legal_expected_date": "2026-10-31", "start_stage": "line_out",
+                                       "historical_confirmed_by": "Parvez"}, headers=architect).json()
     pid = p["id"]
     assert p["current_step"] == "Legal Approval"
     assert client.post(f"/projects/{pid}/site-visits", json=valid_visit(), headers=engineer).status_code == 409

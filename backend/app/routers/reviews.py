@@ -9,7 +9,7 @@ from app.db import get_db
 from app.deps import require_role, visible_projects
 from app.models import Project, Review, ReviewDecision, Role, SiteVisit, User, VisitStatus
 from app.schemas import iso_utc, user_brief, visit_out
-from app.services import audit, notify, problems, red_flags, workflow
+from app.services import audit, notify, problems, red_flags, stages, workflow
 
 router = APIRouter(tags=["reviews"])
 
@@ -72,6 +72,7 @@ def review_site_visit(visit_id: int, body: ReviewIn, user: User = Depends(requir
                      entity_id=visit.id, detail={**detail, "official_progress": visit.computed_progress})
         problems.open_from_visit(db, visit)
         notify.approved(db, project, visit.computed_progress, user)
+        stages.visit_approved(db, project, user)
         # Recurring visits: this cycle's review is done, and Site Visit reopens for the next visit.
         workflow.complete(db, project, workflow.REVIEW, user)
         workflow.activate(db, project, workflow.SITE_VISIT, user)

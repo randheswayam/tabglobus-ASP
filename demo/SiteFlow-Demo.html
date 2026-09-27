@@ -1215,7 +1215,7 @@ function majorRow(x){
     ${x.photo_id ? `<span class="major-thumb"><img data-mid="${x.photo_id}" alt="Photo of the problem"></span>` : `<span class="fic">${ico('alert')}</span>`}
     <div><div><b>${esc(x.problem)}</b> · ${esc(x.project.name)}</div>
       <div class="when">${pill(x.severity === 'Critical' ? 'rework' : 'active', x.severity)}<span>${esc(x.location)}</span><span>· ${esc(x.responsible_party)}</span>
-      <span class="${x.target_date < new Date().toISOString().slice(0, 10) ? 'overdue-text' : ''}">· fix by ${fmtDate(x.target_date)}</span></div></div></button>`;
+      <span class="${x.target_date < today() ? 'overdue-text' : ''}">· fix by ${fmtDate(x.target_date)}</span></div></div></button>`;
 }
 function filterBar(f){
   const T = TEMPLATE, sel = (id, label, options, val) => `<label class="flt"><span>${label}</span><select id="${id}" data-flt="${id.slice(3)}" data-testid="${id}"><option value="">Any</option>${options.map(([v, l]) => `<option value="${esc(v)}" ${String(val ?? '') === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
@@ -1317,10 +1317,10 @@ V.project = {
 /* Open problems from approved visits, tracked until the engineer or Parvez resolves them. */
 function problemsPanel(list){
   const open = list.filter(x => x.status === 'open'), done = list.filter(x => x.status === 'resolved');
-  const today = new Date().toISOString().slice(0, 10);
+  const todayYmd = today();  // the device's local date
   const canResolve = ui.me.role === 'civil_engineer' || ui.me.role === 'team_lead';
   const row = x => {
-    const resolving = ui.p.resolving === x.id, overdue = x.status === 'open' && x.target_date < today;
+    const resolving = ui.p.resolving === x.id, overdue = x.status === 'open' && x.target_date < todayYmd;
     return `<div class="prob" data-testid="problem-item-${x.id}">
       ${x.photo_id ? `<button class="major-thumb" data-act="open-photo" data-mid="${x.photo_id}" aria-label="Open photo"><img data-mid="${x.photo_id}" alt="Photo of the problem"></button>` : `<span class="fic">${ico('alert')}</span>`}
       <div class="prob-b"><div class="row" style="justify-content:space-between"><b>${esc(x.problem)}</b>${pill(['High', 'Critical'].includes(x.severity) ? 'rework' : 'active', x.severity)}</div>

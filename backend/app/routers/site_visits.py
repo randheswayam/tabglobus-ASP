@@ -7,7 +7,7 @@ from app.db import get_db
 from app.deps import get_current_user, get_visible_project, require_role, visible_projects
 from app.models import Project, Role, SiteVisit, User, VisitStatus
 from app.schemas import visit_out
-from app.services import audit, notify, red_flags, workflow
+from app.services import audit, notify, red_flags, stages, workflow
 from app.services.progress import derive_progress
 from app.services.validation import SiteVisitIn, missing_evidence, validate_site_visit
 
@@ -16,6 +16,13 @@ router = APIRouter(tags=["site visits"])
 
 def _clean(s: str | None) -> str | None:
     return s.strip() if isinstance(s, str) else s
+
+
+def _require_site_visit_open(db: Session, project: Project) -> None:
+    if not stages.construction_started(db, project):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Site visits open once Site line-out (stage 14) has started")
+    if not workflow.is_active(project, workflow.SITE_VISIT):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Site Visit step is not open for this project")
 
 
 def _open_visit(project: Project) -> SiteVisit | None:
@@ -27,8 +34,7 @@ def _open_visit(project: Project) -> SiteVisit | None:
 def open_draft(user: User = Depends(require_role(Role.civil_engineer)),
                project: Project = Depends(get_visible_project), db: Session = Depends(get_db)) -> dict:
     """The server-side visit that photos and video attach to before submission. Form fields stay on the device."""
-    if not workflow.is_active(project, workflow.SITE_VISIT):
-        raise HTTPException(status.HTTP_409_CONFLICT, "Site Visit step is not open for this project")
+    _require_site_visit_open(db, project)
     visit = _open_visit(project)
     if visit is None:
         visit = SiteVisit(project_id=project.id, engineer_id=user.id, status=VisitStatus.draft, submission_count=0)
@@ -41,8 +47,7 @@ def open_draft(user: User = Depends(require_role(Role.civil_engineer)),
 @router.post("/projects/{project_id}/site-visits", status_code=status.HTTP_201_CREATED)
 def submit_site_visit(body: SiteVisitIn, user: User = Depends(require_role(Role.civil_engineer)),
                       project: Project = Depends(get_visible_project), db: Session = Depends(get_db)) -> dict:
-    if not workflow.is_active(project, workflow.SITE_VISIT):
-        raise HTTPException(status.HTTP_409_CONFLICT, "Site Visit step is not open for this project")
+    _require_site_visit_open(db, project)
 
     missing, invalid = validate_site_visit(body)
     open_visit = _open_visit(project)

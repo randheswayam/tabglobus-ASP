@@ -3,6 +3,9 @@ import pytest
 
 from tests.conftest import valid_visit
 
+# Onboarded at Site line-out, so the site-visit loop is open (v3 construction gate).
+IN_CONSTRUCTION = {"start_stage": "line_out", "historical_confirmed_by": "Parvez"}
+
 CRITICAL = {**valid_visit()["problems"][0], "category": "Structural", "problem": "Honeycombing in concrete",
             "severity": "Critical", "location": "Column C4", "target_date": "2026-11-30"}
 
@@ -42,19 +45,19 @@ def portfolio(client, users, auth_headers, new_project, evidence, db):
     db.add(other)
     db.commit()
 
-    a = new_project("Aundh Villa", location="Aundh, Pune")
+    a = new_project("Aundh Villa", location="Aundh, Pune", **IN_CONSTRUCTION)
     approve_legal(a["id"])
     approve(submit(a["id"])["id"])
 
     b = new_project("Baner Heights", location="Baner, Pune", legal_expected_date="2026-09-01")
 
-    c = new_project("Kothrud House", location="Kothrud, Pune")
+    c = new_project("Kothrud House", location="Kothrud, Pune", **IN_CONSTRUCTION)
     approve_legal(c["id"])
     submit(c["id"], current_stage="Superstructure",
            checklist={"sup-columns": "Done", "sup-beams": "Done", "sup-slab": "Not started", "sup-curing": "Not started"},
            problems=[CRITICAL])
 
-    d = new_project("Deccan Row House", location="Deccan, Pune", civil_engineer_id=other.id)
+    d = new_project("Deccan Row House", location="Deccan, Pune", civil_engineer_id=other.id, **IN_CONSTRUCTION)
     approve_legal(d["id"])
     return {"A": a["id"], "B": b["id"], "C": c["id"], "D": d["id"], "other_engineer": other}
 

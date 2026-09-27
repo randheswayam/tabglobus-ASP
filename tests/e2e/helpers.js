@@ -46,7 +46,8 @@ async function api(request, role, method, url, data) {
 async function createApprovedProject(request, name) {
   const users = await api(request, 'architect', 'GET', '/users?role=civil_engineer');
   const p = await api(request, 'architect', 'POST', '/projects',
-    { name, location: 'Baner, Pune', civil_engineer_id: users[0].id, legal_expected_date: '2026-11-30' });
+    { name, location: 'Baner, Pune', civil_engineer_id: users[0].id, legal_expected_date: '2026-11-30',
+      start_stage: 'line_out', historical_confirmed_by: 'Parvez' });  // in construction, earlier stages historical
   await api(request, 'admin', 'PATCH', `/projects/${p.id}/legal`,
     { status: 'Applied', authority_name: 'PMC', application_reference: 'BP-1', application_date: '2026-09-01' });
   await api(request, 'admin', 'PATCH', `/projects/${p.id}/legal`,

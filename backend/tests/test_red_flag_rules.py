@@ -84,3 +84,10 @@ def test_every_rule_has_a_label_and_rank():
     assert set(RULES) == {"critical_issue", "legal_delay", "review_overdue", "repeated_rework", "no_recent_visit", "overdue_fix"}
     assert all(r["label"] and isinstance(r["rank"], int) for r in RULES.values())
     assert RULES["critical_issue"]["rank"] > RULES["no_recent_visit"]["rank"]
+
+
+def test_dates_use_the_office_timezone_not_utc():
+    """Just after midnight in Pune it is still the previous day in UTC; 'overdue' must follow Pune's date."""
+    just_after_midnight_ist = datetime(2026, 10, 14, 19, 0, tzinfo=timezone.utc)  # 15 Oct 00:30 in Asia/Kolkata
+    s = state(problems=[ProblemState(id=12, severity="Low", target_date=date(2026, 10, 14), open=True)])
+    assert evaluate_flags(s, just_after_midnight_ist, CFG) == {("overdue_fix", "problem-12")}

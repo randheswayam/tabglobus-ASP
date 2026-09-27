@@ -59,13 +59,14 @@
   - Files: backend/app/routers/stages.py, backend/app/services/stages.py, backend/app/services/notify.py, backend/tests/test_stages_api.py
   - Completed: 2026-09-27. POST /projects/{id}/stages/{key}/complete. Client sign-off stages always return 409 ('completes when the client approves'). The wrong role returns 403 (the owner, Architect or Team Lead may complete). A locked, blocked or completed stage returns 409 with its reasons. A blank note returns 422. Completing a stage audits stage.completed, releases successors (stage.activated) and notifies the owners of the newly opened stages (the stage_ready notification, queried members so rows added in the same transaction count). 11 new tests, 272 in total.
 
-- [ ] Task 7: The construction-stage gate on the v2 site visit loop (P0)
+- [x] Task 7: The construction-stage gate on the v2 site visit loop (P0)
   - Acceptance:
     - The Site Visit step (v2) opens only when Legal Approval is approved **and** stage 14 (Site line-out) has started. Otherwise the draft and submit calls return 409 with the reason.
     - Approving the first construction visit activates stage 15, if it's not already active.
     - Stage 15's official progress remains the v2 derived progress.
     - `ready_project` and the E2E `createApprovedProject` use `start_stage=14`, so the v1 and v2 tests keep passing. A new test shows a stage-3 project can't open a site visit.
   - Files: backend/app/routers/site_visits.py, backend/app/routers/legal.py, backend/app/routers/reviews.py, backend/tests/conftest.py, backend/tests/test_site_visits.py, tests/e2e/helpers.js
+  - Completed: 2026-09-27. Site visit draft and submit return 409 until Site line-out has started (and still need Legal Approval via the v1 step). Approving the first construction visit completes line-out ('Completed when the first construction visit was approved.'), which opens stage 15. The ready_project, dashboard and E2E fixtures onboard at line-out. Also fixed a date bug exposed when the clock passed midnight: overdue checks and the dashboard visit-date filter used the UTC date. They now use BUSINESS_TIMEZONE=Asia/Kolkata (app/clock.py, tzdata added), and the app uses the device's local date. 3 new tests, 275 backend in total, 15 E2E.
 
 - [ ] Task 8: Client role, client membership and staff-only routes (P0)
   - Acceptance:

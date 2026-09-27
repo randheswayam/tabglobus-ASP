@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import template_config as tc
+from app.clock import business_date
 from app.db import get_db
 from app.deps import get_current_user, visible_projects
 from app.models import Problem, ProblemStatus, Project, RedFlag, User
@@ -73,7 +74,7 @@ def dashboard(q: str | None = None, location: str | None = None, step: Step | No
         return (severity is None or x.severity == severity) and (category is None or x.category == category)
 
     def keep(r: dict) -> bool:
-        last = date.fromisoformat(r["last_visit_at"][:10]) if r["last_visit_at"] else None
+        last = business_date(datetime.fromisoformat(r["last_visit_at"])) if r["last_visit_at"] else None
         return all([
             q is None or q.strip().lower() in r["name"].lower(),
             location is None or location.strip().lower() in r["location"].lower(),

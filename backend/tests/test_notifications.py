@@ -14,7 +14,8 @@ def _kinds(client, headers):
 
 def test_legal_approval_tells_the_engineer_the_visit_is_open(client, auth_headers, ready_project):
     inbox = _inbox(client, auth_headers("civil_engineer"))
-    assert inbox["unread"] == 1
+    assert [x["kind"] for x in inbox["items"]] == ["step_unlocked", "stage_ready"]  # newest first
+    assert inbox["unread"] == 2
     n = inbox["items"][0]
     assert n["kind"] == "step_unlocked" and "Site Visit is open" in n["text"] and "Villa A" in n["text"]
     assert n["project"]["id"] == ready_project["id"] and n["read_at"] is None and n["created_at"].endswith("+00:00")
@@ -56,12 +57,12 @@ def test_mark_read_and_read_all_only_touch_own_notifications(client, auth_header
     v = client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=eng).json()
     client.post(f"/site-visits/{v['id']}/review", json={"decision": "rework", "comment": "Again"}, headers=lead)
     mine = _inbox(client, eng)
-    assert mine["unread"] == 2
+    assert mine["unread"] == 3  # stage open, Legal Approval, rework
     first = mine["items"][0]["id"]
     assert client.post(f"/notifications/{first}/read", headers=lead).status_code == 404  # not Parvez's
     r = client.post(f"/notifications/{first}/read", headers=eng)
     assert r.status_code == 200 and r.json()["read_at"]
-    assert _inbox(client, eng)["unread"] == 1
+    assert _inbox(client, eng)["unread"] == 2
     assert client.post("/notifications/read-all", headers=eng).json() == {"unread": 0}
     assert _inbox(client, eng)["unread"] == 0
     assert _inbox(client, lead)["unread"] == 1  # Parvez's submission notice is untouched

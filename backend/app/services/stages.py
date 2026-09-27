@@ -159,6 +159,19 @@ def release(db: Session, project: Project, actor: User | None) -> list[str]:
     return opened
 
 
+def construction_started(db: Session, project: Project) -> bool:
+    """The v2 site-visit loop runs in phase 7 onward: Site line-out has started (or is done)."""
+    row = stage_rows(db, project).get(sc.CONSTRUCTION_START)
+    return row is not None and row.status in (StageStatus.active, StageStatus.completed, StageStatus.historical)
+
+
+def visit_approved(db: Session, project: Project, actor: User) -> None:
+    """The first approved construction visit shows line-out was done: complete it, which opens stage 15."""
+    row = stage_rows(db, project).get(sc.CONSTRUCTION_START)
+    if row is not None and row.status == StageStatus.active:
+        complete(db, project, sc.CONSTRUCTION_START, actor, "Completed when the first construction visit was approved.")
+
+
 def complete(db: Session, project: Project, key: str, actor: User | None, note: str | None) -> list[str]:
     """Mark a stage completed, audit it and release its successors. The caller has checked the rules."""
     row = stage_rows(db, project)[key]

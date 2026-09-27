@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta, timezone
 from sqlalchemy import func, select
 
 from app import workflow_config as wc
+from app.clock import business_date
 from app.models import Problem, ProblemStatus, RedFlag, Review, ReviewDecision, SiteVisit, StepStatus
 from app.schemas import iso_utc, user_brief
 from app.services import audit, notify
@@ -45,7 +46,7 @@ class ProjectState:
 def evaluate_flags(s: ProjectState, now: datetime, cfg=wc) -> set[tuple[str, str]]:
     """The (rule, key) pairs that hold right now. Keys: problem-<id>, visit-<id> or project."""
     out: set[tuple[str, str]] = set()
-    today = now.date()
+    today = business_date(now)
 
     for p in s.problems:
         if not p.open:

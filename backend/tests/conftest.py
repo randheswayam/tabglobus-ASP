@@ -101,8 +101,9 @@ def new_project(client, users, auth_headers):
 
 @pytest.fixture
 def ready_project(client, auth_headers, new_project):
-    """A project with Legal Approval approved, so Step 2 (Site Visit) is active."""
-    p = new_project()
+    """A project in construction: onboarded at Site line-out (earlier stages historical) with Legal Approval
+    approved, so the Site Visit step is open."""
+    p = new_project(start_stage="line_out", historical_confirmed_by="Parvez")
     admin = auth_headers("admin")
     for body in ({"status": "Applied", "authority_name": "PMC", "application_reference": "BP-1",
                   "application_date": "2026-09-01"},

@@ -221,3 +221,36 @@ def test_high_and_critical_problems_need_their_own_photo(bare, evidence, ready_p
 def test_template_exposes_media_limits(client, auth_headers):
     t = client.get("/template", headers=auth_headers("civil_engineer")).json()
     assert (t["min_photos"], t["max_photo_mb"], t["max_video_mb"]) == (5, 10, 100)
+
+
+# ---------- construction-stage gate (v3) ----------
+
+def _approve_legal(client, auth_headers, pid):
+    admin = auth_headers("admin")
+    client.patch(f"/projects/{pid}/legal", headers=admin, json={"status": "Applied", "authority_name": "PMC",
+                 "application_reference": "BP-7", "application_date": "2026-09-01"})
+    client.patch(f"/projects/{pid}/legal", headers=admin, json={"status": "Approved", "approval_date": "2026-09-20",
+                 "document_reference": "doc://bp-7"})
+
+
+def test_site_visits_wait_for_the_construction_stages(client, auth_headers, new_project):
+    p = new_project(start_stage="grid", historical_confirmed_by="Parvez")  # still in structural design
+    _approve_legal(client, auth_headers, p["id"])
+    eng = auth_headers("civil_engineer")
+    r = client.post(f"/projects/{p['id']}/site-visits/draft", headers=eng)
+    assert r.status_code == 409
+    assert "Site line-out" in r.json()["detail"]
+    assert client.post(f"/projects/{p['id']}/site-visits", json=valid_visit(), headers=eng).status_code == 409
+
+
+def test_first_approved_visit_completes_line_out_and_opens_construction(client, auth_headers, ready_project, evidence):
+    eng, lead = auth_headers("civil_engineer"), auth_headers("team_lead")
+    pid = ready_project["id"]
+    evidence(pid)
+    v = client.post(f"/projects/{pid}/site-visits", json=valid_visit(), headers=eng).json()
+    client.post(f"/site-visits/{v['id']}/review", json={"decision": "approve"}, headers=lead)
+    view = client.get(f"/projects/{pid}/stages", headers=lead).json()
+    s = {x["key"]: x for p in view["phases"] for x in p["stages"]}
+    assert s["line_out"]["state"] == "completed"
+    assert s["line_out"]["completion_note"] == "Completed when the first construction visit was approved."
+    assert s["construction"]["state"] == "active"

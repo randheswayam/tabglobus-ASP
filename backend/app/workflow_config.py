@@ -4,6 +4,9 @@ Values marked TBD_PARVEZ are pending Parvez's decisions (D3 media limits, D4 rev
 D5 red flag thresholds). Change them here; no code changes are needed elsewhere.
 """
 
+# The office calendar day for deadlines and date filters (Pune).
+BUSINESS_TIMEZONE = "Asia/Kolkata"
+
 # TBD_PARVEZ: pending Parvez (D4). A submitted visit waiting longer than this raises "Review overdue".
 REVIEW_SLA_HOURS = 48
 
