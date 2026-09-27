@@ -164,3 +164,54 @@ def test_filters_apply_to_every_panel(client, auth_headers, portfolio):
 ])
 def test_invalid_filters_are_422(client, auth_headers, portfolio, params):
     assert client.get("/dashboard", params=params, headers=auth_headers("architect")).status_code == 422
+
+
+# ---------- v3: phase, client and waiting for client ----------
+
+from app import models as m  # noqa: E402
+from tests.test_signoffs import PDF  # noqa: E402
+
+
+@pytest.fixture
+def waiting(client, auth_headers, new_project, client_user, db):
+    """Stage 4 package sent to Mr. Gokhale three days ago, on 'Shinde Bungalow'."""
+    from datetime import datetime, timedelta, timezone
+
+    arch = auth_headers("architect")
+    pid = new_project("Shinde Bungalow", location="Wakad, Pune", start_stage="requirements_signoff",
+                      historical_confirmed_by="Parvez")["id"]
+    db.add(m.ProjectMember(project_id=pid, user_id=client_user.id))
+    db.commit()
+    sid = client.post(f"/projects/{pid}/signoffs", headers=arch, json={
+        "stage_key": "requirements_signoff", "title": "Baseline", "summary": "Scope"}).json()["id"]
+    client.post(f"/signoffs/{sid}/attachments", headers=arch, files={"file": ("B.pdf", PDF, "application/pdf")})
+    client.post(f"/signoffs/{sid}/send", headers=arch)
+    req = db.get(m.SignoffRequest, sid)
+    req.sent_at = datetime.now(timezone.utc) - timedelta(days=3)
+    db.commit()
+    return pid
+
+
+def test_rows_show_phase_stage_and_client(client, auth_headers, portfolio, waiting):
+    rows = {r["name"]: r for r in _dash(client, auth_headers("architect"))["all_projects"]}
+    s = rows["Shinde Bungalow"]
+    assert s["phase"] == {"number": 1, "name": "Initiation and requirements"}
+    assert s["current_stages"] == ["Client sign-off: preliminary requirements"]
+    assert s["stage_progress"]["done"] == 3 and s["client"] == "Mr. Gokhale"
+    assert s["waiting_for_client"]["stage"] == "Client sign-off: preliminary requirements"
+    assert s["waiting_for_client"]["version"] == 1 and s["waiting_for_client"]["days_waiting"] == 3
+    a = rows["Aundh Villa"]
+    assert a["phase"]["name"] == "Construction execution" and a["client"] is None and a["waiting_for_client"] is None
+
+
+def test_waiting_for_client_panel_and_filters(client, auth_headers, portfolio, waiting):
+    d = _dash(client, auth_headers("team_lead"))
+    assert [r["name"] for r in d["waiting_for_client"]] == ["Shinde Bungalow"]
+    assert {r["name"] for r in _dash(client, auth_headers("team_lead"), client_pending="true")["all_projects"]} == {"Shinde Bungalow"}
+    assert "Shinde Bungalow" not in {r["name"] for r in _dash(client, auth_headers("team_lead"), client_pending="false")["all_projects"]}
+    assert {r["name"] for r in _dash(client, auth_headers("team_lead"), phase="1")["all_projects"]} == {"Shinde Bungalow", "Baner Heights"}
+
+
+@pytest.mark.parametrize("params", [{"phase": "0"}, {"phase": "11"}, {"phase": "two"}, {"client_pending": "maybe"}])
+def test_invalid_v3_filters(client, auth_headers, portfolio, params):
+    assert client.get("/dashboard", params=params, headers=auth_headers("architect")).status_code == 422

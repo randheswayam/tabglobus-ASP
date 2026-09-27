@@ -128,13 +128,14 @@
   - Files: backend/app/services/notify.py, backend/app/services/red_flags.py, backend/app/workflow_config.py, backend/tests/test_red_flag_rules.py, backend/tests/test_notifications.py
   - Completed: 2026-09-27. Sending notifies the project's clients ('Please review and sign off: …'), including invited clients who haven't activated yet, so the request is waiting at first sign-in. An approval or change request notifies the creating architect and the team leads, with the comment. New rule client_decision_overdue ('Client decision overdue', rank 4) holds while a sent request is older than CLIENT_SIGNOFF_SLA_DAYS, keyed by the sign-off. Flags are synced on send and on the client's response, so an answer clears the flag. 5 new tests, 391 in total.
 
-- [ ] Task 14: Dashboard: phase, stage, client and waiting-for-client (P0)
+- [x] Task 14: Dashboard: phase, stage, client and waiting-for-client (P0)
   - Acceptance:
     - `GET /dashboard` rows gain `phase`, `current_stages`, `stage_progress`, `client` (name, or null) and `waiting_for_client` (the open sent request with its days waiting).
     - A new panel `waiting_for_client` is sorted by longest wait.
     - New filters `phase` and `client_pending` (true or false) return 422 on invalid values.
     - Tests extend the dashboard portfolio fixture.
   - Files: backend/app/routers/dashboard.py, backend/tests/test_dashboard.py
+  - Completed: 2026-09-27. Dashboard rows gain phase, current_stages, stage_progress, client (the first client member's name, or null) and waiting_for_client (the sent package: stage, version, sent_at, days_waiting). A new waiting_for_client panel is sorted by longest wait. New filters phase (1 to 10) and client_pending, with 422 on bad values, both applied with the other filters. 6 new tests, 397 in total.
 
 - [ ] Task 15: UI: stage tracker on the project page (P0)
   - Acceptance:
