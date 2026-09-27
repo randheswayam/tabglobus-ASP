@@ -56,6 +56,22 @@ def visit_brief(v: SiteVisit | None) -> dict | None:
     }
 
 
+def visit_out(v: SiteVisit) -> dict:
+    """Full submission for the engineer and the review screen."""
+    return {
+        **visit_brief(v),
+        "project": {"id": v.project.id, "name": v.project.name, "location": v.project.location},
+        "engineer": user_brief(v.engineer),
+        "current_stage": v.current_stage,
+        "form": v.form,
+        "checklist": v.checklist,
+        "no_issues": v.no_issues,
+        "problems": v.problems,
+        "reviews": [{"decision": r.decision.value, "comment": r.comment, "reviewer": user_brief(r.reviewer),
+                     "at": r.created_at.isoformat()} for r in v.reviews],
+    }
+
+
 def legal_out(project: Project) -> dict | None:
     la = project.legal_approval
     if la is None:

@@ -148,6 +148,7 @@ class SiteVisit(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     project: Mapped[Project] = relationship(back_populates="site_visits")
+    engineer: Mapped[User] = relationship()
     reviews: Mapped[list["Review"]] = relationship(back_populates="site_visit", order_by="Review.id")
 
 
@@ -162,6 +163,7 @@ class Review(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     site_visit: Mapped[SiteVisit] = relationship(back_populates="reviews")
+    reviewer: Mapped[User] = relationship()
 
 
 class AuditEvent(Base):

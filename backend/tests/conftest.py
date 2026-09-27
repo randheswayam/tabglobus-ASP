@@ -69,3 +69,38 @@ def new_project(client, users, auth_headers):
         return r.json()
 
     return _create
+
+
+@pytest.fixture
+def ready_project(client, auth_headers, new_project):
+    """A project with Legal Approval approved, so Step 2 (Site Visit) is active."""
+    p = new_project()
+    admin = auth_headers("admin")
+    for body in ({"status": "Applied", "authority_name": "PMC", "application_reference": "BP-1",
+                  "application_date": "2026-09-01"},
+                 {"status": "Approved", "approval_date": "2026-09-20", "document_reference": "doc://approval-1"}):
+        r = client.patch(f"/projects/{p['id']}/legal", json=body, headers=admin)
+        assert r.status_code == 200, r.text
+    return r.json()
+
+
+def valid_visit(**overrides) -> dict:
+    """A complete site visit payload at the Plinth stage with one problem."""
+    body = {
+        "visit_at": "2026-09-27T10:30:00+05:30",
+        "location": {"gps": {"lat": 18.5590, "lng": 73.7868}, "manual": None},
+        "weather": "Clear",
+        "attendees": "Farhan Shaikh, site contractor",
+        "current_stage": "Plinth",
+        "checklist": {"pln-beam": "Done", "pln-filling": "In progress", "pln-dpc": "Not started"},
+        "no_issues": False,
+        "problems": [{
+            "category": "Water", "problem": "Seepage or dampness", "other_text": None,
+            "severity": "High", "location": "North-east corner", "responsible_party": "Contractor",
+            "target_date": "2026-10-05",
+        }],
+        "summary": "Plinth beam cast; filling under way.",
+        "recommended_action": "Fix seepage before DPC.",
+    }
+    body.update(overrides)
+    return body
