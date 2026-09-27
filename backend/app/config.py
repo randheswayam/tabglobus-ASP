@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,6 +10,9 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://siteflow:siteflow@localhost:5432/siteflow"
     jwt_secret: str = "change-me-in-env"
     jwt_expire_minutes: int = 720
+    # Uploaded photos and video. "local" stores files under media_dir; S3 comes later.
+    storage_backend: str = "local"
+    media_dir: str = str(Path(__file__).resolve().parents[1] / "media")
     # Web console dev server, the built www/ served locally, and the Capacitor Android WebView.
     cors_origins: list[str] = [
         "http://localhost",
