@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 import pytest
 from fastapi.testclient import TestClient
@@ -6,6 +7,7 @@ from fastapi.testclient import TestClient
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("PASSWORD_HASH_ITERATIONS", "1000")
 os.environ.setdefault("AUTO_MIGRATE", "false")
+os.environ.setdefault("MEDIA_DIR", tempfile.mkdtemp(prefix="siteflow-test-media-"))
 
 from app import models  # noqa: E402,F401  (registers tables)
 from app.db import Base, SessionLocal, engine  # noqa: E402
@@ -105,3 +107,22 @@ def valid_visit(**overrides) -> dict:
     }
     body.update(overrides)
     return body
+
+
+# Smallest byte strings that pass the server's file-signature checks.
+PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+MP4 = b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 64
+
+
+@pytest.fixture
+def upload(client, auth_headers):
+    """upload(visit_id, kind="photo", data=PNG, content_type="image/png", **form) -> response."""
+
+    def _upload(visit_id, kind="photo", data=PNG, content_type="image/png", headers=None, **form):
+        files = {"file": ("site.bin", data, content_type)}
+        fields = {"kind": kind, **{k: str(v) for k, v in form.items()}}
+        return client.post(f"/site-visits/{visit_id}/media", files=files, data=fields,
+                           headers=headers or auth_headers("civil_engineer"))
+
+    return _upload

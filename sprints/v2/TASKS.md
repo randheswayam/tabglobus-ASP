@@ -52,7 +52,7 @@
   - Files: backend/app/models.py, backend/migrations/versions/0003_media.py, backend/app/routers/site_visits.py, backend/app/schemas.py, backend/tests/test_media.py
   - Completed: 2026-09-27. Media model and migration 0003. POST /projects/{id}/site-visits/draft returns the rework or draft visit, or creates one (engineer only, Step 2 open). Submission now fills in that visit. latest_visit, the project list, the queue and the history all leave drafts out. visit_out includes media. 5 new tests, 144 in total.
 
-- [ ] Task 6: Media upload endpoint with validation and capture metadata (P0)
+- [x] Task 6: Media upload endpoint with validation and capture metadata (P0)
   - Acceptance:
     - `POST /site-visits/{id}/media` (multipart, assigned engineer only, visit in draft or rework) accepts a `file`, a `kind` (photo or video), an optional `problem_ref` (a problem index), an optional `captured_at`, and optional `lat` and `lng`.
     - A content type outside the allowed list returns 415, and a file over `MAX_PHOTO_MB` or `MAX_VIDEO_MB` returns 413.
@@ -60,6 +60,7 @@
     - A submitted or approved visit returns 409.
     - Tests upload a small PNG and a small MP4, and check the 415, 413, 403, 404 and 409 cases.
   - Files: backend/app/routers/media.py, backend/app/main.py, backend/tests/test_media.py
+  - Completed: 2026-09-27. Multipart upload (engineer only, visit in draft or rework). Returns 415 for a disallowed type or when the file signature doesn't match the Content-Type header, 413 when a chunked read passes the limit, and 422 for kind, problem_ref or GPS (lat and lng must come together). Stored under visits/<id>/<random hex>.<ext>. sha256, the uploader and the capture time (converted to UTC, server time by default) are recorded, and media.added is audited. CORS allows DELETE. Note for v3: Starlette spools multipart bodies before the limit check, so put a proxy-level request size cap in front of production. 17 new tests, 161 in total.
 
 - [ ] Task 7: Media download, listing and removal (P0)
   - Acceptance:

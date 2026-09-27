@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db import create_all, migrate
-from app.routers import auth, legal, problems, projects, reviews, site_visits, template
+from app.routers import auth, legal, media, problems, projects, reviews, site_visits, template
 
 
 @asynccontextmanager
@@ -23,7 +23,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
@@ -31,6 +31,7 @@ app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(legal.router)
 app.include_router(site_visits.router)
+app.include_router(media.router)
 app.include_router(reviews.router)
 app.include_router(problems.router)
 app.include_router(template.router)
