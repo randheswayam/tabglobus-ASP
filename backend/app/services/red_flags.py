@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 from app import workflow_config as wc
 from app.models import Problem, ProblemStatus, RedFlag, Review, ReviewDecision, SiteVisit, StepStatus
 from app.schemas import iso_utc, user_brief
-from app.services import audit
+from app.services import audit, notify
 
 # rank orders the "Needs Architect Attention" list: higher first.
 RULES = {
@@ -130,6 +130,7 @@ def sync_red_flags(db, project, now: datetime) -> None:
             db.add(f)
             db.flush()
             log("red_flag.raised", f)
+            notify.red_flag(db, project, RULES[rule]["label"])
     for (rule, key), f in latest.items():
         if (rule, key) in holding or f.condition_ended_at is not None:
             continue

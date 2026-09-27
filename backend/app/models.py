@@ -245,6 +245,21 @@ class RedFlag(Base):
     cleared_by: Mapped["User | None"] = relationship()
 
 
+class Notification(Base):
+    """An in-app notification for one person (plan F10). Push and email come later."""
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id"))
+    kind: Mapped[str] = mapped_column(String(30))  # step_unlocked | submitted | approved | rework | red_flag
+    text: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    project: Mapped["Project | None"] = relationship()
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 

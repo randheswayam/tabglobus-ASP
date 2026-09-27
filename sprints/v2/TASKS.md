@@ -151,7 +151,7 @@
   - Files: web-src/api.js, web-src/app.js, web-src/app.html, tests/e2e/v2-dashboard.spec.js
   - Completed: 2026-09-27. The Dashboard is the landing page and first nav item for the Architect and the Team Lead. Engineers, Admins and the demo keep Projects. It has a KPI row and four panels: Needs Architect Attention with flag chips, All Projects as a table, Major Problems with photo thumbnails, and Review Queue. The collapsible filter bar covers all 11 filters, remembered on the device, with the engineer choices taken from the dashboard data (the Team Lead can't list users). Parvez clears a flag inline with a reason. Fixed a phone overflow: grid columns now use minmax(0, 1fr), and the phone tests check each panel's edge instead of the document scroll width. Updated the Task 9 E2E test for the new landing page. 3 new E2E tests (13 in total) with 4 screenshots.
 
-- [ ] Task 16: In-app notifications, backend (P1)
+- [x] Task 16: In-app notifications, backend (P1)
   - Acceptance:
     - A `Notification` model and migration `0005_notifications` are added.
     - `notify.event(...)` runs inside the same transaction as the change. Recipients: legal approved goes to the engineer, submitted goes to the team lead, approved goes to the engineer and the architect, rework goes to the engineer, and a red flag raised goes to the architect and the team lead.
@@ -159,6 +159,7 @@
     - `POST /notifications/{id}/read` and `POST /notifications/read-all` work only on the user's own notifications (404 otherwise).
     - Tests check the recipients for each event.
   - Files: backend/app/models.py, backend/migrations/versions/0005_notifications.py, backend/app/services/notify.py, backend/app/routers/notifications.py, backend/app/routers/legal.py, backend/app/routers/site_visits.py, backend/app/routers/reviews.py, backend/app/services/red_flags.py, backend/app/main.py, backend/tests/test_notifications.py
+  - Completed: 2026-09-27. Notification model and migration 0005. notify.py adds rows in the same transaction as the change: legal approved goes to the engineer, submitted to the team leads, approved to the engineer and the creating architect, rework (with the comment) to the engineer, and a red flag raised to the architect and the team leads. Nobody is notified about their own action. GET /notifications returns the newest 50 with an unread count. read and read-all touch only the user's own rows (404 otherwise). 6 new tests, 233 in total.
 
 - [ ] Task 17: UI: notifications list and unread badge (P1)
   - Acceptance:

@@ -7,7 +7,7 @@ from app.db import get_db
 from app.deps import get_current_user, get_visible_project, require_role, visible_projects
 from app.models import Project, Role, SiteVisit, User, VisitStatus
 from app.schemas import visit_out
-from app.services import audit, red_flags, workflow
+from app.services import audit, notify, red_flags, workflow
 from app.services.progress import derive_progress
 from app.services.validation import SiteVisitIn, missing_evidence, validate_site_visit
 
@@ -80,6 +80,7 @@ def submit_site_visit(body: SiteVisitIn, user: User = Depends(require_role(Role.
                                              "computed_progress": visit.computed_progress})
     workflow.complete(db, project, workflow.SITE_VISIT, user)
     workflow.activate(db, project, workflow.REVIEW, user)
+    notify.submitted(db, project, user)
     red_flags.sync_red_flags(db, project, datetime.now(timezone.utc))
     db.commit()
     db.refresh(visit)
