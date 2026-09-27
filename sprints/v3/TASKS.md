@@ -49,7 +49,7 @@
   - Files: backend/app/routers/stages.py, backend/app/routers/projects.py, backend/app/schemas.py, backend/app/main.py, backend/tests/test_stages_api.py
   - Completed: 2026-09-27. POST /projects creates every stage and releases stage 1. start_stage plus historical_confirmed_by (validated) marks earlier stages historical, and the creation audit records who confirmed them. GET /projects/{id}/stages returns the phases with each stage's state, reasons, can_complete for the caller, the historical label and a signed_by_client flag (always false for historical stages). The project list and detail gain phase, current_stages and stage_progress. Audit-order tests now skip stage.* events through workflow_actions(). 9 new tests, 261 in total.
 
-- [ ] Task 6: Owners complete ordinary stages; gate stages cannot be completed by hand (P0)
+- [x] Task 6: Owners complete ordinary stages; gate stages cannot be completed by hand (P0)
   - Acceptance:
     - `POST /projects/{id}/stages/{key}/complete` works for the owner role (or the architect or team lead), needs a non-blank note, and only while the stage is active.
     - It returns 409 with the reasons when a gate isn't met. Client sign-off stages always return 409, "Completes when the client approves".
@@ -57,6 +57,7 @@
     - On completion, successors are released, `stage.completed` and `stage.activated` are audited, and the next owners are notified.
     - Tests cover each gate type and each role.
   - Files: backend/app/routers/stages.py, backend/app/services/stages.py, backend/app/services/notify.py, backend/tests/test_stages_api.py
+  - Completed: 2026-09-27. POST /projects/{id}/stages/{key}/complete. Client sign-off stages always return 409 ('completes when the client approves'). The wrong role returns 403 (the owner, Architect or Team Lead may complete). A locked, blocked or completed stage returns 409 with its reasons. A blank note returns 422. Completing a stage audits stage.completed, releases successors (stage.activated) and notifies the owners of the newly opened stages (the stage_ready notification, queried members so rows added in the same transaction count). 11 new tests, 272 in total.
 
 - [ ] Task 7: The construction-stage gate on the v2 site visit loop (P0)
   - Acceptance:

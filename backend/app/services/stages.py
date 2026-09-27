@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app import stage_config as sc
 from app.models import LegalStatus, Problem, ProblemStatus, Project, ProjectStage, StageStatus, User
 from app.schemas import iso_utc, user_brief
-from app.services import audit
+from app.services import audit, notify
 
 DONE = ("completed", "historical")
 
@@ -102,14 +102,14 @@ def facts(db: Session, project: Project, signoffs: dict | None = None) -> GateFa
 
 
 HISTORICAL_LABEL = "Historical — completed before SiteFlow"
-_STAFF_COMPLETERS = ("architect", "team_lead")
+STAFF_COMPLETERS = ("architect", "team_lead")
 
 
 def can_complete(user: User, stage: dict, state: str) -> bool:
     """Owners (and the Architect or Team Lead) finish active stages; client sign-off stages finish only by approval."""
     if state != "active" or stage["gate"] == "client_signoff":
         return False
-    return user.role.value == stage["owner_role"] or user.role.value in _STAFF_COMPLETERS
+    return user.role.value == stage["owner_role"] or user.role.value in STAFF_COMPLETERS
 
 
 def signoff_facts(db: Session, project: Project) -> dict:
@@ -154,5 +154,17 @@ def release(db: Session, project: Project, actor: User | None) -> list[str]:
         rows[key].status, rows[key].started_at = StageStatus.active, now
         audit.record(db, actor, "stage.activated", project_id=project.id, entity_type="project_stage",
                      entity_id=rows[key].id, detail={"stage": sc.BY_KEY[key]["label"], "key": key})
+        notify.stage_ready(db, project, sc.BY_KEY[key], actor)
     db.flush()
     return opened
+
+
+def complete(db: Session, project: Project, key: str, actor: User | None, note: str | None) -> list[str]:
+    """Mark a stage completed, audit it and release its successors. The caller has checked the rules."""
+    row = stage_rows(db, project)[key]
+    row.status, row.completed_at = StageStatus.completed, datetime.now(timezone.utc)
+    row.completed_by_id, row.completion_note = (actor.id if actor else None), note
+    audit.record(db, actor, "stage.completed", project_id=project.id, entity_type="project_stage", entity_id=row.id,
+                 detail={"stage": sc.BY_KEY[key]["label"], "key": key, "note": note})
+    db.flush()
+    return release(db, project, actor)

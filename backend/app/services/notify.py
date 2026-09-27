@@ -3,7 +3,7 @@ with the change they announce. Nobody is notified about their own action."""
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Notification, Project, Role, User
+from app.models import Notification, Project, ProjectMember, Role, User
 from app.schemas import civil_engineer_of
 
 
@@ -22,6 +22,21 @@ def _team_leads(db: Session) -> list[User]:
 
 def _architect(db: Session, project: Project) -> User | None:
     return db.get(User, project.created_by_id)
+
+
+def _members_with_role(db: Session, project: Project, role: str) -> list[User]:
+    """Queried, not read from project.members, so members added in this transaction are included."""
+    return list(db.scalars(select(User).join(ProjectMember, ProjectMember.user_id == User.id)
+                           .where(ProjectMember.project_id == project.id, User.role == Role(role))))
+
+
+def stage_ready(db: Session, project: Project, stage: dict, actor: User | None) -> None:
+    """A stage opened: tell the people who own it. Client stages are announced when a package is sent."""
+    role = stage["owner_role"]
+    if role == "client":
+        return
+    users = _team_leads(db) if role == "team_lead" else _members_with_role(db, project, role)
+    _send(db, users, "stage_ready", project, f"{stage['label']} is open on {project.name}.", actor)
 
 
 def legal_approved(db: Session, project: Project, actor: User) -> None:
