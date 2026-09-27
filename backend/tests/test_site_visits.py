@@ -4,8 +4,9 @@ from tests.conftest import TEST_PASSWORD, valid_visit
 
 
 @pytest.fixture
-def submit(client, auth_headers, ready_project):
+def submit(client, auth_headers, ready_project, evidence):
     eng = auth_headers("civil_engineer")
+    evidence(ready_project["id"])  # photos for the open visit; the evidence rules have their own tests
 
     def _submit(body: dict, headers: dict | None = None, project_id: int | None = None):
         pid = project_id or ready_project["id"]
@@ -156,6 +157,7 @@ def test_resubmitting_a_rework_visit_increments_count(submit, db):
     r = submit(valid_visit(checklist={"pln-beam": "Done", "pln-filling": "Done", "pln-dpc": "Not started"}))
     assert r.status_code == 201, r.text
     again = r.json()
+    assert len(again["media"]) == 5  # the rework visit keeps its photos
     assert again["id"] == first["id"]
     assert again["submission_count"] == 2
     assert again["computed_progress"] == 20.8  # 12.5 + 2/3 x 12.5 = 20.83
@@ -173,3 +175,49 @@ def test_get_visit_returns_full_submission(submit, client, auth_headers):
         assert body["engineer"]["name"] == "Farhan Shaikh"
         assert body["project"]["id"] == submit.project_id
     assert client.get("/site-visits/9999", headers=auth_headers("team_lead")).status_code == 404
+
+
+# ---------- evidence rules (v2) ----------
+
+@pytest.fixture
+def bare(client, auth_headers, ready_project):
+    """Submit with no photos arranged in advance."""
+    def _post(body):
+        return client.post(f"/projects/{ready_project['id']}/site-visits", json=body, headers=auth_headers("civil_engineer"))
+    return _post
+
+
+def test_minimum_photo_count_is_required(bare, upload, client, auth_headers, ready_project):
+    assert "photos" in _missing(bare(valid_visit(no_issues=True, problems=[])))
+    d = client.post(f"/projects/{ready_project['id']}/site-visits/draft", headers=auth_headers("civil_engineer")).json()
+    for _ in range(4):
+        upload(d["id"])
+    assert "photos" in _missing(bare(valid_visit(no_issues=True, problems=[])))
+    upload(d["id"])
+    assert bare(valid_visit(no_issues=True, problems=[])).status_code == 201
+
+
+def test_videos_do_not_count_toward_the_photo_minimum(bare, upload, client, auth_headers, ready_project):
+    from tests.conftest import MP4
+
+    d = client.post(f"/projects/{ready_project['id']}/site-visits/draft", headers=auth_headers("civil_engineer")).json()
+    for _ in range(4):
+        upload(d["id"])
+    upload(d["id"], kind="video", data=MP4, content_type="video/mp4")
+    assert "photos" in _missing(bare(valid_visit(no_issues=True, problems=[])))
+
+
+def test_high_and_critical_problems_need_their_own_photo(bare, evidence, ready_project):
+    base = valid_visit()["problems"][0]
+    problems = [base, {**base, "severity": "Critical"}, {**base, "severity": "Low"}]
+    evidence(ready_project["id"], problem_refs=())  # five photos, none tagged to a problem
+    missing = _missing(bare(valid_visit(problems=problems)))
+    assert "problems[0].photo" in missing and "problems[1].photo" in missing
+    assert "problems[2].photo" not in missing and "photos" not in missing
+    evidence(ready_project["id"], problem_refs=(0, 1))
+    assert bare(valid_visit(problems=problems)).status_code == 201
+
+
+def test_template_exposes_media_limits(client, auth_headers):
+    t = client.get("/template", headers=auth_headers("civil_engineer")).json()
+    assert (t["min_photos"], t["max_photo_mb"], t["max_video_mb"]) == (5, 10, 100)

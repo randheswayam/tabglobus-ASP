@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from app import template_config as tc
+from app import workflow_config as wc
 from app.deps import get_current_user
 from app.models import User
 
@@ -20,4 +21,8 @@ def get_template(_: User = Depends(get_current_user)) -> dict:
         "problems": tc.PROBLEMS,
         "severities": tc.SEVERITIES,
         "min_photos": tc.MIN_PHOTOS,
+        "max_photo_mb": wc.MAX_PHOTO_MB,
+        "max_video_mb": wc.MAX_VIDEO_MB,
+        "photo_types": wc.PHOTO_TYPES,
+        "video_types": wc.VIDEO_TYPES,
     }

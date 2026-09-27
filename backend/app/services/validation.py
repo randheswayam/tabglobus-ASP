@@ -47,6 +47,17 @@ def _blank(v) -> bool:
     return v is None or (isinstance(v, str) and not v.strip())
 
 
+def missing_evidence(v: SiteVisitIn, media: list) -> list[str]:
+    """Photo rules (plan F5 and F6): at least MIN_PHOTOS photos, and each High or Critical problem needs
+    a photo of the problem itself, matched by the photo's problem_ref. Videos are optional extras."""
+    photos = [m for m in media if m.kind.value == "photo"]
+    missing = ["photos"] if len(photos) < tc.MIN_PHOTOS else []
+    tagged = {m.problem_ref for m in photos}
+    missing += [f"problems[{n}].photo" for n, p in enumerate(v.problems)
+                if p.severity in ("High", "Critical") and n not in tagged]
+    return missing
+
+
 def validate_site_visit(v: SiteVisitIn) -> tuple[list[str], list[str]]:
     """Return (missing, invalid) field paths; both empty means the visit can be submitted."""
     missing: list[str] = []

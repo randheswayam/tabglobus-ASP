@@ -2,7 +2,7 @@
 from tests.conftest import valid_visit
 
 
-def test_full_three_step_loop(client, users, auth_headers):
+def test_full_three_step_loop(client, users, auth_headers, evidence):
     architect, admin = auth_headers("architect"), auth_headers("admin")
     engineer, lead = auth_headers("civil_engineer"), auth_headers("team_lead")
 
@@ -23,7 +23,8 @@ def test_full_three_step_loop(client, users, auth_headers):
         "document_reference": "doc://pmc-0200.pdf"}).json()
     assert p["current_step"] == "Site Visit"
 
-    # Engineer submits the first visit.
+    # Engineer photographs the site, then submits the first visit.
+    evidence(pid)
     v = client.post(f"/projects/{pid}/site-visits", json=valid_visit(), headers=engineer).json()
     assert v["status"] == "submitted" and v["computed_progress"] == 16.7
 
@@ -50,7 +51,9 @@ def test_full_three_step_loop(client, users, auth_headers):
         assert p["official_progress"] == 20.8
         assert [s["status"] for s in p["steps"]] == ["completed", "active", "locked"]  # next visit open
 
-    actions = [e["action"] for e in p["audit"]]
+    all_actions = [e["action"] for e in p["audit"]]
+    assert all_actions.count("media.added") == 5  # the photos taken for the first visit
+    actions = [a for a in all_actions if a != "media.added"]
     assert actions == [
         "project.created",
         "legal.updated", "legal.updated", "step.completed", "step.activated",

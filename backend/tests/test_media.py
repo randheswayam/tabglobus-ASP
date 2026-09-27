@@ -27,14 +27,16 @@ def test_draft_is_hidden_from_project_latest_visit_queue_and_history(client, aut
     assert client.get(f"/projects/{ready_project['id']}/visits", headers=auth_headers("architect")).json() == []
 
 
-def test_submission_fills_in_the_draft(client, auth_headers, ready_project, draft):
+def test_submission_fills_in_the_draft(client, auth_headers, ready_project, draft, evidence):
+    evidence(ready_project["id"])
     r = client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
     assert r.status_code == 201, r.text
     assert r.json()["id"] == draft["id"] and r.json()["status"] == "submitted" and r.json()["submission_count"] == 1
 
 
-def test_draft_returns_the_rework_visit(client, auth_headers, ready_project):
+def test_draft_returns_the_rework_visit(client, auth_headers, ready_project, evidence):
     eng = auth_headers("civil_engineer")
+    evidence(ready_project["id"])
     v = client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=eng).json()
     client.post(f"/site-visits/{v['id']}/review", json={"decision": "rework", "comment": "Add photos"},
                 headers=auth_headers("team_lead"))
@@ -112,7 +114,8 @@ def test_missing_visit_is_404(upload):
     assert upload(9999).status_code == 404
 
 
-def test_submitted_visit_is_409(upload, draft, client, auth_headers, ready_project):
+def test_submitted_visit_is_409(upload, draft, client, auth_headers, ready_project, evidence):
+    evidence(ready_project["id"])
     client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
     assert upload(draft["id"]).status_code == 409
 
@@ -171,8 +174,9 @@ def test_upload_and_removal_are_audited(upload, draft, client, auth_headers, rea
     assert actions[-2:] == ["media.added", "media.removed"]
 
 
-def test_cannot_remove_after_submission_or_as_someone_else(upload, draft, client, auth_headers, ready_project):
+def test_cannot_remove_after_submission_or_as_someone_else(upload, draft, client, auth_headers, ready_project, evidence):
     mid = upload(draft["id"]).json()["id"]
+    evidence(ready_project["id"])
     assert client.delete(f"/media/{mid}", headers=auth_headers("team_lead")).status_code == 403
     client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(), headers=auth_headers("civil_engineer"))
     assert client.delete(f"/media/{mid}", headers=auth_headers("civil_engineer")).status_code == 409

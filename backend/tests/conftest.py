@@ -126,3 +126,27 @@ def upload(client, auth_headers):
                            headers=headers or auth_headers("civil_engineer"))
 
     return _upload
+
+
+@pytest.fixture
+def evidence(client, auth_headers, upload):
+    """evidence(project_id, problem_refs=(0,)) tops up the open visit with the photos a submission needs:
+    MIN_PHOTOS in total, including one tagged to each listed problem (valid_visit's High problem is 0)."""
+    from app import template_config as tc
+
+    def _evidence(project_id: int, problem_refs=(0,)) -> dict:
+        eng = auth_headers("civil_engineer")
+        visit = client.post(f"/projects/{project_id}/site-visits/draft", headers=eng)
+        assert visit.status_code == 200, visit.text
+        visit = visit.json()
+        photos = [m for m in visit["media"] if m["kind"] == "photo"]
+        have_refs = {m["problem_ref"] for m in photos}
+        for ref in problem_refs:
+            if ref not in have_refs:
+                assert upload(visit["id"], problem_ref=ref).status_code == 201
+                photos.append({"problem_ref": ref})
+        for _ in range(tc.MIN_PHOTOS - len(photos)):
+            assert upload(visit["id"]).status_code == 201
+        return visit
+
+    return _evidence

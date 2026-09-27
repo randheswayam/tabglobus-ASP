@@ -2,7 +2,8 @@
 from tests.conftest import valid_visit
 
 
-def _submit(client, headers, pid, **kw):
+def _submit(client, headers, pid, evidence, **kw):
+    evidence(pid)
     r = client.post(f"/projects/{pid}/site-visits", json=valid_visit(**kw), headers=headers)
     assert r.status_code == 201, r.text
     return r.json()
@@ -13,10 +14,10 @@ def _approve(client, headers, vid):
     assert r.status_code == 200, r.text
 
 
-def test_approval_reopens_site_visit_for_the_next_visit(client, auth_headers, ready_project):
+def test_approval_reopens_site_visit_for_the_next_visit(client, auth_headers, ready_project, evidence):
     eng, lead = auth_headers("civil_engineer"), auth_headers("team_lead")
     pid = ready_project["id"]
-    v1 = _submit(client, eng, pid)
+    v1 = _submit(client, eng, pid, evidence)
     _approve(client, lead, v1["id"])
 
     p = client.get(f"/projects/{pid}", headers=eng).json()
@@ -28,7 +29,7 @@ def test_approval_reopens_site_visit_for_the_next_visit(client, auth_headers, re
 
     # The second visit is a new record with its own submission count.
     later = {"pln-beam": "Done", "pln-filling": "Done", "pln-dpc": "Done"}
-    v2 = _submit(client, eng, pid, checklist=later)
+    v2 = _submit(client, eng, pid, evidence, checklist=later)
     assert v2["id"] != v1["id"] and v2["submission_count"] == 1
     p = client.get(f"/projects/{pid}", headers=eng).json()
     assert p["official_progress"] == 16.7  # still the last approved visit until v2 is approved
@@ -45,12 +46,12 @@ def test_visit_number_before_legal_approval(client, auth_headers, new_project):
     assert p["visit_number"] is None and p["approved_visits"] == 0
 
 
-def test_visit_history_lists_visits_newest_first(client, auth_headers, ready_project):
+def test_visit_history_lists_visits_newest_first(client, auth_headers, ready_project, evidence):
     eng, lead = auth_headers("civil_engineer"), auth_headers("team_lead")
     pid = ready_project["id"]
-    v1 = _submit(client, eng, pid)
+    v1 = _submit(client, eng, pid, evidence)
     _approve(client, lead, v1["id"])
-    v2 = _submit(client, eng, pid, checklist={"pln-beam": "Done", "pln-filling": "Done", "pln-dpc": "Done"})
+    v2 = _submit(client, eng, pid, evidence, checklist={"pln-beam": "Done", "pln-filling": "Done", "pln-dpc": "Done"})
 
     r = client.get(f"/projects/{pid}/visits", headers=auth_headers("architect"))
     assert r.status_code == 200

@@ -9,7 +9,7 @@ from app.models import Project, Role, SiteVisit, User, VisitStatus
 from app.schemas import visit_out
 from app.services import audit, workflow
 from app.services.progress import derive_progress
-from app.services.validation import SiteVisitIn, validate_site_visit
+from app.services.validation import SiteVisitIn, missing_evidence, validate_site_visit
 
 router = APIRouter(tags=["site visits"])
 
@@ -45,6 +45,8 @@ def submit_site_visit(body: SiteVisitIn, user: User = Depends(require_role(Role.
         raise HTTPException(status.HTTP_409_CONFLICT, "Site Visit step is not open for this project")
 
     missing, invalid = validate_site_visit(body)
+    open_visit = _open_visit(project)
+    missing += missing_evidence(body, open_visit.media if open_visit else [])
     if missing or invalid:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
                             {"message": "Site visit is incomplete", "missing": missing, "invalid": invalid})

@@ -71,7 +71,7 @@
   - Files: backend/app/routers/media.py, backend/app/schemas.py, backend/tests/test_media.py
   - Completed: 2026-09-27. GET /media/{id} checks project visibility and returns the file inline with nosniff and private caching. DELETE /media/{id} is for the uploader only, while the visit is in draft or rework (409 after that). The stored file is deleted after the commit, and media.removed is audited. visit_out lists media. The app has to fetch files with its Bearer token (as blobs), because a plain img tag can't send the header. 6 new tests, 167 in total.
 
-- [ ] Task 8: Evidence rules at submission (P0)
+- [x] Task 8: Evidence rules at submission (P0)
   - Acceptance:
     - Submission returns 422 with `missing: ["photos"]` when there are fewer photos than `MIN_PHOTOS`.
     - It returns `missing: ["problems[N].photo"]` for each High or Critical problem without a photo whose `problem_ref` is N.
@@ -79,6 +79,7 @@
     - `GET /template` exposes `min_photos`, `max_photo_mb` and `max_video_mb`.
     - The v1 site visit tests are updated to upload the photos they need, through a shared fixture.
   - Files: backend/app/services/validation.py, backend/app/routers/site_visits.py, backend/app/routers/template.py, backend/tests/conftest.py, backend/tests/test_site_visits.py
+  - Completed: 2026-09-27. Submission now also requires MIN_PHOTOS photos on the open visit (videos don't count), and a photo tagged to each High or Critical problem (missing entries like problems[N].photo). Both are listed alongside the other missing fields. /template exposes the photo and video limits and types. Added a shared evidence fixture, and updated the v1 tests to photograph before submitting. The v1 site visit E2E tests fail until Task 13 adds photo capture to the app. 5 new tests, 171 in total.
 
 - [ ] Task 9: Red flag rule engine as a pure function (P0)
   - Acceptance:

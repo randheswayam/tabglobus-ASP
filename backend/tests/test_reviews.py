@@ -4,7 +4,8 @@ from tests.conftest import valid_visit
 
 
 @pytest.fixture
-def submitted(client, auth_headers, ready_project):
+def submitted(client, auth_headers, ready_project, evidence):
+    evidence(ready_project["id"])
     r = client.post(f"/projects/{ready_project['id']}/site-visits", json=valid_visit(),
                     headers=auth_headers("civil_engineer"))
     assert r.status_code == 201, r.text
