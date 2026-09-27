@@ -74,6 +74,7 @@ const SiteFlowAPI = (() => {
 
     /* ---------- media (v2) ---------- */
     openDraft: pid => request('POST', `/projects/${pid}/site-visits/draft`),
+    visits: pid => request('GET', `/projects/${pid}/visits`),
     deleteMedia: id => request('DELETE', `/media/${id}`),
     retagMedia: (id, problem_ref) => request('PATCH', `/media/${id}`, {problem_ref}),
     // XMLHttpRequest rather than fetch: only XHR reports upload progress.

@@ -132,13 +132,14 @@
   - Files: web-src/api.js, web-src/app.js, web-src/app.html, tests/e2e/fixtures/, tests/e2e/v2-media.spec.js
   - Completed: 2026-09-27. The form opens the server draft. Photos section: Take photo (capture=environment), Upload (multiple) and optional video, with upload progress, thumbnails fetched as blobs with the token, and remove. Each problem card has its own photo slot, required for High and Critical. The capture time comes from the file's lastModified (within a day) and GPS from the form. The type and size are checked on the device first, and server 413 or 415 errors are shown as sent. Added PATCH /media/{id} (2 tests) so removing a problem retags the photos below it. Media features stay off when the API lacks them, so the client demo keeps working until Task 21. The v1 Task 10 E2E test now takes photos. 1 new E2E test (8 in total), 227 backend tests.
 
-- [ ] Task 14: UI: media on the review screen and visit history on the project page (P0)
+- [x] Task 14: UI: media on the review screen and visit history on the project page (P0)
   - Acceptance:
     - The review screen shows a photo grid and a video player, with each problem's photos next to that problem, capture time and GPS on each item, and a larger view when one is opened.
     - The project page shows a visit number ("Visit 3") and a Visit history list of approved visits with their progress and dates.
     - The Playwright test runs visit 1 through approval, then submits and approves visit 2, and sees the history and the updated official progress.
     - Screenshots are saved.
   - Files: web-src/app.js, web-src/app.html, tests/e2e/v2-media.spec.js, tests/e2e/v2-recurring.spec.js
+  - Completed: 2026-09-27. The review screen shows each problem with its tagged photos, plus a Site photos and video grid, with capture times on the thumbnails. Tapping a photo opens a larger view with the capture time, GPS, problem and uploader (a video plays there). The project page shows a Visit N pill and a Visit history panel from GET /projects/{id}/visits. The audit trail now words the v2 events (media, problems, red flags) and shows SiteFlow for system entries. 2 new E2E tests (10 in total) with 3 screenshots.
 
 - [ ] Task 15: UI: dashboard with panels, filters and manual red flag clear (P0)
   - Acceptance:

@@ -89,4 +89,31 @@ async function addMedia(page, testid, file = {name: 'site.png', mimeType: 'image
   await expect(mediaTiles(page)).toHaveCount(before + 1);
 }
 
-module.exports = { API, APP, EMAIL, PASSWORD, MP4, shot, signIn, signOut, api, createApprovedProject, makePng, addMedia, mediaTiles };
+/* A Plinth-stage visit body; checklist decides the derived progress. */
+const plinthVisit = (checklist, problems) => ({
+  visit_at: new Date().toISOString(), location: {gps: {lat: 18.5204, lng: 73.8567}, manual: null}, weather: 'Clear',
+  attendees: 'Farhan Shaikh, contractor', current_stage: 'Plinth', checklist,
+  no_issues: !problems, problems: problems || [], summary: 'Plinth work checked.', recommended_action: 'Continue as planned.',
+});
+
+/* Submit a site visit through the API with the photos it needs (one tagged to each High or Critical problem). */
+async function submitVisitViaApi(request, pid, body){
+  const token = (await (await request.post(`${API}/auth/login`, {data: {email: EMAIL.civil_engineer, password: PASSWORD}})).json()).access_token;
+  const auth = {Authorization: `Bearer ${token}`};
+  const draft = await (await request.post(`${API}/projects/${pid}/site-visits/draft`, {headers: auth})).json();
+  const refs = body.problems.map((p, n) => ['High', 'Critical'].includes(p.severity) ? n : null).filter(n => n !== null);
+  const have = draft.media.filter(m => m.kind === 'photo').length;
+  for (let i = have; i < Math.max(5, refs.length); i++){
+    const multipart = {file: {name: `p${i}.png`, mimeType: 'image/png', buffer: makePng(96, 72, i)}, kind: 'photo',
+      captured_at: new Date().toISOString(), lat: '18.5204', lng: '73.8567'};
+    if (i - have < refs.length) multipart.problem_ref = String(refs[i - have]);
+    const r = await request.post(`${API}/site-visits/${draft.id}/media`, {headers: auth, multipart});
+    if (!r.ok()) throw new Error(`upload -> ${r.status()} ${await r.text()}`);
+  }
+  const r = await request.post(`${API}/projects/${pid}/site-visits`, {headers: auth, data: body});
+  if (!r.ok()) throw new Error(`submit -> ${r.status()} ${await r.text()}`);
+  return r.json();
+}
+
+module.exports = { API, APP, EMAIL, PASSWORD, MP4, shot, signIn, signOut, api, createApprovedProject, makePng, addMedia,
+  mediaTiles, plinthVisit, submitVisitViaApi };
