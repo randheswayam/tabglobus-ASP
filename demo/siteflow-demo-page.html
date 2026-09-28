@@ -1515,6 +1515,7 @@ function auditText(e){
     case 'stage.completed': return `Stage completed: ${d.stage}${d.note ? `. ${d.note}` : ''}`;
     case 'stage.exception_recorded': return `Exception recorded on ${d.stage}: ${d.reason}`;
     case 'member.added': return `Added to the project: ${d.user}`;
+    case 'fee_plan.updated': return 'Fee plan updated';
     case 'member.removed': return `Removed from the project: ${d.user}`;
     case 'stage.activated': return `Stage opened: ${d.stage}`;
     case 'client.invited': return `Client invited: ${d.client}`;
@@ -1895,7 +1896,7 @@ V.project = {
   load: async () => {
     const [p, visits, problems, stages, clients] = await Promise.all([API.project(ui.p.pid), API.visits ? API.visits(ui.p.pid) : null,
       API.problems ? API.problems(ui.p.pid) : null, API.stages ? API.stages(ui.p.pid) : null,
-      API.projectClients ? API.projectClients(ui.p.pid) : null]);
+      API.projectClients ? API.projectClients(ui.p.pid) : null, template()]);
     ui.data.project = p; ui.data.visits = visits; ui.data.problems = problems; ui.data.stages = stages; ui.data.clients = clients;
     ui.data.signoffs = API.signoffs ? await API.signoffs(ui.p.pid) : [];
     if (can.admin() && API.projectMembers){
@@ -1921,6 +1922,7 @@ V.project = {
           ${p.site ? `<dt>Site</dt><dd data-testid="project-site">${esc(p.site.address)}${p.site.city ? `, ${esc(p.site.city)}` : ''}</dd>` : ''}
           <dt>Civil Engineer</dt><dd>${esc(p.civil_engineer ? p.civil_engineer.name : '—')}</dd>
           <dt>Template</dt><dd>Residential v${p.template.version}</dd></dl></div></section>
+        ${p.fee_plan ? feePlanPanel(p) : ''}
         ${ui.data.clients ? clientPanel(ui.data.clients) : ''}
         ${ui.data.members ? membersPanel(ui.data.members, ui.data.allUsers || []) : ''}
         ${ui.data.visits ? visitHistory(ui.data.visits) : ''}
@@ -1991,6 +1993,22 @@ function draftEditor(r){
 async function reloadSignoffs(){ ui.data.signoffs = await API.signoffs(ui.data.project.id); }
 
 /* The client who tracks the project and signs off milestones in the client app. */
+/* Commercial: the server sends fee_plan only to roles allowed to see it; Architect, Admin and Accounts may edit. */
+const money = (v, cur) => v == null ? '—' : `${cur === 'INR' ? '₹' : cur + ' '}${Number(v).toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
+function feePlanPanel(p){
+  const f = p.fee_plan, edit = ui.me && ['architect', 'admin', 'accounts'].includes(ui.me.role);
+  return `<section class="panel" data-testid="fee-plan-panel"><div class="panel-h"><h3>Fee plan</h3><span class="small muted">Commercial · not shown to site staff or clients</span></div><div class="panel-b">
+    <dl class="kv"><dt>Contract value</dt><dd data-testid="fee-contract-value">${esc(money(f.contract_value, f.currency))}</dd>
+      <dt>Fee basis</dt><dd>${esc(f.fee_basis || '—')}</dd>${f.fee_notes ? `<dt>Notes</dt><dd>${esc(f.fee_notes)}</dd>` : ''}</dl>
+    ${edit ? `<details class="onboard" style="margin-top:10px"><summary data-testid="fee-edit">Edit fee plan</summary><div class="fgrid" style="margin-top:10px">
+      <div class="field"><label for="fp-value">Contract value</label><input id="fp-value" data-testid="fee-value" inputmode="decimal" value="${esc(f.contract_value || '')}"></div>
+      <div class="field"><label for="fp-cur">Currency</label><input id="fp-cur" data-testid="fee-currency" maxlength="3" value="${esc(f.currency)}"></div>
+      <div class="field full"><label for="fp-basis">Fee basis</label><input id="fp-basis" data-testid="fee-basis" value="${esc(f.fee_basis || '')}"><span class="small muted">${esc((TEMPLATE && TEMPLATE.fee_basis_help) || '')}</span></div>
+      <div class="field full"><label for="fp-notes">Notes</label><input id="fp-notes" data-testid="fee-notes" value="${esc(f.fee_notes || '')}"></div>
+      <div class="field full"><button class="btn sm primary" data-act="fee-save" data-testid="fee-save">Save fee plan</button></div></div></details>` : ''}
+  </div></section>`;
+}
+
 /* Admin only: who is on the project. Clients join through the invite, so they are not offered here. */
 function membersPanel(members, all){
   const on = new Set(members.map(m => m.id));
@@ -2638,6 +2656,13 @@ document.addEventListener('click', async e => {
       catch (err){ setError(err); }
       rerenderKeepScroll(); break;
     case 'open-stage': ui.p.openStage = ui.p.openStage === a.dataset.key ? null : a.dataset.key; rerenderKeepScroll(); break;
+    case 'fee-save': {
+      const v = $('#fp-value').value.trim();
+      const body = {contract_value: v === '' ? null : v, currency: $('#fp-cur').value.trim() || null,
+        fee_basis: $('#fp-basis').value, fee_notes: $('#fp-notes').value};
+      try { await API.updateFeePlan(ui.data.project.id, body); toast('Fee plan saved.'); await V.project.load(); ui.error = null; }
+      catch (err){ setError(err); }
+      rerenderKeepScroll(); break; }
     case 'stage-exception': {
       const key = a.dataset.key, gate = $('#ex-gate-' + key).value, reason = (($('#ex-reason-' + key) || {}).value || '').trim();
       if (!reason){ toast('Give a reason for the exception.'); break; }

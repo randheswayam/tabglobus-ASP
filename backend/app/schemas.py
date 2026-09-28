@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 
 from app import stage_config as sc
 from app.models import AuditEvent, Project, Role, SiteVisit, StepStatus, User
+from app.modules.identity.fields import redact_audit, visible_fields
 from app.modules.projects.clients import ClientIn, SiteIn, client_out, site_out
+from app.modules.projects.fee_plan import fee_plan_out
 
 
 def _not_blank(v: str) -> str:
@@ -174,6 +176,7 @@ def project_summary(project: Project) -> dict:
         "latest_visit_status": v.status.value if v else None,
         "civil_engineer": user_brief(civil_engineer_of(project)),
         **stage_summary(project),
+        "fee_plan": fee_plan_out(project),  # removed by visible_fields for roles without access
     }
 
 
@@ -193,21 +196,32 @@ def stage_summary(project: Project) -> dict:
     }
 
 
-def project_detail(db: Session, project: Project) -> dict:
+def project_detail(db: Session, project: Project, user: User) -> dict:
     events = db.scalars(select(AuditEvent).where(AuditEvent.project_id == project.id).order_by(AuditEvent.id)).all()
     actors = {u.id: u.name for u in db.scalars(select(User).where(User.id.in_({e.actor_id for e in events})))}
-    return {
-        **project_summary(project),
-        "template": {"id": project.template_id, "version": project.template_version},
-        "client": client_out(project.client),
-        "site": site_out(project.site),
-        "steps": [{"order": s.order, "name": s.name, "status": s.status.value} for s in project.steps],
-        "legal_approval": legal_out(project),
-        "latest_visit": visit_brief(latest_visit(project)),
-        "approved_visits": visit_numbers(project)[0],
-        "visit_number": visit_numbers(project)[1],
-        "audit": [
-            {"action": e.action, "actor": actors.get(e.actor_id), "at": iso_utc(e.created_at), "detail": e.detail}
-            for e in events
-        ],
-    }
+    return visible_fields(
+        user,
+        {
+            **project_summary(project),
+            "template": {"id": project.template_id, "version": project.template_version},
+            "client": client_out(project.client),
+            "site": site_out(project.site),
+            "steps": [{"order": s.order, "name": s.name, "status": s.status.value} for s in project.steps],
+            "legal_approval": legal_out(project),
+            "latest_visit": visit_brief(latest_visit(project)),
+            "approved_visits": visit_numbers(project)[0],
+            "visit_number": visit_numbers(project)[1],
+            "audit": redact_audit(
+                user,
+                [
+                    {
+                        "action": e.action,
+                        "actor": actors.get(e.actor_id),
+                        "at": iso_utc(e.created_at),
+                        "detail": e.detail,
+                    }
+                    for e in events
+                ],
+            ),
+        },
+    )

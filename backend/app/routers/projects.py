@@ -8,6 +8,7 @@ from app import template_config as tc
 from app.db import get_db
 from app.deps import get_current_user, get_visible_project, require_role, require_staff, visible_projects
 from app.models import LegalApproval, Project, ProjectMember, Role, StepStatus, User, WorkflowStep
+from app.modules.identity.fields import visible_fields
 from app.modules.projects.clients import resolve_client, resolve_site
 from app.schemas import ProjectIn, project_detail, project_summary, visit_history_row
 from app.services import audit, stages
@@ -67,17 +68,21 @@ def create_project(
     stages.release(db, project, user)
     db.commit()
     db.refresh(project)
-    return project_detail(db, project)
+    return project_detail(db, project, user)
 
 
 @router.get("/projects")
 def list_projects(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> list[dict]:
-    return [project_summary(p) for p in db.scalars(visible_projects(user))]
+    return [visible_fields(user, project_summary(p)) for p in db.scalars(visible_projects(user))]
 
 
 @router.get("/projects/{project_id}")
-def get_project(project: Project = Depends(get_visible_project), db: Session = Depends(get_db)) -> dict:
-    return project_detail(db, project)
+def get_project(
+    project: Project = Depends(get_visible_project),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    return project_detail(db, project, user)
 
 
 @router.get("/projects/{project_id}/visits")

@@ -228,7 +228,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/models.py, backend/migrations/versions/0014_fee_plan.py, backend/app/modules/projects/fee_plan.py, backend/tests/test_fee_plan.py
   - Completed: 2026-09-28. projects gains contract_value (Numeric 14,2), currency (default INR, 3 letters), fee_basis and fee_notes (migration 0013). modules/projects/fee_plan.py: GET (Architect, Admin, Accounts, Team Lead) and PATCH (Architect, Admin, Accounts) /projects/{id}/fee-plan. Values are validated (contract value 0 or more with at most 12 integer digits; currency upper-cased), money is returned as 2-decimal strings, and each change is audited with old and new values. /template serves fee_basis_help with the D-05 note. No percentages are seeded. The fee panel UI comes with the field rules in Task 19. Tests: test_fee_plan.py (13). 561 pass on SQLite and PostgreSQL.
 
-- [ ] Task 19: Field-level rules for commercial fields (P0)
+- [x] Task 19: Field-level rules for commercial fields (P0)
   - Acceptance:
     - `backend/app/modules/identity/fields.py` defines `FIELD_RULES = {"fee_plan": [...roles]}`. The default is admin, accounts, team_lead and architect, marked `TBD_PARVEZ`.
     - `visible_fields(user, obj_dict)` removes denied keys, and it is applied in project detail, project list, dashboard rows and the fee-plan route. A denied role gets 403 on `PATCH` and never sees the keys in `GET`.
@@ -236,6 +236,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - A test walks project detail, list and dashboard as every role and asserts that the fee keys appear only for allowed roles.
     - The UI hides the fee panel when the keys are absent.
   - Files: backend/app/modules/identity/fields.py, backend/app/routers/projects.py, backend/app/routers/dashboard.py, web-src/app.js, backend/tests/test_field_rules.py
+  - Completed: 2026-09-28. modules/identity/fields.py: FIELD_RULES (fee_plan: admin, accounts, team_lead, architect; TBD_PARVEZ), can_see, visible_fields and redact_audit. Project detail (now built for the viewer), project list and dashboard rows carry fee_plan only for allowed roles. Fee-plan audit entries keep the event but drop the values for everyone else. The fee-plan routes follow the same rule; editing also needs an editor role. The client app never carries it. The web project page shows a Fee plan panel (INR with Indian grouping) only when the key is present, editable by the Architect, Admin and Accounts. Tests: test_field_rules.py (16), walking detail, list, fee-plan and dashboard for every staff role, plus the client app; E2E v4-fee-plan.spec.js.
 
 - [ ] Task 20: CSV import preview (P0)
   - Acceptance:

@@ -95,4 +95,4 @@ def update_legal(
     red_flags.sync_red_flags(db, project, datetime.now(UTC))
     db.commit()
     db.refresh(project)
-    return project_detail(db, project)
+    return project_detail(db, project, user)

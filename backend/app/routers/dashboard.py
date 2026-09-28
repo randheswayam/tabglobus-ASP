@@ -24,6 +24,8 @@ from app.models import (
     SignoffStatus,
     User,
 )
+from app.modules.identity.fields import visible_fields
+from app.modules.projects.fee_plan import fee_plan_out
 from app.routers.reviews import queue_rows
 from app.schemas import approved_at, civil_engineer_of, current_step_name, iso_utc, stage_summary, user_brief
 from app.services.problems import problem_out, problem_photo
@@ -123,8 +125,10 @@ def dashboard(
                 **stage_summary(p),
                 "client": clients.get(p.id),
                 "waiting_for_client": waiting.get(p.id),
+                "fee_plan": fee_plan_out(p),
             }
         )
+        rows[-1] = visible_fields(user, rows[-1])
 
     def problem_matches(x: Problem) -> bool:
         return (severity is None or x.severity == severity) and (category is None or x.category == category)

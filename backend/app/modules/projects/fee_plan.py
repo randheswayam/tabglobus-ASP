@@ -3,18 +3,23 @@ roles allowed here. Fee milestones, requests and payments come later (S10 and V1
 
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import get_visible_project, require_role, require_staff
+from app.deps import get_current_user, get_visible_project, require_role, require_staff
 from app.models import Project, Role, User
+from app.modules.identity.fields import can_see
 from app.services import audit
 
 router = APIRouter(tags=["fee plan"], dependencies=[Depends(require_staff)])
-EDITORS = (Role.architect, Role.admin, Role.accounts)
-READERS = (*EDITORS, Role.team_lead)
+EDITORS = (Role.architect, Role.admin, Role.accounts)  # also need read access under FIELD_RULES
+
+
+def _readable(user: User) -> None:
+    if not can_see(user, "fee_plan"):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Your role cannot see the fee plan")
 
 
 def fee_plan_out(p: Project) -> dict:
@@ -44,7 +49,8 @@ class FeePlanIn(BaseModel):
 
 
 @router.get("/projects/{project_id}/fee-plan")
-def get_fee_plan(_: User = Depends(require_role(*READERS)), project: Project = Depends(get_visible_project)) -> dict:
+def get_fee_plan(user: User = Depends(get_current_user), project: Project = Depends(get_visible_project)) -> dict:
+    _readable(user)
     return fee_plan_out(project)
 
 
@@ -55,6 +61,7 @@ def update_fee_plan(
     project: Project = Depends(get_visible_project),
     db: Session = Depends(get_db),
 ) -> dict:
+    _readable(user)
     new = body.model_dump(exclude_unset=True)
     for k in ("fee_basis", "fee_notes"):
         if k in new and isinstance(new[k], str):
