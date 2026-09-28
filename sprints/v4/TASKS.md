@@ -218,7 +218,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/modules/projects/__init__.py, backend/app/modules/projects/clients.py, backend/app/models.py, backend/migrations/versions/0013_clients_sites.py, backend/app/routers/projects.py, web-src/app.js, web-src/api.js, backend/tests/test_clients_sites.py
   - Completed: 2026-09-28. New Client, ClientContact and Site models, and nullable projects.client_id and site_id (migration 0012, with named foreign keys; downgrade checked). modules/projects/clients.py: GET /clients (staff) and POST /clients (Architect or Admin). POST /projects accepts client and site as {id} or inline; the project detail returns them; creation is audited. The client view is unchanged and a test proves no contact phone numbers or notes reach it. The New project form gains client name, signatory phone and email, site address and city, and the project panel shows them. Tests: test_clients_sites.py (14) and one E2E case. 544 pass on SQLite and PostgreSQL.
 
-- [ ] Task 18: Project fee plan fields (P0)
+- [x] Task 18: Project fee plan fields (P0)
   - Acceptance:
     - `projects` gains `contract_value` (numeric), `currency` (default INR), `fee_basis` (text) and `fee_notes`, with a migration.
     - Architect, Admin and Accounts can set them through `PATCH /projects/{id}/fee-plan`, with the change audited before and after.
@@ -226,6 +226,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - The fee basis carries the D-05 note in its help text. No percentages are seeded.
     - Tests: `test_fee_plan.py`.
   - Files: backend/app/models.py, backend/migrations/versions/0014_fee_plan.py, backend/app/modules/projects/fee_plan.py, backend/tests/test_fee_plan.py
+  - Completed: 2026-09-28. projects gains contract_value (Numeric 14,2), currency (default INR, 3 letters), fee_basis and fee_notes (migration 0013). modules/projects/fee_plan.py: GET (Architect, Admin, Accounts, Team Lead) and PATCH (Architect, Admin, Accounts) /projects/{id}/fee-plan. Values are validated (contract value 0 or more with at most 12 integer digits; currency upper-cased), money is returned as 2-decimal strings, and each change is audited with old and new values. /template serves fee_basis_help with the D-05 note. No percentages are seeded. The fee panel UI comes with the field rules in Task 19. Tests: test_fee_plan.py (13). 561 pass on SQLite and PostgreSQL.
 
 - [ ] Task 19: Field-level rules for commercial fields (P0)
   - Acceptance:

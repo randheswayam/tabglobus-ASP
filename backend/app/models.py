@@ -1,5 +1,6 @@
 import enum
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     JSON,
@@ -10,6 +11,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -155,6 +157,11 @@ class Project(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     client_id: Mapped[int | None] = mapped_column(ForeignKey("clients.id"), index=True)
     site_id: Mapped[int | None] = mapped_column(ForeignKey("sites.id"))
+    # Fee plan (commercial: visible only to the roles in identity/fields.py). No percentages here (D-05).
+    contract_value: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    currency: Mapped[str] = mapped_column(String(3), default="INR", server_default="INR")
+    fee_basis: Mapped[str | None] = mapped_column(String(200))
+    fee_notes: Mapped[str | None] = mapped_column(Text)
 
     client: Mapped[Client | None] = relationship()
     site: Mapped[Site | None] = relationship()

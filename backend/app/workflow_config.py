@@ -36,6 +36,12 @@ VIDEO_TYPES = ["video/mp4", "video/webm"]
 
 # ---------- client sign-off and the customer app (sprint v3) ----------
 
+# Shown beside the project's fee basis field. TBD_PARVEZ (D-05): the basis of fee percentages is still open.
+FEE_BASIS_HELP = (
+    "What the fee percentages are calculated on, for example the total fee or a stage fee. "
+    "Still to be decided by Parvez (D-05)."
+)
+
 # TBD_PARVEZ: who may record an exception that passes a placeholder gate (payment, findings, drawings...).
 EXCEPTION_ROLES = ["admin", "team_lead"]
 

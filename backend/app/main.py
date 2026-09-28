@@ -7,6 +7,7 @@ from app.config import get_settings
 from app.db import create_all, migrate
 from app.modules.identity import admin as identity_admin
 from app.modules.projects import clients as project_clients
+from app.modules.projects import fee_plan as project_fee_plan
 from app.modules.workflow import exceptions as workflow_exceptions
 from app.routers import (
     auth,
@@ -57,6 +58,7 @@ app.include_router(updates.router)
 app.include_router(identity_admin.router)
 app.include_router(workflow_exceptions.router)
 app.include_router(project_clients.router)
+app.include_router(project_fee_plan.router)
 app.include_router(legal.router)
 app.include_router(site_visits.router)
 app.include_router(media.router)
