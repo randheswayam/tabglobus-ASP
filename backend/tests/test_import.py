@@ -96,3 +96,81 @@ def test_a_utf8_bom_from_excel_is_accepted(client, auth_headers):
 def test_only_admins_import(client, auth_headers, role):
     assert _preview(client, auth_headers(role), _csv(NEW)).status_code == 403
     assert client.get("/admin/import/projects/template", headers=auth_headers(role)).status_code == 403
+
+
+# ---------- commit (Task 21) ----------
+
+BAD = "Villa Bad,Pune,,,,roofing,engineer@siteflow.local,Parvez,"
+
+
+def _commit(client, headers, data: bytes, mode: str, architect_id, name="projects.csv"):
+    return client.post(
+        "/admin/import/projects/commit",
+        files={"file": (name, data, "text/csv")},
+        data={"mode": mode, "architect_id": str(architect_id)},
+        headers=headers,
+    )
+
+
+def test_all_or_nothing_imports_nothing_when_a_row_is_bad(client, auth_headers, users, db):
+    from app.models import ImportBatch
+
+    r = _commit(client, auth_headers("admin"), _csv(GOOD, BAD), "all_or_nothing", users["architect"].id)
+    assert r.status_code == 422
+    assert r.json()["detail"]["counts"] == {"rows": 2, "ok": 1, "errors": 1}
+    assert db.query(Project).count() == 0
+    (batch,) = db.query(ImportBatch).all()
+    assert batch.mode == "all_or_nothing" and batch.imported == 0 and batch.rows == 2
+    assert batch.errors == [{"row": 3, "errors": ["current_stage 'roofing' is not a stage"]}]
+
+
+def test_valid_rows_only_imports_the_good_rows_through_normal_onboarding(client, auth_headers, users, db):
+    from app.models import AuditEvent, ImportBatch
+
+    admin = auth_headers("admin")
+    r = _commit(client, admin, _csv(GOOD, BAD, NEW), "valid_rows_only", users["architect"].id)
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["counts"] == {"rows": 3, "ok": 2, "errors": 1}
+    assert [p["name"] for p in body["projects"]] == ["Sathe House", "Mane Villa"]
+    batch = db.query(ImportBatch).one()
+    assert batch.imported == 2 and len(batch.sha256) == 64 and batch.filename == "projects.csv"
+    assert batch.by_id == users["admin"].id
+
+    arch = auth_headers("architect")
+    sathe = client.get(f"/projects/{body['projects'][0]['id']}", headers=arch).json()
+    assert sathe["client"]["name"] == "Sathe family" and sathe["site"]["address"] == "Survey 12 Pashan"
+    assert sathe["legal_approval"]["expected_date"] == "2026-12-01"
+    view = client.get(f"/projects/{sathe['id']}/stages", headers=arch).json()
+    states = {s["key"]: s for p in view["phases"] for s in p["stages"]}
+    assert states["investigations"]["state"] == "historical"
+    assert states["investigations"]["historical"]["confirmed_by"] == "Parvez"
+    assert states["grid"]["state"] == "active"
+    mane = client.get(f"/projects/{body['projects'][1]['id']}/stages", headers=arch).json()
+    assert mane["current_stages"] == ["Project setup"]
+    created = db.query(AuditEvent).filter_by(action="project.created").all()
+    assert {e.detail["import_batch_id"] for e in created} == {batch.id}
+    assert db.query(AuditEvent).filter_by(action="import.committed").one().detail["imported"] == 2
+
+
+def test_all_or_nothing_imports_everything_when_every_row_is_good(client, auth_headers, users, db):
+    r = _commit(client, auth_headers("admin"), _csv(GOOD, NEW), "all_or_nothing", users["architect"].id)
+    assert r.status_code == 201 and r.json()["counts"]["ok"] == 2
+    assert db.query(Project).count() == 2
+
+
+def test_the_architect_must_be_an_active_architect(client, auth_headers, users):
+    admin = auth_headers("admin")
+    assert _commit(client, admin, _csv(NEW), "valid_rows_only", users["team_lead"].id).status_code == 422
+    assert _commit(client, admin, _csv(NEW), "valid_rows_only", 9999).status_code == 422
+    assert _commit(client, admin, _csv(NEW), "sometimes", users["architect"].id).status_code == 422
+
+
+def test_batches_are_listed_for_admins(client, auth_headers, users):
+    admin = auth_headers("admin")
+    _commit(client, admin, _csv(NEW), "valid_rows_only", users["architect"].id)
+    r = client.get("/admin/import/batches", headers=admin)
+    assert r.status_code == 200
+    (b,) = r.json()
+    assert b["filename"] == "projects.csv" and b["imported"] == 1 and b["by"]["name"] == users["admin"].name
+    assert client.get("/admin/import/batches", headers=auth_headers("architect")).status_code == 403

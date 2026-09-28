@@ -2,19 +2,24 @@
 nothing; the commit (next task) runs the same checks and creates projects through the normal onboarding path."""
 
 import csv
+import hashlib
 import io
 import re
 from dataclasses import dataclass, field
 from datetime import date
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app import stage_config as sc
 from app.db import get_db
 from app.deps import require_role, require_staff
-from app.models import Project, Role, User
+from app.models import ImportBatch, Project, Role, User
+from app.modules.projects import service
+from app.modules.projects.clients import ClientIn, ContactIn, SiteIn
+from app.schemas import iso_utc, user_brief
+from app.services import audit
 
 router = APIRouter(prefix="/admin/import/projects", tags=["import"], dependencies=[Depends(require_staff)])
 require_admin = require_role(Role.admin)
@@ -57,6 +62,10 @@ class RowResult:
 
 async def read_csv(file: UploadFile) -> str:
     """The file as text, or an error: 415 if it isn't a CSV, 413 past 1 MB, 422 if it isn't UTF-8."""
+    return (await read_upload(file))[0]
+
+
+async def read_upload(file: UploadFile) -> tuple[str, bytes]:
     name = (file.filename or "").lower()
     if not name.endswith(".csv"):
         raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Upload the list as a .csv file")
@@ -66,7 +75,7 @@ async def read_csv(file: UploadFile) -> str:
         if len(data) > MAX_BYTES:
             raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "The file can be at most 1 MB")
     try:
-        return bytes(data).decode("utf-8-sig")  # utf-8-sig drops the byte-order mark Excel writes
+        return bytes(data).decode("utf-8-sig"), bytes(data)  # utf-8-sig drops the byte-order mark Excel writes
     except UnicodeDecodeError:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "The file isn't UTF-8 text. Save it as 'CSV UTF-8' and try again."
@@ -159,3 +168,111 @@ async def preview(
 ) -> dict:
     results = parse(db, await read_csv(file))
     return {"counts": summary(results), "rows": [r.out() for r in results], "stages": [s["key"] for s in sc.STAGES]}
+
+
+MODES = ("all_or_nothing", "valid_rows_only")
+
+
+def _create(db: Session, r: RowResult, architect: User, admin: User, batch: ImportBatch) -> Project:
+    v = r.values
+    client = None
+    if v["client_name"]:
+        contacts = (
+            [ContactIn(name=v["client_name"], email=v["client_email"], is_signatory=True)] if v["client_email"] else []
+        )
+        client = ClientIn(name=v["client_name"], contacts=contacts)
+    return service.create_project(
+        db,
+        architect,
+        name=v["project_name"],
+        location=v["location"],
+        engineer=r.engineer,
+        legal_expected_date=date.fromisoformat(v["legal_expected_date"]) if v["legal_expected_date"] else None,
+        start_stage=v["current_stage"] or None,
+        historical_confirmed_by=v["confirmed_by"] or None,
+        client=client,
+        site=SiteIn(address=v["site_address"]) if v["site_address"] else None,
+        actor=admin,
+        audit_extra={"import_batch_id": batch.id},
+    )
+
+
+@router.post("/commit", status_code=status.HTTP_201_CREATED)
+async def commit(
+    file: UploadFile = File(...),
+    mode: str = Form(...),
+    architect_id: int = Form(...),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    if mode not in MODES:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "mode must be all_or_nothing or valid_rows_only")
+    architect = db.get(User, architect_id)
+    if architect is None or architect.role != Role.architect or not architect.is_active:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "architect_id must be an active Architect")
+    text, raw = await read_upload(file)
+    results = parse(db, text)
+    counts = summary(results)
+    batch = ImportBatch(
+        by_id=admin.id,
+        filename=(file.filename or "import.csv").replace("\\", "/").split("/")[-1][:200],
+        sha256=hashlib.sha256(raw).hexdigest(),
+        mode=mode,
+        rows=counts["rows"],
+        errors=[{"row": r.row, "errors": r.errors} for r in results if not r.ok],
+    )
+    db.add(batch)
+    db.flush()
+    refused = mode == "all_or_nothing" and counts["errors"] > 0
+    projects = [] if refused else [_create(db, r, architect, admin, batch) for r in results if r.ok]
+    batch.imported = len(projects)
+    batch.project_ids = [p.id for p in projects]
+    audit.record(
+        db,
+        admin,
+        "import.committed",
+        project_id=None,
+        entity_type="import_batch",
+        entity_id=batch.id,
+        detail={"mode": mode, "rows": counts["rows"], "imported": len(projects), "refused": refused},
+    )
+    db.commit()
+    if refused:
+        # Both paths are audited: the batch records the refusal and the row errors.
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            {
+                "message": "Nothing was imported: fix the rows with errors, or import the valid rows only",
+                "counts": counts,
+                "rows": [r.out() for r in results],
+                "batch_id": batch.id,
+            },
+        )
+    return {
+        "batch_id": batch.id,
+        "counts": counts,
+        "rows": [r.out() for r in results],
+        "projects": [{"id": p.id, "name": p.name} for p in projects],
+    }
+
+
+batches_router = APIRouter(prefix="/admin/import", tags=["import"], dependencies=[Depends(require_staff)])
+
+
+@batches_router.get("/batches")
+def list_batches(_: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[dict]:
+    return [
+        {
+            "id": b.id,
+            "at": iso_utc(b.created_at),
+            "by": user_brief(b.by),
+            "filename": b.filename,
+            "sha256": b.sha256,
+            "mode": b.mode,
+            "rows": b.rows,
+            "imported": b.imported,
+            "errors": b.errors,
+            "project_ids": b.project_ids,
+        }
+        for b in db.scalars(select(ImportBatch).order_by(ImportBatch.id.desc()))
+    ]

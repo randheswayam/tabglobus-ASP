@@ -248,7 +248,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/modules/projects/importer.py, backend/app/main.py, backend/tests/test_import.py
   - Completed: 2026-09-28. modules/projects/importer.py (Admin only): GET /admin/import/projects/template (CSV header and an example row) and POST /admin/import/projects/preview. The preview accepts .csv only (415 otherwise), up to 1 MB (413) and 500 rows, in UTF-8 with Excel's byte-order mark allowed (422 otherwise), and needs the template's columns (422 listing missing ones). It returns counts and per-row ok, errors and values, and writes nothing. Row checks: required fields; stage key known and not the first stage; confirmed_by required when a stage is set; the engineer is an active Civil Engineer; client email format; YYYY-MM-DD dates; formula-injection cells (= + - @); duplicate names within the file and in SiteFlow (case-insensitive). parse() is shared with the commit in Task 21. Tests: test_import.py (19).
 
-- [ ] Task 21: CSV import commit and ImportBatch (P0)
+- [x] Task 21: CSV import commit and ImportBatch (P0)
   - Acceptance:
     - `POST /admin/import/projects/commit` takes the same file plus `mode` ("all_or_nothing" or "valid_rows_only").
     - In all-or-nothing mode, any error imports nothing (422, with the row errors).
@@ -257,6 +257,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - An `ImportBatch` row (who, when, filename, sha256, mode, counts, errors) is written, with a migration. The commit is audited, and the batch is listed at `GET /admin/import/batches`.
     - Tests cover both modes and the historical stages of an imported project.
   - Files: backend/app/models.py, backend/migrations/versions/0015_import_batches.py, backend/app/modules/projects/importer.py, backend/tests/test_import.py
+  - Completed: 2026-09-28. Project creation moved to modules/projects/service.create_project, shared by the New project form and the import; the refactor keeps all 600 existing tests green. POST /admin/import/projects/commit (Admin; file, mode, architect_id) reuses parse(). all_or_nothing refuses with 422 if any row has errors and imports nothing; valid_rows_only imports the good rows. Each project gets a client, site, legal expected date, historical stages confirmed by the named person, and import_batch_id in its creation audit. ImportBatch (migration 0014) records who, when, filename, sha256, mode, counts, row errors and project ids, and is written, with an import.committed audit, for refused commits too. GET /admin/import/batches lists them. Deviation: the commit takes architect_id, the Project Architect for the imported projects, because the file has no architect column. Tests: 5 new cases; 609 pass on SQLite and PostgreSQL.
 
 - [ ] Task 22: Import screen (P0)
   - Acceptance:

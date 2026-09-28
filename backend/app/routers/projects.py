@@ -1,17 +1,13 @@
-from datetime import UTC, datetime
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import template_config as tc
 from app.db import get_db
 from app.deps import get_current_user, get_visible_project, require_role, require_staff, visible_projects
-from app.models import LegalApproval, Project, ProjectMember, Role, StepStatus, User, WorkflowStep
+from app.models import Project, Role, User
 from app.modules.identity.fields import visible_fields
-from app.modules.projects.clients import resolve_client, resolve_site
+from app.modules.projects import service as project_service
 from app.schemas import ProjectIn, project_detail, project_summary, visit_history_row
-from app.services import audit, stages
 
 router = APIRouter(tags=["projects"], dependencies=[Depends(require_staff)])
 
@@ -24,48 +20,18 @@ def create_project(
     if engineer is None or engineer.role != Role.civil_engineer or not engineer.is_active:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "civil_engineer_id must be an active Civil Engineer")
 
-    project = Project(
-        name=body.name,
-        location=body.location,
-        created_by_id=user.id,
-        client=resolve_client(db, body.client, user),
-        site=resolve_site(db, body.site),
-    )
-    db.add(project)
-    db.flush()
-
-    admins = db.scalars(select(User).where(User.role == Role.admin, User.is_active.is_(True))).all()
-    for member_id in {user.id, engineer.id, *(a.id for a in admins)}:
-        db.add(ProjectMember(project_id=project.id, user_id=member_id))
-
-    now = datetime.now(UTC)
-    for order, name in enumerate(tc.WORKFLOW_STEPS, start=1):
-        first = order == 1
-        db.add(
-            WorkflowStep(
-                project_id=project.id,
-                order=order,
-                name=name,
-                status=StepStatus.active if first else StepStatus.locked,
-                activated_at=now if first else None,
-            )
-        )
-    db.add(LegalApproval(project_id=project.id, expected_date=body.legal_expected_date))
-    audit.record(
+    project = project_service.create_project(
         db,
         user,
-        "project.created",
-        project_id=project.id,
-        entity_type="project",
-        entity_id=project.id,
-        detail={
-            "civil_engineer_id": engineer.id,
-            "start_stage": body.start_stage,
-            "historical_confirmed_by": body.historical_confirmed_by,
-        },
+        name=body.name,
+        location=body.location,
+        engineer=engineer,
+        legal_expected_date=body.legal_expected_date,
+        start_stage=body.start_stage,
+        historical_confirmed_by=body.historical_confirmed_by,
+        client=body.client,
+        site=body.site,
     )
-    stages.create_stages(db, project, body.start_stage, body.historical_confirmed_by)
-    stages.release(db, project, user)
     db.commit()
     db.refresh(project)
     return project_detail(db, project, user)

@@ -491,6 +491,25 @@ class ClientInvite(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class ImportBatch(Base):
+    """One bulk import of projects: who, which file (by hash), which mode, and what happened to each row."""
+
+    __tablename__ = "import_batches"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    filename: Mapped[str] = mapped_column(String(200))
+    sha256: Mapped[str] = mapped_column(String(64))
+    mode: Mapped[str] = mapped_column(String(20))
+    rows: Mapped[int] = mapped_column(Integer)
+    imported: Mapped[int] = mapped_column(Integer, default=0)
+    errors: Mapped[list] = mapped_column(Json, default=list)  # [{"row": n, "errors": [...]}]
+    project_ids: Mapped[list] = mapped_column(Json, default=list)
+
+    by: Mapped[User] = relationship()
+
+
 class StageException(Base):
     """An authorized, recorded decision to pass one gate on one stage of a project. Never edited or removed."""
 
