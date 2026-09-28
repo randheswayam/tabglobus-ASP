@@ -301,6 +301,18 @@ button.ph{padding:0;cursor:zoom-in}
 .pstrip{display:flex;gap:3px;overflow-x:auto;padding:2px 0;scrollbar-width:thin}
 .picon{position:relative;flex:none;width:24px;height:24px;border-radius:6px;display:grid;place-items:center;border:1px solid var(--line);background:var(--surface-2);color:var(--ink-3,#8a948f);cursor:help}
 .picon .wi{width:15px;height:15px}
+/* Principal overview */
+.po-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.po-row{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface)}
+.po-sum{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.po-name{min-width:150px;flex:1 1 160px}
+.po-cell{display:flex;flex-direction:column;min-width:90px}
+.po-detail{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.po-detail h4{margin:4px 0 8px}
+.po-ms{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.po-ms li{border-left:4px solid var(--line);padding-left:8px;display:flex;flex-direction:column}
+.po-ms li.h-done{border-color:var(--ok)}.po-ms li.h-waiting{border-color:var(--warn,#c9a227)}.po-ms li.h-delayed{border-color:var(--bad)}
+.po-issue{padding:6px 0;border-bottom:1px dashed var(--line)}
 .picon.h-done{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
 .picon.h-waiting{background:var(--hivis-soft);border-color:var(--hivis);color:var(--warn)}
 .picon.h-delayed{background:var(--bad-soft,#F8DAD5);border-color:var(--bad,#B3261E);color:var(--bad,#B3261E)}
@@ -1536,7 +1548,10 @@ const can = {
   legal: () => ui.me && ui.me.role === 'admin',
   visit: () => ui.me && ui.me.role === 'civil_engineer',
   review: () => ui.me && ui.me.role === 'team_lead',
-  admin: () => ui.me && ui.me.role === 'admin'
+  admin: () => ui.me && ui.me.role === 'admin',
+  // Client fees: Accounts records them; the principal architect reads them on the overview (and may record).
+  fees: () => !!API.fees && !!ui.me && (ui.me.role === 'accounts' || !!ui.me.principal),
+  principal: () => !!API.principalOverview && !!ui.me && !!ui.me.principal
 };
 
 /* ---------- toast ---------- */
@@ -1565,7 +1580,8 @@ function shell(){
   const u = ui.me;
   const nav = isClient() ? [['client-home', 'home', 'My projects'], ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : [])]
     : [...(home() === 'dashboard' ? [['dashboard', 'home', 'Dashboard']] : []), ['projects', 'folder', 'Projects'],
-      ...(can.review() ? [['queue', 'eye', 'Review queue']] : []), ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : []),
+      ...(can.review() ? [['queue', 'eye', 'Review queue']] : []), ...(ui.me.role === 'accounts' && can.fees() ? [['fees', 'doc', 'Fees']] : []),
+      ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : []),
       ...(can.admin() && API.adminUsers ? [['team', 'users', 'Team'], ['import', 'doc', 'Import projects']] : [])];
   const cur = ui.route === 'review' ? 'queue' : ['project', 'new-project', 'visit'].includes(ui.route) ? 'projects'
     : ['client-project', 'client-signoff'].includes(ui.route) ? 'client-home' : ui.route;
@@ -1781,8 +1797,8 @@ function saveFilters(f){ try { localStorage.setItem(K_FILTERS, JSON.stringify(f)
 V.dashboard = {
   load: async () => {
     ui.data.filters = savedFilters();
-    const [d] = await Promise.all([API.dashboard(ui.data.filters), template()]);
-    ui.data.dash = d;
+    const [d, po] = await Promise.all([API.dashboard(ui.data.filters), can.principal() ? API.principalOverview() : null, template()]);
+    ui.data.dash = d; ui.data.po = po;
     // Engineer choices come from the dashboard itself; only the Architect may list users.
     const seen = {}; d.all_projects.forEach(p => { if (p.civil_engineer) seen[p.civil_engineer.id] = p.civil_engineer.name; });
     ui.data.engineers = {...(ui.data.engineers || {}), ...seen};
@@ -1792,6 +1808,7 @@ V.dashboard = {
     const n = Object.keys(f).length;
     return `<div data-testid="dashboard-view"><div class="head"><div><h1>Dashboard</h1><div class="sub">${d.all_projects.length} project${d.all_projects.length === 1 ? '' : 's'}${n ? ` matching ${n} filter${n === 1 ? '' : 's'}` : ''} · ${d.needs_attention.length} need${d.needs_attention.length === 1 ? 's' : ''} attention</div></div>
       ${can.create() ? `<button class="btn primary" data-go="new-project">${ico('plus')}New project</button>` : ''}</div>
+    ${ui.data.po ? principalOverview(ui.data.po) : ''}
     ${filterBar(f)}
     <div class="kpis">
       <div class="kpi ${d.needs_attention.length ? 'alert' : ''}"><b data-testid="kpi-attention">${d.needs_attention.length}</b><span>Need architect attention</span></div>
@@ -2237,6 +2254,95 @@ function feePlanPanel(p){
       <div class="field full"><button class="btn sm primary" data-act="fee-save" data-testid="fee-save">Save fee plan</button></div></div></details>` : ''}
   </div></section>`;
 }
+
+/* Principal architect only (the server refuses everyone else): completion, client fees, major milestones and
+   major issues for every project. Each state has a word beside its colour. */
+const MS_WORD = {done: 'Done', waiting: 'Waiting', delayed: 'Delayed', upcoming: 'Not started'};
+function milestoneStrip(r){
+  return `<div class="pstrip" data-testid="po-milestones-${r.id}">${r.milestones.map(m => `<span class="picon h-${m.health}" role="img"
+    aria-label="${esc(m.label)}: ${HEALTH_LABEL[m.health]}" title="${esc(m.label)}: ${esc(MS_WORD[m.health])}">${typeof wfIcon === 'function' ? wfIcon(m.icon) : ''}</span>`).join('')}</div>`;
+}
+function issueItem(i){
+  const resolved = i.status === 'resolved';
+  return `<div class="po-issue" data-testid="po-issue-${i.id}">
+    <div class="row">${pill(i.severity === 'Critical' ? 'rework' : 'submitted', i.severity)} <b>${esc(i.problem)}</b>${resolved ? pill('done', 'Resolved') : i.overdue ? pill('rework', 'Overdue') : ''}</div>
+    <div class="small">${esc(i.location)} · Responsible: ${esc(i.responsible_party)} · Target ${esc(fmtDate(i.target_date))} · Open ${i.days_open} day${i.days_open === 1 ? '' : 's'}</div>
+    ${resolved ? `<div class="small"><span class="muted">Resolution:</span> ${esc(i.resolution_note || '—')}${i.resolved_by ? ` · ${esc(i.resolved_by.name)}` : ''}</div>`
+      : i.recommended_action ? `<div class="small"><span class="muted">Action:</span> ${esc(i.recommended_action)}</div>` : ''}
+  </div>`;
+}
+function principalRow(r){
+  const f = r.fees, open = ui.p.poOpen === r.id;
+  return `<div class="po-row" data-testid="po-row-${r.id}">
+    <div class="po-sum">${projectThumb(r)}<div class="po-name"><b>${esc(r.name)}</b><div class="small muted">${esc(r.location)}</div></div>
+      <div class="po-cell"><span class="eyebrow">Complete</span><b class="mono">${pct(r.completion.percent)}</b><span class="small muted">Construction ${pct(r.completion.construction_progress)}</span></div>
+      <div class="po-cell"><span class="eyebrow">Due</span><b class="mono">${esc(money(f.due, f.currency))}</b></div>
+      <div class="po-cell"><span class="eyebrow">Received</span><b class="mono">${esc(money(f.received, f.currency))}</b></div>
+      <div class="po-cell"><span class="eyebrow">Outstanding</span><b class="mono">${esc(money(f.outstanding, f.currency))}</b></div>
+      <div class="po-cell"><span class="eyebrow">Major issues</span><b class="mono" data-testid="po-issues-${r.id}">${r.issues.open.length}</b></div>
+      ${milestoneStrip(r)}
+      <button class="btn ghost sm" data-act="po-toggle" data-pid="${r.id}" data-testid="po-toggle-${r.id}" aria-expanded="${open}">${open ? 'Hide' : 'Details'}</button></div>
+    ${open ? `<div class="po-detail grid2" data-testid="po-detail-${r.id}">
+      <div><h4>Major milestones</h4><ul class="po-ms">${r.milestones.map(m => `<li class="h-${m.health}"><b>${m.number ? esc(m.number) + '. ' : ''}${esc(m.label)}</b>
+        <span class="small">${esc(MS_WORD[m.health])}${m.completed_at ? ` · ${esc(fmtStamp(m.completed_at))}` : ''}${m.completed_by ? ` · ${esc(m.completed_by.name)}` : ''}${m.reason && (m.health !== 'done' || !m.completed_at) ? ` · ${esc(m.reason)}` : ''}</span></li>`).join('')}</ul></div>
+      <div><h4>Major issues</h4>${r.issues.open.length ? r.issues.open.map(i => issueItem(i)).join('') : '<div class="small muted">No open High or Critical issues.</div>'}
+        ${r.issues.resolved.length ? `<h4>Recently resolved</h4>${r.issues.resolved.map(i => issueItem(i)).join('')}` : ''}</div>
+    </div>` : ''}
+  </div>`;
+}
+function principalOverview(po){
+  const t = po.portfolio, fees = t.fees.length ? t.fees : [{currency: 'INR', due: 0, received: 0, outstanding: 0}];
+  const sum = k => fees.map(x => esc(money(x[k], x.currency))).join(' + ');
+  return `<section class="panel" data-testid="principal-overview"><div class="panel-h"><h2>Principal overview</h2><span class="small muted">Only you see this</span></div>
+    <div class="kpis">
+      <div class="kpi"><b>${t.projects}</b><span>Projects</span></div>
+      <div class="kpi"><b>${pct(t.average_completion)}</b><span>Average completion</span></div>
+      <div class="kpi"><b data-testid="po-due">${sum('due')}</b><span>Fees due</span></div>
+      <div class="kpi"><b data-testid="po-received">${sum('received')}</b><span>Fees received</span></div>
+      <div class="kpi ${fees.some(x => Number(x.outstanding) > 0) ? 'attn' : ''}"><b data-testid="po-outstanding">${sum('outstanding')}</b><span>Outstanding</span></div>
+      <div class="kpi ${t.open_major_issues ? 'alert' : ''}"><b>${t.open_major_issues}</b><span>Open major issues</span></div>
+      <div class="kpi"><b>${t.milestones_waiting}</b><span>Milestones waiting</span></div>
+    </div>
+    ${po.projects.length ? `<div class="po-list">${po.projects.map(principalRow).join('')}</div>` : '<div class="empty">No projects yet.</div>'}
+  </section>`;
+}
+
+/* Accounts: client fees due and received per project. Entries can't be edited; a correction is a negative
+   entry with a reason. */
+V.fees = {
+  load: async () => {
+    ui.data.projects = await API.projects();
+    const pid = ui.p.pid || (ui.data.projects[0] && ui.data.projects[0].id);
+    ui.data.pid = pid;
+    ui.data.ledger = pid ? await API.fees(pid) : null;
+  },
+  html: () => {
+    const list = ui.data.projects, L = ui.data.ledger, t = L && L.totals;
+    return `<div data-testid="fees-view"><div class="head"><div><h1>Client fees</h1><div class="sub">Fees due and received · seen only by Accounts and the principal architect</div></div></div>
+      ${errBox()}
+      ${list.length ? `<section class="panel"><div class="panel-b row"><label for="fe-project">Project</label>
+        <select id="fe-project" data-testid="fees-project">${list.map(p => `<option value="${p.id}" ${p.id === ui.data.pid ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div></section>` : '<section class="panel"><div class="empty">You are not on any project yet.</div></section>'}
+      ${L ? `<div class="kpis" data-testid="fees-totals">
+          <div class="kpi"><b>${esc(money(t.due, t.currency))}</b><span>Due</span></div>
+          <div class="kpi"><b>${esc(money(t.received, t.currency))}</b><span>Received</span></div>
+          <div class="kpi ${Number(t.outstanding) > 0 ? 'attn' : ''}"><b>${esc(money(t.outstanding, t.currency))}</b><span>Outstanding</span></div></div>
+        <section class="panel"><div class="panel-h"><h3>Record an entry</h3></div>
+          <form class="panel-b fgrid" data-form="fee-record">
+            <div class="field"><label for="fe-kind">Type</label><select id="fe-kind" data-testid="fee-kind"><option value="due">Fee due</option><option value="received">Payment received</option></select></div>
+            <div class="field"><label for="fe-amount">Amount (${esc(t.currency)})</label><input id="fe-amount" data-testid="fee-amount" inputmode="decimal" required></div>
+            <div class="field"><label for="fe-date">Date</label><input id="fe-date" type="date" data-testid="fee-date" value="${today()}" required></div>
+            <div class="field"><label for="fe-ref">Reference</label><input id="fe-ref" data-testid="fee-reference" maxlength="120" placeholder="Needed for a payment received"></div>
+            <div class="field full"><label for="fe-note">Note</label><input id="fe-note" data-testid="fee-note" placeholder="A correction (negative amount) needs a reason"></div>
+            <div class="field full"><button class="btn primary" type="submit" data-testid="fee-submit">${ico('plus')}Record</button></div>
+          </form></section>
+        <section class="panel"><div class="panel-h"><h3>Entries</h3></div>
+          ${L.entries.length ? `<div class="tbl-wrap"><table class="ftable" data-testid="fees-entries"><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Reference</th><th>Note</th><th>Recorded by</th></tr></thead><tbody>
+            ${L.entries.map(e => `<tr><td>${esc(fmtDate(e.date))}</td><td>${e.kind === 'due' ? 'Fee due' : 'Payment received'}</td><td class="mono">${esc(money(e.amount, e.currency))}</td>
+              <td>${esc(e.reference || '—')}</td><td>${esc(e.note || '')}</td><td class="small">${esc(e.recorded_by ? e.recorded_by.name : '')}</td></tr>`).join('')}
+          </tbody></table></div>` : '<div class="empty" data-testid="fees-entries">No entries yet.</div>'}</section>` : ''}
+    </div>`;
+  }
+};
 
 /* Admin only: who is on the project. Clients join through the invite, so they are not offered here. */
 function membersPanel(members, all){
@@ -2835,6 +2941,8 @@ document.addEventListener('mouseout', e => {
 document.addEventListener('focusin', e => { if (lastPointer === 'touch') return; const el = e.target.closest && e.target.closest('[data-wf-pid]'); if (el && e.target === el) showCallout(el); });
 document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('[data-wf-pid]') && !(e.relatedTarget && e.relatedTarget.closest('#wf-callout'))) hideCallout(); });
 
+document.addEventListener('change', e => { if (e.target.id === 'fe-project') go('fees', {pid: +e.target.value}); });
+
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape'){ document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open')); hideCallout(); return; }
   const el = e.target;
@@ -2851,6 +2959,7 @@ document.addEventListener('click', async e => {
         break;
       }
       hideCallout(); go('project', {pid: +a.dataset.pid}); break;
+    case 'po-toggle': { const id = +a.dataset.pid; ui.p.poOpen = ui.p.poOpen === id ? null : id; rerenderKeepScroll(); break; }
     case 'phase-tip': {
       const open = a.classList.contains('open');
       document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open'));
@@ -3115,6 +3224,13 @@ document.addEventListener('submit', async e => {
         try { ui.me = await API.activate(ui.loginEmail, ui.activateCode, password); }
         catch (err){ ui.error = err.message; if (err.status === 400) ui.activateCode = ''; render(); return; }
         ui.error = null; ui.activating = false; ui.activateCode = ''; toast('Welcome to SiteFlow.'); await go(home()); break;
+      }
+      case 'fee-record': {
+        const body = {kind: $('#fe-kind').value, amount: $('#fe-amount').value.trim().replace(/,/g, ''), date: $('#fe-date').value,
+          reference: $('#fe-ref').value.trim() || null, note: $('#fe-note').value.trim() || null};
+        try { await API.recordFee(ui.data.pid, body); ui.data.ledger = await API.fees(ui.data.pid); ui.error = null; toast('Entry recorded.'); }
+        catch (err){ setError(err, {amount: 'Amount', reference: 'Reference', note: 'Note (reason for the correction)', date: 'Date'}); }
+        render(); break;
       }
       case 'add-user': {
         const body = {name: $('#au-name').value.trim(), email: $('#au-email').value.trim(), role: $('#au-role').value};

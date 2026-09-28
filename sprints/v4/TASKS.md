@@ -509,7 +509,7 @@ A small image of each project's 3D model sits beside the project name, so each p
   - Files: backend/app/modules/principal/__init__.py, backend/app/modules/principal/overview.py, backend/app/workflow_config.py, backend/app/main.py, backend/tests/test_principal_overview.py
   - Completed: 2026-09-28. modules/principal/overview.py: GET /principal/overview (require_staff + require_principal) with weighted completion beside construction progress, fee totals, MAJOR_MILESTONES with health, date and who, open and recently resolved High and Critical issues with the visit's recommended action; portfolio totals per currency; OVERALL_COMPLETION_WEIGHTS, MAJOR_MILESTONES, RESOLVED_ISSUES_DAYS marked TBD_PARVEZ
 
-- [ ] Task 35: Principal overview on the dashboard (P0)
+- [x] Task 35: Principal overview on the dashboard (P0)
   - Acceptance:
     - When the signed-in user is the principal, the dashboard opens with a "Principal overview" section (`data-testid="principal-overview"`):
       - portfolio totals at the top;
@@ -525,6 +525,7 @@ A small image of each project's 3D model sits beside the project name, so each p
       - Meera (Architect) doesn't see the section, and the API returns 403.
       - Screenshots are saved.
   - Files: web-src/app.js, web-src/api.js, web-src/app.html, tests/e2e/v4-principal.spec.js
+  - Completed: 2026-09-28. Principal overview section on the dashboard for the principal only (portfolio KPIs, one row per project with image, completion, fees, milestone strip and major issue count; Details shows milestones with dates or reasons and issues with action or resolution); Fees tab for Accounts to record entries; money in Indian grouping; E2E v4-principal.spec.js with 4 screenshots
 
 ### P1 — Should have
 

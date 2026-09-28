@@ -8,6 +8,7 @@ const EMAIL = {
   team_lead: 'parvez@siteflow.local',
   civil_engineer: 'engineer@siteflow.local',
   admin: 'admin@siteflow.local',
+  accounts: 'accounts@siteflow.local',
 };
 const APP = `/index.html?api=${encodeURIComponent(API)}`;
 
@@ -117,5 +118,5 @@ async function submitVisitViaApi(request, pid, body){
   return r.json();
 }
 
-module.exports = { API, APP, EMAIL, PASSWORD, MP4, PDF, shot, signIn, signOut, api, createApprovedProject, makePng, addMedia,
+module.exports = { API, APP, EMAIL, PASSWORD, MP4, PDF, shot, signIn, signOut, api, apiToken, createApprovedProject, makePng, addMedia,
   mediaTiles, plinthVisit, submitVisitViaApi };
