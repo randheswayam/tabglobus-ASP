@@ -1,0 +1,4 @@
+project_name,location,client_name,client_email,site_address,current_stage,civil_engineer_email,confirmed_by,legal_expected_date
+Import Sathe House,Pashan Pune,Sathe family,sathe@example.com,Survey 12 Pashan,grid,engineer@siteflow.local,Parvez,2026-12-01
+Import Mane Villa,Wakad Pune,,,,,engineer@siteflow.local,,
+Import Bad Row,Baner Pune,,,,roofing,engineer@siteflow.local,Parvez,

@@ -259,7 +259,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/models.py, backend/migrations/versions/0015_import_batches.py, backend/app/modules/projects/importer.py, backend/tests/test_import.py
   - Completed: 2026-09-28. Project creation moved to modules/projects/service.create_project, shared by the New project form and the import; the refactor keeps all 600 existing tests green. POST /admin/import/projects/commit (Admin; file, mode, architect_id) reuses parse(). all_or_nothing refuses with 422 if any row has errors and imports nothing; valid_rows_only imports the good rows. Each project gets a client, site, legal expected date, historical stages confirmed by the named person, and import_batch_id in its creation audit. ImportBatch (migration 0014) records who, when, filename, sha256, mode, counts, row errors and project ids, and is written, with an import.committed audit, for refused commits too. GET /admin/import/batches lists them. Deviation: the commit takes architect_id, the Project Architect for the imported projects, because the file has no architect column. Tests: 5 new cases; 609 pass on SQLite and PostgreSQL.
 
-- [ ] Task 22: Import screen (P0)
+- [x] Task 22: Import screen (P0)
   - Acceptance:
     - The Admin "Import projects" screen offers:
       - a template download and a file picker;
@@ -269,6 +269,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - All controls have `data-testid`s.
     - E2E `v4-import.spec.js` imports a 3-row file with 1 bad row: first all-or-nothing is refused, then valid-rows-only creates 2 projects. One of them shows historical stages. Screenshots are saved.
   - Files: web-src/app.js, web-src/api.js, web-src/app.html, tests/e2e/v4-import.spec.js, tests/e2e/fixtures/import-3rows.csv
+  - Completed: 2026-09-28. The Admin gets an 'Import projects' screen: download the template (fetched with the session token); choose the CSV and 'Check the file'; the preview table shows counts and row errors as text on a highlighted row; pick the Project Architect and the mode; Import; the result links to each new project; earlier imports are listed, refusals included. E2E v4-import.spec.js with fixtures/import-3rows.csv (1 bad row): all-or-nothing is refused, ready-rows-only imports 2, and the imported project shows historical stages and its client. Screenshots task22-01 to 05.
 
 ### Stage completion with files (requested 28 September 2026)
 

@@ -97,7 +97,7 @@ function shell(){
   const nav = isClient() ? [['client-home', 'home', 'My projects'], ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : [])]
     : [...(home() === 'dashboard' ? [['dashboard', 'home', 'Dashboard']] : []), ['projects', 'folder', 'Projects'],
       ...(can.review() ? [['queue', 'eye', 'Review queue']] : []), ...(API.notifications ? [['alerts', 'bell', 'Notifications']] : []),
-      ...(can.admin() && API.adminUsers ? [['team', 'users', 'Team']] : [])];
+      ...(can.admin() && API.adminUsers ? [['team', 'users', 'Team'], ['import', 'doc', 'Import projects']] : [])];
   const cur = ui.route === 'review' ? 'queue' : ['project', 'new-project', 'visit'].includes(ui.route) ? 'projects'
     : ['client-project', 'client-signoff'].includes(ui.route) ? 'client-home' : ui.route;
   const count = r => r === 'queue' && ui.queueCount ? `<span class="count" data-testid="queue-count">${ui.queueCount}</span>`
@@ -355,6 +355,46 @@ V.team = {
           <td>${fixed ? pill(u.active ? 'done' : '', u.active ? 'Active' : 'Inactive') : `<label class="row small"><input type="checkbox" data-testid="user-active-${u.id}" ${u.active ? 'checked' : ''}> Active</label> ${u.active ? '' : pill('', 'Inactive')}`}</td>
           <td>${fixed ? `<span class="small muted">${u.role === 'client' ? 'Managed by invite' : 'You'}</span>` : `<button class="btn sm" data-act="user-save" data-uid="${u.id}" data-testid="user-save-${u.id}">Save</button>`}</td></tr>`;
         }).join('')}</tbody></table></div></section></div>`;
+  }
+};
+
+/* Admin: bring the in-progress projects in from a spreadsheet saved as CSV (PRD 7.19). Preview first; nothing is
+   written until Import. Errors are shown as text on each row, not only by colour. */
+V.import = {
+  load: async () => {
+    const [users, batches] = await Promise.all([API.adminUsers(), API.importBatches()]);
+    ui.data.architects = users.filter(u => u.role === 'architect' && u.active); ui.data.batches = batches;
+  },
+  html: () => {
+    const pv = ui.data.preview, res = ui.data.result;
+    return `<div data-testid="import-view"><div class="head"><div><h1>Import projects</h1><div class="sub">Bring in projects already in progress, at their current stage.</div></div>
+      <button class="btn" data-act="import-template" data-testid="import-template">${ico('doc')}Download the template</button></div>
+      ${errBox()}
+      <section class="panel"><div class="panel-h"><h3>1. Choose the file</h3></div><div class="panel-b stack" style="gap:10px">
+        <p class="small muted">Fill in the template in Excel or Google Sheets and save it as CSV (UTF-8). Leave current_stage blank for a new project; for a project already under way, give the stage key and who confirms the earlier stages.</p>
+        <div class="row"><input type="file" accept=".csv,text/csv" id="im-file" data-testid="import-file" aria-label="CSV file">
+          <button class="btn primary sm" data-act="import-preview" data-testid="import-preview">Check the file</button>
+          ${ui.data.importFile ? `<span class="small muted" data-testid="import-checked-file">Checked: ${esc(ui.data.importFile.name)}</span>` : ''}</div>
+      </div></section>
+      ${pv ? `<section class="panel" data-testid="import-preview-table"><div class="panel-h"><h3>2. Check each row</h3>
+          <span class="small" data-testid="import-counts">${pv.counts.rows} rows · ${pv.counts.ok} ready · ${pv.counts.errors} with errors</span></div>
+        <div class="tbl-wrap"><table class="ftable"><thead><tr><th>Row</th><th>Project</th><th>Current stage</th><th>Civil engineer</th><th>Result</th></tr></thead><tbody>
+          ${pv.rows.map(r => `<tr data-testid="import-row-${r.row}" class="${r.ok ? '' : 'row-bad'}"><td class="mono">${r.row}</td><td>${esc(r.values.project_name || '—')}</td>
+            <td>${esc(r.values.current_stage || 'New project')}</td><td>${esc(r.values.civil_engineer_email)}</td>
+            <td>${r.ok ? pill('done', 'Ready') : `${pill('rework', 'Error')}<ul class="small">${r.errors.map(e => `<li>${esc(e)}</li>`).join('')}</ul>`}</td></tr>`).join('')}
+        </tbody></table></div>
+        <div class="panel-b fgrid">
+          <div class="field"><label for="im-arch">Project Architect for these projects</label><select id="im-arch" data-testid="import-architect">${ui.data.architects.map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select></div>
+          <div class="field"><span class="lbl">If a row has errors</span>
+            <label class="radio small"><input type="radio" name="im-mode" value="all_or_nothing" data-testid="import-mode-all" checked> Import nothing until every row is fixed</label>
+            <label class="radio small"><input type="radio" name="im-mode" value="valid_rows_only" data-testid="import-mode-valid"> Import the ready rows only</label></div>
+          <div class="field full"><button class="btn primary" data-act="import-commit" data-testid="import-commit">Import</button></div>
+        </div></section>` : ''}
+      ${res ? `<section class="panel" data-testid="import-result"><div class="panel-h"><h3>Imported ${res.projects.length} project${res.projects.length === 1 ? '' : 's'}</h3></div>
+        <div class="panel-b stack" style="gap:6px">${res.projects.map(p => `<button class="btn ghost sm" data-act="open-project" data-pid="${p.id}" data-testid="import-project-${p.id}">${esc(p.name)}</button>`).join('')}</div></section>` : ''}
+      ${ui.data.batches.length ? `<section class="panel"><div class="panel-h"><h3>Earlier imports</h3></div><div class="panel-b audit">
+        ${ui.data.batches.map(b => `<div><span class="mono muted small">${fmtStamp(b.at)}</span><span>${esc(b.filename)} · ${b.imported} of ${b.rows} imported · ${esc(b.mode === 'all_or_nothing' ? 'all or nothing' : 'ready rows only')} · ${esc(b.by ? b.by.name : '')}</span></div>`).join('')}</div></section>` : ''}
+    </div>`;
   }
 };
 
@@ -1169,6 +1209,30 @@ document.addEventListener('click', async e => {
   switch (a.dataset.act){
     case 'open-project': go('project', {pid: +a.dataset.pid}); break;
     case 'sign-out': await API.logout(); showLogin(); break;
+    case 'import-template': {
+      try { const url = await API.importTemplateUrl(); const link = document.createElement('a');
+        link.href = url; link.download = 'siteflow-projects-template.csv'; link.click(); }
+      catch (err){ setError(err); render(); }
+      break;
+    }
+    case 'import-preview': {
+      const f = $('#im-file') && $('#im-file').files[0];
+      if (!f){ toast('Choose the CSV file first.'); break; }
+      ui.data.importFile = f; ui.data.result = null;
+      try { ui.data.preview = await API.importPreview(f); ui.error = null; }
+      catch (err){ ui.data.preview = null; setError(err); }
+      render(); break;
+    }
+    case 'import-commit': {
+      const mode = (document.querySelector('input[name="im-mode"]:checked') || {}).value || 'all_or_nothing';
+      a.disabled = true;
+      try {
+        ui.data.result = await API.importCommit(ui.data.importFile, mode, +$('#im-arch').value);
+        ui.data.preview = null; ui.error = null; ui.data.batches = await API.importBatches();
+        toast(`Imported ${ui.data.result.projects.length} projects.`);
+      } catch (err){ setError(err); ui.data.batches = await API.importBatches(); }
+      render(); break;
+    }
     case 'user-save': {
       const id = +a.dataset.uid;
       const role = $(`[data-testid="user-role-${id}"]`).value, active = $(`[data-testid="user-active-${id}"]`).checked;

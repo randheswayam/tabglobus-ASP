@@ -159,6 +159,18 @@ const SiteFlowAPI = (() => {
     removeSignoffAttachment: (id, aid) => request('DELETE', `/signoffs/${id}/attachments/${aid}`),
     uploadSignoffAttachment(id, file){ const fd = new FormData(); fd.append('file', file); return requestForm(`/signoffs/${id}/attachments`, fd); },
     inviteClient: (pid, name, email) => request('POST', `/projects/${pid}/client-invite`, {name, email}),
+    /* ---------- admin: bulk import of in-progress projects ---------- */
+    importPreview(file){ const fd = new FormData(); fd.append('file', file); return requestForm('/admin/import/projects/preview', fd); },
+    importCommit(file, mode, architectId){
+      const fd = new FormData(); fd.append('file', file); fd.append('mode', mode); fd.append('architect_id', String(architectId));
+      return requestForm('/admin/import/projects/commit', fd);
+    },
+    importBatches: () => request('GET', '/admin/import/batches'),
+    async importTemplateUrl(){
+      const r = await authFetch(`${base()}/admin/import/projects/template`);
+      if (!r.ok) throw new ApiError(r.status, 'Could not download the template');
+      return URL.createObjectURL(await r.blob());
+    },
     /* ---------- admin: users and project members ---------- */
     adminUsers: () => request('GET', '/admin/users'),
     createUser: body => request('POST', '/admin/users', body),
