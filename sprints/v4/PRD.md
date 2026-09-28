@@ -14,6 +14,7 @@ Sprint v4 is the first sprint of the V4 programme. It closes the core gaps that 
 - **Requested on 28 September 2026:** a small image of the project's 3D model beside the project name on the dashboard and cards, so each project is easy to recognise.
 - **Requested on 28 September 2026:** only the main (principal) architect sees an overview of overall completion %, client fees due and received, major milestones, and major issues with their resolution actions.
 - **Requested on 28 September 2026:** every progress dash on the dashboard and Projects cards becomes a representative icon for its phase, and the callout shows the workflow visually, drawn like the architect's workflow diagram.
+- **Requested on 28 September 2026:** the client demo is updated with all the sprint v4 enhancements, so they can be shown to Parvez. This replaces the earlier decision to keep the demo frozen at v3.
 
 No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **Build** stage of Build → Deploy → Evaluate → Maintain.
 
@@ -47,6 +48,15 @@ No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **
   - the major milestones with state and dates;
   - open major issues with owner, target date and action, and recently resolved ones with their resolution.
   - The server refuses everyone else (403), including Admin, Accounts and Architects.
+- **The demo shows sprint v4.** The published client demo runs the v4 app against sample data:
+  - phase icons and the workflow callout;
+  - project images;
+  - stage completion with a note and files;
+  - the Finishing package and the 80% fee gate;
+  - recorded exceptions;
+  - the Team and Import screens for Admin;
+  - Accounts' fee ledger;
+  - the principal overview for Parvez.
 - **Nothing regresses.** All 409 backend tests and 28 E2E tests from v3 still pass, or are updated only where a rule deliberately changed.
 
 ## User Stories
@@ -161,7 +171,7 @@ No V4 feature (V01 to V25) is built in this sprint. This sprint continues the **
 - **Full fee management.** Fee milestones, payment requests, reminders and verification are V12. This sprint's ledger records totals due and received by hand.
 - **An editable workflow diagram.** The callout is a read-only view of the configured flow. Changing the flow still means changing `stage_config.py`.
 - **Viewing AutoCAD drawings in SiteFlow.** DWG and DXF files are stored and downloaded only; there is no in-app preview or conversion.
-- **Demo parity.** The client demo stays exactly as published for v3 (R-16). `demo-api.js` is not changed, and the demo E2E test must still pass.
+- **Full demo parity.** The demo covers the sprint v4 screens (Task 42), but not server-only behaviour: sessions across devices, password reset, delegation, flow versions and XLSX import. Its data lives in the browser, and after this refresh it is frozen again until the next Evaluate point (R-16).
 
 ## Dependencies
 - The sprint v3 codebase at commit `40a1e36`: 409 backend and 28 E2E tests passing, and migrations 0001 to 0009.

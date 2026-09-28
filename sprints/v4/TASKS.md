@@ -583,7 +583,22 @@ A small image of each project's 3D model sits beside the project name, so each p
     - Tests reuse the CSV cases with an XLSX fixture.
   - Files: backend/requirements.txt, backend/app/modules/projects/importer.py, backend/tests/test_import.py, backend/tests/fixtures/import.xlsx
 
-- [ ] Task 42: Sprint close: status docs (P1)
+- [ ] Task 42: Update the client demo with the sprint v4 enhancements (P1)
+  - Acceptance:
+    - `web-src/demo-api.js` serves the v4 shapes the app now reads, so the demo shows:
+      - phase icons and the hover callout (workflow health per project);
+      - a sample 3D image beside each project name;
+      - stage completion with a note and photo, video, AutoCAD and PDF files;
+      - Phase 9 "Finishing" with the 80% fee gate, and exceptions recorded for placeholder gates;
+      - the Admin Team screen, and the Import screen with a CSV preview;
+      - the Accounts fee ledger;
+      - the principal overview, for Parvez only.
+    - The sign-in screen offers the Accounts user.
+    - `demo.spec.js` gains checks for the icons, the callout, the principal overview and the fee ledger. The existing demo checks still pass, with screenshots saved.
+    - After the user has seen it, the published demo Artifact is republished at the same URL. `docs/PROGRESS.md` records the refresh and supersedes the "demo not updated" note.
+  - Files: web-src/demo-api.js, web-src/build.py, tests/e2e/demo.spec.js, docs/PROGRESS.md
+
+- [ ] Task 43: Sprint close: status docs (P1)
   - Acceptance:
     - `docs/V4_EXECUTION_PLAN.md` section 2 updates S00 to S04 with the new evidence (file paths and test names) and their new status.
     - `docs/PROGRESS.md` gets a dated entry: done, not done, deviations, and open questions (stage owners, field matrix, exception roles, stage evidence rules and file size limits, stage delay thresholds, the basis of the 50% and 80% fee percentages, principal-only views and who else may read fees, major milestones list, overall completion weights, project image on the client app, D-13 data).
