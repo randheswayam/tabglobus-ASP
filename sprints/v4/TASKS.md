@@ -306,7 +306,7 @@ Applies to every workflow activity in the v3 tracker: staff mark a stage complet
   - Files: backend/app/routers/stages.py, backend/app/services/stages.py, backend/app/stage_config.py, backend/app/models.py, backend/tests/test_stage_completion.py, backend/tests/test_stage_attachments.py
   - Completed: 2026-09-28. stages.complete links every pending attachment of the stage (completed_at) and lists the file names in the stage.completed audit. Every stage has evidence_required (default [], TBD_PARVEZ). The complete route refuses with 422, missing ['attachments'] and a plain reason ('Add at least one photo before completing this stage') when a required kind is missing; the note is still required. The tracker returns attachments, evidence_required, evidence_missing and evidence_reason. A flush guard makes completed stage files and a completed stage's note, completer and time immutable (StageImmutableError). Client sign-off stages are unchanged. attachment_out moved to services/stages to avoid a circular import. Tests: 6 new.
 
-- [ ] Task 25: Stage detail: attach files and mark complete (P0)
+- [x] Task 25: Stage detail: attach files and mark complete (P0)
   - Acceptance:
     - In the stage detail, beside the "What was completed?" note (the area circled in the screenshot of 28 September 2026), add:
       - "Add photo" (opens the camera on mobile, through `capture`);
@@ -318,6 +318,7 @@ Applies to every workflow activity in the v3 tracker: staff mark a stage complet
     - It works at phone width.
     - E2E `v4-stage-files.spec.js`: attach a photo, a DWG and a PDF, remove one, mark complete with a note, then see the files on the completed stage. It also runs in a phone viewport. Screenshots are saved.
   - Files: web-src/app.js, web-src/api.js, web-src/app.html, tests/e2e/v4-stage-files.spec.js, tests/e2e/helpers.js
+  - Completed: 2026-09-28. The stage detail gains the files area beside the note: Add photo (camera on phones), Add video, and Add drawing or document (.dwg, .dxf, .pdf), each an XHR upload with progress that renews the session once on 401. Photos show as thumbnails; video, PDF and AutoCAD files show as chips with type, size and uploader, and download on click. The uploader can remove a file until the stage is completed. The evidence rule appears as a banner and disables Mark complete while files are missing. Backend: the tracker returns can_attach. E2E v4-stage-files.spec.js (2): photo, DWG and PDF attached, one removed, completed with a note, files kept and locked; and a phone layout. Screenshots task25-01 to 04.
 
 - [ ] Task 26: Completed stages show their note and files; clients don't see them (P0)
   - Acceptance:

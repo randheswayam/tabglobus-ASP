@@ -220,6 +220,35 @@ const SiteFlowAPI = (() => {
         xhr.send(fd);
       });
     },
+    // Stage files: XHR for upload progress, one retry after renewing the session.
+    uploadStageFile(pid, key, file, onProgress, retried){
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest(), t = token();
+        xhr.open('POST', `${base()}/projects/${pid}/stages/${key}/attachments`);
+        if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t);
+        xhr.upload.onprogress = e => { if (onProgress && e.lengthComputable) onProgress(e.loaded / e.total); };
+        xhr.onerror = () => reject(new ApiError(0, `Cannot reach the SiteFlow server at ${base()}. Check your connection.`));
+        xhr.onload = () => {
+          let data = null; try { data = JSON.parse(xhr.responseText); } catch (_) {}
+          if (xhr.status === 401 && t && !retried){
+            renew().then(ok => ok ? this.uploadStageFile(pid, key, file, onProgress, true).then(resolve, reject)
+              : (signedOut(), reject(new ApiError(401, messageOf(data, 401)))));
+            return;
+          }
+          if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+          else reject(new ApiError(xhr.status, messageOf(data, xhr.status), data && data.detail));
+        };
+        const fd = new FormData(); fd.append('file', file); xhr.send(fd);
+      });
+    },
+    removeStageFile: (pid, key, id) => request('DELETE', `/projects/${pid}/stages/${key}/attachments/${id}`),
+    async stageFileUrl(pid, key, id){
+      const k = `s${id}`;
+      if (mediaUrls[k]) return mediaUrls[k];
+      const r = await authFetch(`${base()}/projects/${pid}/stages/${key}/attachments/${id}`);
+      if (!r.ok) throw new ApiError(r.status, 'Could not load the file');
+      return (mediaUrls[k] = URL.createObjectURL(await r.blob()));
+    },
     // Files need the Bearer token, which an <img src> can't send, so fetch them as blobs.
     async mediaUrl(id){
       if (mediaUrls[id]) return mediaUrls[id];

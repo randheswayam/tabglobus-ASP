@@ -266,6 +266,15 @@ button.ph{padding:0;cursor:zoom-in}
 .section-h{font-size:15px;margin:18px 0 10px}
 .so-summary{white-space:pre-wrap}
 .row-bad td{background:var(--warn-soft)}
+.stage-files{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.sf-list{display:flex;flex-direction:column;gap:6px}
+.sf{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)}
+.sf-thumb{width:48px;height:48px;border-radius:6px;overflow:hidden;border:0;padding:0;background:var(--surface-2);cursor:pointer;flex:none}
+.sf-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.sf-ic{width:48px;height:48px;display:grid;place-items:center;border-radius:6px;background:var(--surface-2);flex:none}
+.sf-meta{display:flex;flex-direction:column;min-width:0;flex:1}
+.sf-meta .linkish{background:none;border:0;padding:0;text-align:left;color:var(--accent);font-weight:600;cursor:pointer;overflow-wrap:anywhere}
+.sf-add{flex-wrap:wrap;gap:6px}
 .lbl{display:block;font-weight:600;font-size:13px;margin-bottom:4px}
 .field label.radio{display:flex;align-items:center;gap:8px;font-weight:400;margin:4px 0}
 .field label.radio input{width:auto;margin:0}
@@ -2141,9 +2150,55 @@ function stageDetail(s){
     ${(s.exceptions || []).map(x => `<div class="banner info" data-testid="stage-exception-note-${s.key}-${x.gate}">${ico('flag')}<span><b>Exception recorded</b> by ${esc(x.by ? x.by.name : 'someone')} ${fmtStamp(x.at)}: ${esc(x.reason)}</span></div>`).join('')}
     ${(s.gates || []).includes('client_signoff') && s.state !== 'historical' ? signoffComposer(s) : ''}
     ${s.can_record_exception && (s.open_exceptions || []).length ? exceptionForm(s) : ''}
+    ${(s.attachments || []).length || s.can_attach ? stageFiles(s) : ''}
+    ${s.evidence_reason ? `<div class="banner rework" data-testid="stage-evidence-${s.key}">${ico('alert')}<span>${esc(s.evidence_reason)}</span></div>` : ''}
     ${s.can_complete ? `<div class="flag-clear-form"><input class="inp" id="st-note-${s.key}" data-testid="stage-note-${s.key}" placeholder="What was completed? (required)" aria-label="Completion note">
-      <button class="btn sm primary" data-act="stage-complete" data-key="${s.key}" data-testid="stage-complete-${s.key}">${ico('check')}Mark complete</button></div>` : ''}
+      <button class="btn sm primary" data-act="stage-complete" data-key="${s.key}" data-testid="stage-complete-${s.key}" ${(s.evidence_missing || []).length ? 'disabled' : ''}>${ico('check')}Mark complete</button></div>` : ''}
   </div>`;
+}
+
+/* Files on a stage: photos show as thumbnails; video, PDF and AutoCAD drawings as chips that download. */
+const FILE_ICON = {photo: 'camera', video: 'video', document: 'doc', cad: 'split'};
+const kb = n => n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`;
+function stageFiles(s){
+  const files = s.attachments || [], up = ui.p.stageUpload && ui.p.stageUpload.key === s.key ? ui.p.stageUpload : null;
+  const me = ui.me && ui.me.id;
+  return `<div class="stage-files" data-testid="stage-files-${s.key}">
+    ${files.length ? `<div class="sf-list">${files.map(f => `<div class="sf ${f.kind}" data-testid="stage-file-${f.id}">
+      ${f.kind === 'photo' ? `<button class="sf-thumb" data-act="stage-file-open" data-key="${s.key}" data-id="${f.id}" aria-label="Open ${esc(f.filename)}"><img data-sfid="${f.id}" data-sfkey="${s.key}" alt="${esc(f.filename)}"></button>`
+        : `<span class="sf-ic">${ico(FILE_ICON[f.kind] || 'doc')}</span>`}
+      <span class="sf-meta"><button class="linkish" data-act="stage-file-open" data-key="${s.key}" data-id="${f.id}">${esc(f.filename)}</button>
+        <span class="small muted">${esc(f.kind === 'cad' ? 'AutoCAD drawing' : f.kind === 'document' ? 'PDF' : f.kind)} · ${kb(f.size)}${f.uploaded_by ? ` · ${esc(f.uploaded_by.name)}` : ''}</span></span>
+      ${!f.completed_at && s.state !== 'completed' && f.uploaded_by && f.uploaded_by.id === me ? `<button class="btn ghost sm" data-act="stage-file-remove" data-key="${s.key}" data-id="${f.id}" data-testid="stage-file-remove-${f.id}">Remove</button>` : ''}
+    </div>`).join('')}</div>` : ''}
+    ${up ? `<div class="small" data-testid="stage-upload-progress">Uploading ${esc(up.name)}… ${Math.round(up.pct * 100)}%</div>` : ''}
+    ${s.can_attach && s.state !== 'completed' ? `<div class="row sf-add">
+      <button class="btn sm" data-act="stage-attach" data-kind="photo" data-key="${s.key}" data-testid="stage-attach-photo-${s.key}">${ico('camera')}Add photo</button>
+      <button class="btn sm" data-act="stage-attach" data-kind="video" data-key="${s.key}" data-testid="stage-attach-video-${s.key}">${ico('video')}Add video</button>
+      <button class="btn sm" data-act="stage-attach" data-kind="file" data-key="${s.key}" data-testid="stage-attach-file-${s.key}">${ico('doc')}Add drawing or document</button></div>
+      <div class="small muted">Photos, videos, PDFs and AutoCAD drawings (DWG, DXF). Files are kept with the stage once it is completed.</div>` : ''}
+  </div>`;
+}
+
+const STAGE_ACCEPT = {photo: 'image/jpeg,image/png,image/webp', video: 'video/mp4,video/webm', file: '.dwg,.dxf,.pdf,application/pdf'};
+function pickStageFile(key, kind){
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.hidden = true; inp.accept = STAGE_ACCEPT[kind];
+  if (kind === 'photo') inp.setAttribute('capture', 'environment');
+  inp.multiple = kind !== 'video';
+  inp.addEventListener('change', async () => {
+    const files = [...inp.files]; inp.remove();
+    for (const f of files){
+      ui.p.stageUpload = {key, name: f.name, pct: 0}; rerenderKeepScroll();
+      try { await API.uploadStageFile(ui.data.project.id, key, f, pct => { ui.p.stageUpload = {key, name: f.name, pct}; const el = $('[data-testid="stage-upload-progress"]'); if (el) el.textContent = `Uploading ${f.name}… ${Math.round(pct * 100)}%`; }); }
+      catch (err){ toast(err.message); }
+    }
+    ui.p.stageUpload = null;
+    try { ui.data.stages = await API.stages(ui.data.project.id); } catch (_) {}
+    rerenderKeepScroll();
+  });
+  document.body.appendChild(inp);
+  inp.click();
 }
 
 /* A placeholder gate (a check SiteFlow doesn't have yet) passes only with a recorded, reasoned exception. */
@@ -2565,6 +2620,9 @@ function render(){
 
 /* Thumbnails are fetched with the sign-in token after each render. */
 function hydrateMedia(){
+  if (API.stageFileUrl && ui.data.project) document.querySelectorAll('img[data-sfid]:not([src])').forEach(async img => {
+    try { img.src = await API.stageFileUrl(ui.data.project.id, img.dataset.sfkey, +img.dataset.sfid); } catch (_) { img.alt = 'Photo could not be loaded'; }
+  });
   if (API.clientUpdatePhotoUrl) document.querySelectorAll('img[data-cuid]:not([src])').forEach(async img => {
     try { img.src = await API.clientUpdatePhotoUrl(+img.dataset.cuid, +img.dataset.cmid); } catch (_) { img.alt = 'Photo could not be loaded'; }
   });
@@ -2741,6 +2799,17 @@ document.addEventListener('click', async e => {
       try { await API.updateFeePlan(ui.data.project.id, body); toast('Fee plan saved.'); await V.project.load(); ui.error = null; }
       catch (err){ setError(err); }
       rerenderKeepScroll(); break; }
+    case 'stage-attach': pickStageFile(a.dataset.key, a.dataset.kind); break;
+    case 'stage-file-remove': {
+      try { await API.removeStageFile(ui.data.project.id, a.dataset.key, +a.dataset.id); ui.data.stages = await API.stages(ui.data.project.id); toast('File removed.'); }
+      catch (err){ toast(err.message); }
+      rerenderKeepScroll(); break; }
+    case 'stage-file-open': {
+      try { const url = await API.stageFileUrl(ui.data.project.id, a.dataset.key, +a.dataset.id);
+        const f = ((ui.data.stages.phases || []).flatMap(p => p.stages).find(x => x.key === a.dataset.key) || {attachments: []}).attachments.find(x => x.id === +a.dataset.id);
+        const link = document.createElement('a'); link.href = url; link.download = f ? f.filename : 'file'; link.click(); }
+      catch (err){ toast(err.message); }
+      break; }
     case 'stage-exception': {
       const key = a.dataset.key, gate = $('#ex-gate-' + key).value, reason = (($('#ex-reason-' + key) || {}).value || '').trim();
       if (!reason){ toast('Give a reason for the exception.'); break; }

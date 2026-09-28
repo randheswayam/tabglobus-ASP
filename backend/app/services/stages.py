@@ -134,6 +134,12 @@ def can_complete(user: User, stage: dict, state: str) -> bool:
     return user.role.value == stage["owner_role"] or user.role.value in STAFF_COMPLETERS
 
 
+def can_attach(user: User, stage: dict, status: StageStatus) -> bool:
+    """Who may add files: the stage owner, Architect or Team Lead, while the stage is open or as historical evidence."""
+    may = user.role.value == stage["owner_role"] or user.role.value in STAFF_COMPLETERS
+    return may and not sc.is_signoff(stage) and status in (StageStatus.active, StageStatus.historical)
+
+
 def signoff_facts(db: Session, project: Project) -> dict:
     """Latest sign-off request per stage, for the client_signoff gate."""
     return latest_by_stage(db, project)
@@ -191,6 +197,7 @@ def project_view(db: Session, project: Project, user: User) -> dict:
             else [],
             "can_record_exception": user.role.value in wc.EXCEPTION_ROLES,
             "attachments": [attachment_out(a) for a in files.get(s["key"], [])],
+            "can_attach": can_attach(user, s, r.status),
             "evidence_required": s["evidence_required"],
             "evidence_missing": evidence_missing(s, files.get(s["key"], [])) if r.status == StageStatus.active else [],
             "evidence_reason": evidence_reason(evidence_missing(s, files.get(s["key"], [])))
