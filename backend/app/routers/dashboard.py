@@ -26,6 +26,7 @@ from app.models import (
 )
 from app.modules.identity.fields import visible_fields
 from app.modules.projects.fee_plan import fee_plan_out
+from app.modules.workflow.health import project_health
 from app.routers.reviews import queue_rows
 from app.schemas import approved_at, civil_engineer_of, current_step_name, iso_utc, stage_summary, user_brief
 from app.services.problems import problem_out, problem_photo
@@ -126,6 +127,7 @@ def dashboard(
                 "client": clients.get(p.id),
                 "waiting_for_client": waiting.get(p.id),
                 "fee_plan": fee_plan_out(p),
+                "workflow": project_health(db, p, now_ts),
             }
         )
         rows[-1] = visible_fields(user, rows[-1])

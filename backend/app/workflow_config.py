@@ -72,3 +72,7 @@ MAX_STAGE_ATTACHMENT_MB = {
     "document": MAX_SIGNOFF_ATTACHMENT_MB,
     "cad": 50,
 }
+
+# TBD_PARVEZ: days a stage may stay open before the dashboard shows it as Delayed, per stage key. Empty: the rule
+# is off, and Delayed comes only from red flags. No day counts are assumed.
+STAGE_DELAYED_AFTER_DAYS: dict[str, int] = {}

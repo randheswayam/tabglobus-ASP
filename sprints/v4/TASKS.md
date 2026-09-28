@@ -333,7 +333,7 @@ Applies to every workflow activity in the v3 tracker: staff mark a stage complet
 
 On the dashboard and the Projects cards, the progress dashes become phase icons taken from the workflow diagram, and hovering over a project shows its complete workflow as a callout drawn like that diagram. Each stage is coloured green (completed), yellow (waiting) or red (delayed), always with an icon and text as well as the colour.
 
-- [ ] Task 27: Workflow health per stage for the dashboard (P0)
+- [x] Task 27: Workflow health per stage for the dashboard (P0)
   - Acceptance:
     - `backend/app/modules/workflow/health.py` provides `stage_health(project)`, which returns every stage with `health` and `reason`:
       - `done`: completed or historical, shown green;
@@ -351,6 +351,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - Clients can't reach it: the dashboard is staff only, and the route walk still passes.
     - Tests: `test_workflow_health.py` covers each colour, each flag-to-stage mapping, the days rule when configured, and the rule staying off when empty.
   - Files: backend/app/modules/workflow/health.py, backend/app/workflow_config.py, backend/app/routers/dashboard.py, backend/tests/test_workflow_health.py
+  - Completed: 2026-09-28. modules/workflow/health.py: pure stage_health(view, started, flags, signoff_stages, now), plus project_health(db, project). Each stage is done, waiting, delayed or upcoming, with a reason (the engine's first reason, the flag label, 'Completed before SiteFlow', or 'Open for N days (limit M)'). Flags map to stages: Legal delay to Site line-out; Critical issue, Overdue fix, Review overdue, Repeated rework and No recent visit to Construction quality stages; Client decision overdue to the sign-off stage it names. A finished stage is never marked red. STAGE_DELAYED_AFTER_DAYS is in workflow_config, empty by default (rule off), TBD_PARVEZ. Dashboard rows carry workflow {phases, counts}; staff only. Tests: test_workflow_health.py (16).
 
 - [ ] Task 28: Phase and stage icons replace the progress dashes (P0)
   - Acceptance:
