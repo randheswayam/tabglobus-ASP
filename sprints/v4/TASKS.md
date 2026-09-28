@@ -390,7 +390,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
   - Files: backend/app/stage_config.py, backend/tests/test_stage_config.py, web-src/icons.js, web-src/build.py, web-src/app.js, web-src/app.html, tests/e2e/v4-phase-icons.spec.js
   - Completed: 2026-09-28. Every phase and stage in stage_config has an icon (following the workflow diagram: folder, people, document, check badge, hard hat, magnifier, pencil, drafting, ruler, people with check, gear, house, frame, pipes, building, card, sheet, surveyor, clipboard, city, sofa, key); tests check the set and that icons.js draws each. web-src/icons.js is inline SVG, bundled by build.py into the web, Android and demo builds. Health gains phase-level health (worst stage wins; partly done counts as waiting) and stage icons; the project list carries workflow. Projects cards and the dashboard Stage column show 10 phase icons coloured by health, each with an aria-label and a tooltip of its stages and reasons (hover, focus, or tap to toggle; Esc closes). The card is now role=button with Enter and Space. Phone tabs gained test ids. The client timeline shows the phase icons (icon added to the client allow-list). The frozen demo has no workflow, so it keeps the dashes. E2E v4-phase-icons.spec.js (3).
 
-- [ ] Task 29: Workflow callout drawn like the workflow diagram (P0)
+- [x] Task 29: Workflow callout drawn like the workflow diagram (P0)
   - Acceptance:
     - In All Projects and Needs Architect Attention on the dashboard, and on each Projects card, hovering over a project (or focusing it with the keyboard, or tapping it on a touch screen) opens a callout. It has `data-testid="wf-callout-<project id>"`, `role="tooltip"`, and is linked by `aria-describedby`. A second tap or Esc closes it.
     - The callout is a small visual version of the workflow diagram:
@@ -414,6 +414,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
       - the keyboard and phone-tap paths work.
       - Screenshots are saved.
   - Files: web-src/app.js, web-src/app.html, web-src/icons.js, tests/e2e/v4-dashboard-callout.spec.js
+  - Completed: 2026-09-28. One shared #wf-callout (role=tooltip, aria-describedby), filled from rows the page already has (no extra request). It opens on a dashboard All Projects row, a Needs Architect Attention row or a Projects card: after a 350 ms hover pause (click-through, so it never blocks clicks), on keyboard focus, or on touch with the first tap (pinned and clickable, with an Open project button; a second tap closes). Esc closes. It is drawn like the workflow diagram: a phase column; stage boxes with icon, number, title and state text joined by arrows; the Site and Studio pre-design workstreams side by side; 8A and 8B side by side; the client rework loop on stage 4; legend and counts. Boxes are coloured by health (historical: 'Completed · before SiteFlow'). It sits beside narrow cards, otherwise below or above the row on the side with more room, scrolling inside; on phones it is a sheet above the tabs. E2E v4-dashboard-callout.spec.js (4).
 
 ### Finishing package and the 80% fee gate (requested 28 September 2026)
 

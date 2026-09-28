@@ -78,6 +78,7 @@ function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add
 /* ---------- navigation ---------- */
 async function go(route, p = {}){
   ui.route = route; ui.p = p; ui.error = null; ui.loadError = null; ui.data = {}; ui.lightbox = null;
+  if (typeof hideCallout === 'function') hideCallout();
   const v = V[route];
   if (v && v.load){
     $('#main').innerHTML = shell() + '<div class="empty">Loading…</div>';
@@ -126,6 +127,71 @@ function setError(e, labels){
   const items = e instanceof API.ApiError ? [...e.missing.map(k => `Missing: ${lab(k)}`), ...e.invalid.map(k => `Invalid: ${lab(k)}`)] : [];
   ui.error = {message: e.message, items};
 }
+/* ---------- workflow callout: the whole flow, drawn like the architect's diagram ----------
+   One shared tooltip element (#wf-callout), filled from data the page already has (no extra request). Hover or
+   keyboard focus on a project row or card opens it; on a touch screen the first tap opens it and a second closes. */
+const WF = {};  // project id -> row with workflow, registered as rows render
+function wfTrigger(p){
+  if (!p || !p.workflow) return '';
+  WF[p.id] = p;
+  return `data-wf-pid="${p.id}" aria-describedby="wf-callout" tabindex="0"`;
+}
+const WF_COUNT_LABEL = [['done', 'completed'], ['waiting', 'waiting'], ['delayed', 'delayed'], ['upcoming', 'upcoming']];
+function wfBox(s){
+  const mark = HEALTH_MARK[s.health];
+  return `<div class="wfc-box h-${s.health}" data-testid="wfc-stage-${s.key}">${wfIcon(s.icon)}<div><b>${s.number ? esc(s.number) + '. ' : ''}${esc(s.label)}</b>
+    <div class="st">${mark ? ico(mark) : ''}${esc(s.health === 'done' && s.reason === 'Completed before SiteFlow' ? 'Completed · before SiteFlow' : HEALTH_LABEL[s.health].replace(/^./, c => c.toUpperCase()))}</div>
+    ${s.reason && (s.health === 'waiting' || s.health === 'delayed') ? `<div class="small">${esc(s.reason)}</div>` : ''}</div></div>`;
+}
+function wfFlow(ph){
+  const by = Object.fromEntries(ph.stages.map(s => [s.key, s]));
+  const arrow = '<div class="wfc-arrow" aria-hidden="true">↓</div>';
+  const col = (title, keys) => `<div class="wfc-col"><div class="wfc-col-h">${title}</div>${keys.filter(k => by[k]).map(k => wfBox(by[k])).join(arrow)}</div>`;
+  if (by.predesign_site_visit || by.concept)  // Phase 2: the Site and Studio workstreams side by side
+    return `<div class="wfc-row two">${col('Site workstream', ['predesign_site_visit', 'investigations'])}${col('Studio workstream', ['concept', 'tentative_elevations'])}</div>`;
+  const parts = [], used = new Set();
+  for (const s of ph.stages){
+    if (used.has(s.key)) continue;
+    if (s.key === 'architectural_package' && by.structural_package){  // 8A and 8B run in parallel
+      parts.push(`<div class="wfc-row two">${wfBox(s)}${wfBox(by.structural_package)}</div>`); used.add('structural_package');
+    } else parts.push(wfBox(s));
+    used.add(s.key);
+    if (s.key === 'requirements_signoff') parts.push('<div class="wfc-loop">↺ Client review and rework: changes asked by the client come back as a new version</div>');
+  }
+  return parts.join(arrow);
+}
+function wfCalloutHtml(p){
+  const wf = p.workflow, c = wf.counts, total = Object.values(c).reduce((a, b) => a + b, 0);
+  return `<div class="wfc-h"><div><b>${esc(p.name)}</b><div class="small muted">${p.phase ? `Phase ${p.phase.number} · ${esc(p.phase.name)} · ` : ''}${c.done} of ${total} done</div></div>
+      <button class="btn sm" data-act="open-project" data-force="1" data-pid="${p.id}" data-testid="wfc-open-${p.id}">Open project</button></div>
+    <div class="wfc-legend" data-testid="wfc-counts">${WF_COUNT_LABEL.map(([k, l]) => `<span class="wfc-box h-${k}" style="display:inline-flex;padding:1px 6px">${HEALTH_MARK[k] ? ico(HEALTH_MARK[k]) : ''}${c[k]} ${l}</span>`).join('')}</div>
+    ${wf.phases.map(ph => `<div class="wfc-ph" data-testid="wfc-phase-${ph.number}"><div class="wfc-ph-name">${ph.number}. ${esc(ph.name)}</div><div class="wfc-flow">${wfFlow(ph)}</div></div>`).join('')}`;
+}
+let wfOpenFor = null, wfHoverT = null;
+function showCallout(el, pinned){
+  const p = WF[el.dataset.wfPid]; if (!p) return;
+  const box = $('#wf-callout');
+  // A hover callout is a tooltip clicks pass through; a tapped one stays clickable for its Open project button.
+  box.classList.toggle('pinned', !!pinned);
+  if (wfOpenFor !== String(p.id)){ box.innerHTML = wfCalloutHtml(p); box.setAttribute('data-testid', `wf-callout-${p.id}`); }
+  box.hidden = false; box.style.maxHeight = ''; wfOpenFor = String(p.id);
+  // Beside a narrow card, else below the row (or above it): never over the row that opened it.
+  const r = el.getBoundingClientRect(), w = box.offsetWidth, h = box.offsetHeight;
+  let left, top;
+  if (r.right + 8 + w <= innerWidth - 8){ left = r.right + 8; top = Math.min(Math.max(8, r.top), innerHeight - h - 8); }
+  else {
+    // Below or above the row, whichever has more room; the callout scrolls inside that space.
+    left = Math.min(Math.max(8, r.left), innerWidth - w - 8);
+    const below = innerHeight - r.bottom - 14, above = r.top - 14;
+    const room = Math.max(below, above);
+    box.style.maxHeight = `${Math.max(160, room)}px`;
+    const hh = Math.min(box.offsetHeight, Math.max(160, room));
+    top = below >= above ? r.bottom + 6 : r.top - hh - 6;
+  }
+  box.style.left = `${left}px`; box.style.top = `${Math.max(8, top)}px`;
+}
+function hideCallout(){ clearTimeout(wfHoverT); const box = $('#wf-callout'); if (box){ box.hidden = true; } wfOpenFor = null; }
+
 /* The 10 phases as icons, each coloured by its health (worst stage wins), with a tooltip of its stages.
    Hover or focus shows the tooltip; a tap toggles it. Colour is never the only signal: aria-label and tooltip text. */
 const HEALTH_LABEL = {done: 'completed', waiting: 'waiting', delayed: 'delayed', upcoming: 'upcoming'};
@@ -145,7 +211,7 @@ function legacySteps(p){
 function projectCard(p){
   const at = p.phase ? p.phase.number : 0;
   const now = (p.current_stages || []).join(' + ');
-  return `<div class="pcard" role="button" tabindex="0" data-act="open-project" data-pid="${p.id}" data-testid="project-card-${p.id}" aria-label="Open ${esc(p.name)}, phase ${at} of 10">
+  return `<div class="pcard" role="button" tabindex="0" data-act="open-project" data-pid="${p.id}" data-testid="project-card-${p.id}" aria-label="Open ${esc(p.name)}, phase ${at} of 10" ${wfTrigger(p)}>
     <div><h3>${esc(p.name)}</h3><div class="loc">${esc(p.location)}</div></div>
     ${phaseStrip(p)}
     <div class="now"><span>${now ? `<span class="muted">Now:</span> <b>${esc(now)}</b>` : '<b>All stages complete</b>'}</span><span class="mono muted">${pct(p.official_progress)}</span></div>
@@ -264,7 +330,7 @@ V.dashboard = {
           ${d.needs_attention.length ? `<div class="tasks">${d.needs_attention.map(attentionRow).join('')}</div>` : '<div class="empty">No red flags. Nothing needs your attention.</div>'}</section>
         <section class="panel" data-testid="panel-projects"><div class="panel-h"><h2>All Projects</h2></div>
           ${d.all_projects.length ? `<div class="tbl-wrap"><table class="ftable dash-table"><thead><tr><th>Project</th><th>Stage</th><th>Client</th><th>Progress</th><th>Open problems</th><th>Last visit</th><th>Flags</th></tr></thead><tbody>
-            ${d.all_projects.map(p => `<tr data-act="open-project" data-pid="${p.id}" data-testid="dash-row-${p.id}" class="clickable">
+            ${d.all_projects.map(p => `<tr data-act="open-project" data-pid="${p.id}" data-testid="dash-row-${p.id}" class="clickable" ${wfTrigger(p)}>
               <td><b>${esc(p.name)}</b><div class="small muted">${esc(p.location)}</div></td>
               <td>${p.phase ? `<span class="small muted">Phase ${p.phase.number}</span><div>${esc((p.current_stages || []).join(' + ') || 'Complete')}</div>${p.workflow ? phaseStrip(p) : ''}` : esc(p.current_step || 'Complete')}</td>
               <td>${p.client ? esc(p.client) : '<span class="muted small">Not invited</span>'}${p.waiting_for_client ? `<div>${pill('submitted', 'Waiting for client')}</div>` : ''}</td>
@@ -292,7 +358,7 @@ V.dashboard = {
 const waitedText = m => m < 60 ? `${m} min` : m < 1440 ? `${Math.floor(m / 60)} h` : `${Math.floor(m / 1440)} d`;
 
 function attentionRow(p){
-  return `<div class="task attn-row" data-testid="attention-${p.id}">
+  return `<div class="task attn-row" data-testid="attention-${p.id}" ${wfTrigger(p)}>
     <span class="ti" style="background:var(--bad-soft);color:var(--bad)">${ico('flag')}</span>
     <span><b><button class="linkish" data-act="open-project" data-pid="${p.id}">${esc(p.name)}</button></b><span class="small muted">${esc(p.location)} · ${esc(p.current_step || 'Complete')}</span>
       <span class="flag-list">${p.flags.map(f => flagChip(f)).join('')}</span></span>
@@ -1267,8 +1333,28 @@ function syncLegalSave(){
 }
 
 /* ---------- events ---------- */
+let lastPointer = 'mouse';
+document.addEventListener('pointerdown', e => { lastPointer = e.pointerType || 'mouse'; }, true);
+document.addEventListener('mouseover', e => {
+  if (lastPointer === 'touch') return;
+  const el = e.target.closest('[data-wf-pid]');
+  clearTimeout(wfHoverT);
+  if (!el || e.target.closest('.pstrip')) return;
+  if (wfOpenFor === el.dataset.wfPid) return;
+  wfHoverT = setTimeout(() => { if (el.matches(':hover')) showCallout(el); }, 350);  // a short pause, not a flash
+});
+document.addEventListener('mouseout', e => {
+  if (lastPointer === 'touch' || !wfOpenFor) return;
+  const to = e.relatedTarget;
+  if (to && (to.closest('#wf-callout') || (to.closest('[data-wf-pid]') || {}).dataset?.wfPid === wfOpenFor)) return;
+  if (e.target.closest('#wf-callout') || e.target.closest('[data-wf-pid]')) hideCallout();
+});
+// Keyboard focus opens the callout; a tap's focus doesn't (the tap itself toggles it).
+document.addEventListener('focusin', e => { if (lastPointer === 'touch') return; const el = e.target.closest && e.target.closest('[data-wf-pid]'); if (el && e.target === el) showCallout(el); });
+document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('[data-wf-pid]') && !(e.relatedTarget && e.relatedTarget.closest('#wf-callout'))) hideCallout(); });
+
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape'){ document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open')); return; }
+  if (e.key === 'Escape'){ document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open')); hideCallout(); return; }
   const el = e.target;
   if ((e.key === 'Enter' || e.key === ' ') && el.matches && el.matches('[role="button"][data-act]')){ e.preventDefault(); el.click(); }
 });
@@ -1277,7 +1363,12 @@ document.addEventListener('click', async e => {
   const g = e.target.closest('[data-go]'); if (g){ go(g.dataset.go); return; }
   const a = e.target.closest('[data-act]'); if (!a) return;
   switch (a.dataset.act){
-    case 'open-project': go('project', {pid: +a.dataset.pid}); break;
+    case 'open-project':
+      if (!a.dataset.force && a.dataset.wfPid && lastPointer === 'touch'){
+        if (wfOpenFor === a.dataset.wfPid) hideCallout(); else showCallout(a, true);
+        break;
+      }
+      hideCallout(); go('project', {pid: +a.dataset.pid}); break;
     case 'phase-tip': {
       const open = a.classList.contains('open');
       document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open'));

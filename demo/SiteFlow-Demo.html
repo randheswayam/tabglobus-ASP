@@ -266,6 +266,30 @@ button.ph{padding:0;cursor:zoom-in}
 .section-h{font-size:15px;margin:18px 0 10px}
 .so-summary{white-space:pre-wrap}
 .row-bad td{background:var(--warn-soft)}
+.wfc{position:fixed;z-index:60;width:460px;max-width:calc(100vw - 24px);max-height:min(78vh,720px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 40px rgba(20,35,38,.22);padding:12px 14px;font-size:12px}
+.wfc[hidden]{display:none}
+.wfc:not(.pinned){pointer-events:none}
+.wfc-h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.wfc-h b{font-size:14px}
+.wfc-legend{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px}
+.wfc-legend span{display:inline-flex;align-items:center;gap:4px}
+.wfc-ph{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;padding:6px 0;border-top:1px dashed var(--line-2)}
+.wfc-ph-name{font-weight:600;font-size:11px;color:var(--ink-2);line-height:1.3}
+.wfc-flow{display:flex;flex-direction:column;align-items:stretch;gap:0}
+.wfc-row{display:grid;grid-template-columns:1fr;gap:6px}
+.wfc-row.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.wfc-col{display:flex;flex-direction:column;gap:0}
+.wfc-col-h{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:2px}
+.wfc-box{min-width:0;overflow-wrap:anywhere;display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px;align-items:start;border:1px solid var(--line);border-radius:8px;padding:5px 7px;background:var(--surface-2)}
+.wfc-box .wi{width:16px;height:16px;margin-top:1px}
+.wfc-box.h-done{background:var(--ok-soft);border-color:var(--ok)}.wfc-box.h-done .wi{color:var(--ok)}
+.wfc-box.h-waiting{background:var(--hivis-soft);border-color:var(--hivis)}.wfc-box.h-waiting .wi{color:var(--warn)}
+.wfc-box.h-delayed{background:var(--bad-soft);border-color:var(--bad)}.wfc-box.h-delayed .wi{color:var(--bad)}
+.wfc-box .st{display:inline-flex;align-items:center;gap:3px;font-size:11px}
+.wfc-box .st .i{width:12px;height:12px}
+.wfc-arrow{text-align:center;color:var(--ink-3);line-height:12px;font-size:11px}
+.wfc-loop{font-size:11px;color:var(--ink-2);margin-top:2px}
+@media (max-width:600px){.wfc{left:8px!important;right:8px;top:auto!important;bottom:72px;width:auto;max-height:62vh}.wfc-ph{grid-template-columns:1fr}}
 .pcard[role="button"]{cursor:pointer}
 .pcard[role="button"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .pstrip{display:flex;gap:3px;overflow-x:auto;padding:2px 0;scrollbar-width:thin}
@@ -462,6 +486,7 @@ body.anon .side,body.anon .tabs{display:none}
   <nav class="tabs" id="tabs"></nav>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="wf-callout" class="wfc" role="tooltip" hidden></div>
 
 <script>
 const DEMO_TEMPLATE = {"id": "residential", "version": 1, "steps": ["Legal Approval", "Site Visit", "Team Lead Review"], "stages": [{"name": "Foundation", "weight": 12.5, "checklist": [{"id": "fdn-excavation", "label": "Excavation to drawing depth"}, {"id": "fdn-pcc", "label": "PCC bed laid"}, {"id": "fdn-footing-rebar", "label": "Footing reinforcement checked"}, {"id": "fdn-footing-concrete", "label": "Footing concrete poured"}]}, {"name": "Plinth", "weight": 12.5, "checklist": [{"id": "pln-beam", "label": "Plinth beam cast"}, {"id": "pln-filling", "label": "Plinth filling and compaction"}, {"id": "pln-dpc", "label": "Damp proof course laid"}]}, {"name": "Superstructure", "weight": 12.5, "checklist": [{"id": "sup-columns", "label": "Columns cast"}, {"id": "sup-beams", "label": "Beams cast"}, {"id": "sup-slab", "label": "Slab cast"}, {"id": "sup-curing", "label": "Curing completed"}]}, {"name": "Masonry", "weight": 12.5, "checklist": [{"id": "msn-walls", "label": "External walls built"}, {"id": "msn-partitions", "label": "Internal partitions built"}, {"id": "msn-lintels", "label": "Lintels and sills cast"}]}, {"name": "Plastering", "weight": 12.5, "checklist": [{"id": "pls-internal", "label": "Internal plaster"}, {"id": "pls-external", "label": "External plaster"}]}, {"name": "Services", "weight": 12.5, "checklist": [{"id": "svc-plumbing", "label": "Plumbing lines laid"}, {"id": "svc-electrical", "label": "Electrical conduits and wiring"}, {"id": "svc-testing", "label": "Pressure and circuit tests"}]}, {"name": "Finishes", "weight": 12.5, "checklist": [{"id": "fin-flooring", "label": "Flooring and tiling"}, {"id": "fin-doors-windows", "label": "Doors and windows fixed"}, {"id": "fin-painting", "label": "Painting"}, {"id": "fin-fixtures", "label": "Fixtures installed"}]}, {"name": "Handover", "weight": 12.5, "checklist": [{"id": "hnd-snag", "label": "Snag list closed"}, {"id": "hnd-cleaning", "label": "Site cleaned"}, {"id": "hnd-documents", "label": "Handover documents ready"}]}], "checklist_states": ["Done", "In progress", "Not started"], "problems": {"Structural": ["Crack in beam, column or slab", "Honeycombing in concrete", "Rebar spacing or cover not per drawing", "Formwork misalignment"], "Quality": ["Poor curing", "Plaster hollowness", "Level or plumb deviation", "Brickwork joint issues"], "Water": ["Seepage or dampness", "Waterproofing defect", "Drainage slope issue"], "Site": ["Material shortage", "Labour shortage", "Equipment breakdown", "Deviation from approved drawing"], "Safety": ["Missing barricading", "No safety gear in use", "Unsafe scaffolding"], "Other": []}, "severities": ["Low", "Medium", "High", "Critical"], "min_photos": 5, "max_photo_mb": 10, "max_video_mb": 100, "photo_types": ["image/jpeg", "image/png", "image/webp"], "video_types": ["video/mp4", "video/webm"], "red_flag_rules": {"critical_issue": {"label": "Critical issue", "rank": 5}, "overdue_fix": {"label": "Overdue fix", "rank": 4}, "review_overdue": {"label": "Review overdue", "rank": 3}, "repeated_rework": {"label": "Repeated rework", "rank": 3}, "legal_delay": {"label": "Legal delay", "rank": 2}, "no_recent_visit": {"label": "No recent visit", "rank": 1}, "client_decision_overdue": {"label": "Client decision overdue", "rank": 4}}, "workflow": {"review_sla_hours": 48, "visit_interval_days": 14, "rework_limit": 2}, "phases": [{"number": 1, "name": "Initiation and requirements", "icon": "folder"}, {"number": 2, "name": "Parallel pre-design", "icon": "hard_hat"}, {"number": 3, "name": "Structural design", "icon": "gear"}, {"number": 4, "name": "Design development and coordination", "icon": "house"}, {"number": 5, "name": "Client approval and commercial gate", "icon": "check_badge"}, {"number": 6, "name": "Detailed drawings", "icon": "sheet"}, {"number": 7, "name": "Construction execution", "icon": "surveyor"}, {"number": 8, "name": "Civil completion", "icon": "city"}, {"number": 9, "name": "Interiors", "icon": "sofa"}, {"number": 10, "name": "Handover", "icon": "key"}], "flow": [{"key": "setup", "number": "1", "label": "Project setup", "phase": 1}, {"key": "discovery", "number": "2", "label": "Client discovery meetings", "phase": 1}, {"key": "baseline", "number": "3", "label": "Preliminary requirement baseline", "phase": 1}, {"key": "requirements_signoff", "number": "4", "label": "Client sign-off: preliminary requirements", "phase": 1}, {"key": "predesign_site_visit", "number": null, "label": "Pre-design site visit", "phase": 2}, {"key": "investigations", "number": null, "label": "Investigations", "phase": 2}, {"key": "concept", "number": null, "label": "Preliminary concept", "phase": 2}, {"key": "tentative_elevations", "number": null, "label": "Tentative elevations", "phase": 2}, {"key": "grid", "number": "5", "label": "Centerline, grid, foundation basis and column positions", "phase": 3}, {"key": "grid_freeze", "number": "6", "label": "Architect and structural consultant freeze", "phase": 3}, {"key": "structural_design", "number": "7", "label": "Structural design package", "phase": 3}, {"key": "architectural_package", "number": "8A", "label": "Architectural package", "phase": 4}, {"key": "structural_package", "number": "8B", "label": "Structural package", "phase": 4}, {"key": "mep", "number": "9", "label": "MEP and coordination", "phase": 4}, {"key": "elevations_package", "number": "10", "label": "All elevations package", "phase": 4}, {"key": "design_freeze_signoff", "number": "11", "label": "Client sign-off: design freeze", "phase": 5}, {"key": "payment_gate", "number": "12", "label": "50% upfront gate", "phase": 5}, {"key": "detailed_drawings", "number": "13", "label": "Detailed drawings and controlled issue", "phase": 6}, {"key": "line_out", "number": "14", "label": "Site line-out", "phase": 7}, {"key": "construction", "number": "15", "label": "Construction quality stages", "phase": 7}, {"key": "civil_completion", "number": "16", "label": "Civil completion", "phase": 8}, {"key": "interiors_signoff", "number": "17", "label": "Client sign-off: interiors and tile selection", "phase": 9}, {"key": "handover_signoff", "number": "18", "label": "Client sign-off: handover and closeout", "phase": 10}], "stage_flow": [{"key": "setup", "number": "1", "label": "Project setup", "phase": 1, "workstream": "Both", "owner_role": "architect", "predecessors": [], "evidence_required": [], "detail": "Project details, team assignment, initial timeline and budget.", "icon": "folder", "gate": null}, {"key": "discovery", "number": "2", "label": "Client discovery meetings", "phase": 1, "workstream": "Studio", "owner_role": "architect", "predecessors": ["setup"], "evidence_required": [], "detail": "Repeatable meetings: requirements, notes, photos and documents.", "icon": "people", "gate": null}, {"key": "baseline", "number": "3", "label": "Preliminary requirement baseline", "phase": 1, "workstream": "Studio", "owner_role": "architect", "predecessors": ["discovery"], "evidence_required": [], "detail": "Requirements document: scope, constraints and priorities.", "icon": "document", "gate": null}, {"key": "requirements_signoff", "number": "4", "label": "Client sign-off: preliminary requirements", "phase": 1, "workstream": "Studio", "owner_role": "client", "predecessors": ["baseline"], "evidence_required": [], "detail": "Approval to proceed to design. Triggers the parallel workstreams.", "icon": "check_badge", "gate": "client_signoff"}, {"key": "predesign_site_visit", "number": null, "label": "Pre-design site visit", "phase": 2, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["requirements_signoff"], "evidence_required": [], "detail": "Site conditions, photos and videos.", "icon": "hard_hat", "gate": null}, {"key": "investigations", "number": null, "label": "Investigations", "phase": 2, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["predesign_site_visit"], "evidence_required": [], "detail": "Well, soil condition (black cotton soil), test pit (outstation).", "icon": "magnifier", "gate": null}, {"key": "concept", "number": null, "label": "Preliminary concept", "phase": 2, "workstream": "Studio", "owner_role": "architect", "predecessors": ["requirements_signoff"], "evidence_required": [], "detail": "Initial layouts and ideas.", "icon": "pencil", "gate": null}, {"key": "tentative_elevations", "number": null, "label": "Tentative elevations", "phase": 2, "workstream": "Studio", "owner_role": "architect", "predecessors": ["concept"], "evidence_required": [], "detail": "Not frozen, for discussion only.", "icon": "drafting", "gate": null}, {"key": "grid", "number": "5", "label": "Centerline, grid, foundation basis and column positions", "phase": 3, "workstream": "Studio", "owner_role": "architect", "predecessors": ["investigations", "tentative_elevations"], "evidence_required": [], "detail": "Based on site data and the preliminary design.", "icon": "ruler", "gate": null}, {"key": "grid_freeze", "number": "6", "label": "Architect and structural consultant freeze", "phase": 3, "workstream": "Studio", "owner_role": "team_lead", "predecessors": ["grid"], "evidence_required": [], "detail": "Centerline, foundation and column positions reviewed and signed off.", "icon": "people_check", "gate": null}, {"key": "structural_design", "number": "7", "label": "Structural design package", "phase": 3, "workstream": "Studio", "owner_role": "structural_consultant", "predecessors": ["grid_freeze"], "evidence_required": [], "detail": "Structural consultant: RCC design, foundation, columns and beams.", "icon": "gear", "gate": null}, {"key": "architectural_package", "number": "8A", "label": "Architectural package", "phase": 4, "workstream": "Studio", "owner_role": "architect", "predecessors": ["structural_design"], "evidence_required": [], "detail": "Architectural drawings, plans and elevations.", "icon": "house", "gate": null}, {"key": "structural_package", "number": "8B", "label": "Structural package", "phase": 4, "workstream": "Studio", "owner_role": "structural_consultant", "predecessors": ["structural_design"], "evidence_required": [], "detail": "Final structural drawings.", "icon": "frame", "gate": null}, {"key": "mep", "number": "9", "label": "MEP and coordination", "phase": 4, "workstream": "Studio", "owner_role": "mep_consultant", "predecessors": ["architectural_package", "structural_package"], "evidence_required": [], "detail": "Electrical, plumbing and HVAC drawings; clash check across disciplines.", "icon": "pipes", "gate": null}, {"key": "elevations_package", "number": "10", "label": "All elevations package", "phase": 4, "workstream": "Studio", "owner_role": "architect", "predecessors": ["mep"], "evidence_required": [], "detail": "Final elevations (all sides), materials and finishes, optional 3D views.", "icon": "building", "gate": null}, {"key": "design_freeze_signoff", "number": "11", "label": "Client sign-off: design freeze", "phase": 5, "workstream": "Studio", "owner_role": "client", "predecessors": ["elevations_package"], "evidence_required": [], "detail": "Approval of all elevations. Changes after this stage are costly.", "icon": "check_badge", "gate": "client_signoff"}, {"key": "payment_gate", "number": "12", "label": "50% upfront gate", "phase": 5, "workstream": "Both", "owner_role": "accounts", "predecessors": ["design_freeze_signoff"], "evidence_required": [], "detail": "Payment milestone cleared before detailed drawings.", "icon": "card", "gate": null}, {"key": "detailed_drawings", "number": "13", "label": "Detailed drawings and controlled issue", "phase": 6, "workstream": "Studio", "owner_role": "architect", "predecessors": ["payment_gate"], "evidence_required": [], "detail": "Detailed architectural, structural and MEP drawings, issued with version control.", "icon": "sheet", "gate": null}, {"key": "line_out", "number": "14", "label": "Site line-out", "phase": 7, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["detailed_drawings"], "evidence_required": [], "detail": "Site marking and verification as per approved drawings.", "icon": "surveyor", "gate": "legal_approval"}, {"key": "construction", "number": "15", "label": "Construction quality stages", "phase": 7, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["line_out"], "evidence_required": [], "detail": "Site visits with checklists, photos, review and derived progress.", "icon": "clipboard", "gate": null}, {"key": "civil_completion", "number": "16", "label": "Civil completion", "phase": 8, "workstream": "Site", "owner_role": "team_lead", "predecessors": ["construction"], "evidence_required": [], "detail": "Civil completion checklist and quality sign-off; ready for interiors.", "icon": "city", "gate": "no_open_major_problems"}, {"key": "interiors_signoff", "number": "17", "label": "Client sign-off: interiors and tile selection", "phase": 9, "workstream": "Both", "owner_role": "client", "predecessors": ["civil_completion"], "evidence_required": [], "detail": "Material and tile selection approvals.", "icon": "sofa", "gate": "client_signoff"}, {"key": "handover_signoff", "number": "18", "label": "Client sign-off: handover and closeout", "phase": 10, "workstream": "Both", "owner_role": "client", "predecessors": ["interiors_signoff"], "evidence_required": [], "detail": "Final inspection, snag list and handover documents.", "icon": "key", "gate": "client_signoff"}], "business_timezone": "Asia/Kolkata", "signoff": {"sla_days": 7, "invite_ttl_days": 7, "invite_max_attempts": 5, "attachment_types": ["application/pdf", "image/jpeg", "image/png", "image/webp"], "max_attachment_mb": 20, "confirmation_text": "I have reviewed every document in this package and I approve this version on behalf of the client."}};
@@ -1515,6 +1540,7 @@ function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add
 /* ---------- navigation ---------- */
 async function go(route, p = {}){
   ui.route = route; ui.p = p; ui.error = null; ui.loadError = null; ui.data = {}; ui.lightbox = null;
+  if (typeof hideCallout === 'function') hideCallout();
   const v = V[route];
   if (v && v.load){
     $('#main').innerHTML = shell() + '<div class="empty">Loading…</div>';
@@ -1563,6 +1589,71 @@ function setError(e, labels){
   const items = e instanceof API.ApiError ? [...e.missing.map(k => `Missing: ${lab(k)}`), ...e.invalid.map(k => `Invalid: ${lab(k)}`)] : [];
   ui.error = {message: e.message, items};
 }
+/* ---------- workflow callout: the whole flow, drawn like the architect's diagram ----------
+   One shared tooltip element (#wf-callout), filled from data the page already has (no extra request). Hover or
+   keyboard focus on a project row or card opens it; on a touch screen the first tap opens it and a second closes. */
+const WF = {};  // project id -> row with workflow, registered as rows render
+function wfTrigger(p){
+  if (!p || !p.workflow) return '';
+  WF[p.id] = p;
+  return `data-wf-pid="${p.id}" aria-describedby="wf-callout" tabindex="0"`;
+}
+const WF_COUNT_LABEL = [['done', 'completed'], ['waiting', 'waiting'], ['delayed', 'delayed'], ['upcoming', 'upcoming']];
+function wfBox(s){
+  const mark = HEALTH_MARK[s.health];
+  return `<div class="wfc-box h-${s.health}" data-testid="wfc-stage-${s.key}">${wfIcon(s.icon)}<div><b>${s.number ? esc(s.number) + '. ' : ''}${esc(s.label)}</b>
+    <div class="st">${mark ? ico(mark) : ''}${esc(s.health === 'done' && s.reason === 'Completed before SiteFlow' ? 'Completed · before SiteFlow' : HEALTH_LABEL[s.health].replace(/^./, c => c.toUpperCase()))}</div>
+    ${s.reason && (s.health === 'waiting' || s.health === 'delayed') ? `<div class="small">${esc(s.reason)}</div>` : ''}</div></div>`;
+}
+function wfFlow(ph){
+  const by = Object.fromEntries(ph.stages.map(s => [s.key, s]));
+  const arrow = '<div class="wfc-arrow" aria-hidden="true">↓</div>';
+  const col = (title, keys) => `<div class="wfc-col"><div class="wfc-col-h">${title}</div>${keys.filter(k => by[k]).map(k => wfBox(by[k])).join(arrow)}</div>`;
+  if (by.predesign_site_visit || by.concept)  // Phase 2: the Site and Studio workstreams side by side
+    return `<div class="wfc-row two">${col('Site workstream', ['predesign_site_visit', 'investigations'])}${col('Studio workstream', ['concept', 'tentative_elevations'])}</div>`;
+  const parts = [], used = new Set();
+  for (const s of ph.stages){
+    if (used.has(s.key)) continue;
+    if (s.key === 'architectural_package' && by.structural_package){  // 8A and 8B run in parallel
+      parts.push(`<div class="wfc-row two">${wfBox(s)}${wfBox(by.structural_package)}</div>`); used.add('structural_package');
+    } else parts.push(wfBox(s));
+    used.add(s.key);
+    if (s.key === 'requirements_signoff') parts.push('<div class="wfc-loop">↺ Client review and rework: changes asked by the client come back as a new version</div>');
+  }
+  return parts.join(arrow);
+}
+function wfCalloutHtml(p){
+  const wf = p.workflow, c = wf.counts, total = Object.values(c).reduce((a, b) => a + b, 0);
+  return `<div class="wfc-h"><div><b>${esc(p.name)}</b><div class="small muted">${p.phase ? `Phase ${p.phase.number} · ${esc(p.phase.name)} · ` : ''}${c.done} of ${total} done</div></div>
+      <button class="btn sm" data-act="open-project" data-force="1" data-pid="${p.id}" data-testid="wfc-open-${p.id}">Open project</button></div>
+    <div class="wfc-legend" data-testid="wfc-counts">${WF_COUNT_LABEL.map(([k, l]) => `<span class="wfc-box h-${k}" style="display:inline-flex;padding:1px 6px">${HEALTH_MARK[k] ? ico(HEALTH_MARK[k]) : ''}${c[k]} ${l}</span>`).join('')}</div>
+    ${wf.phases.map(ph => `<div class="wfc-ph" data-testid="wfc-phase-${ph.number}"><div class="wfc-ph-name">${ph.number}. ${esc(ph.name)}</div><div class="wfc-flow">${wfFlow(ph)}</div></div>`).join('')}`;
+}
+let wfOpenFor = null, wfHoverT = null;
+function showCallout(el, pinned){
+  const p = WF[el.dataset.wfPid]; if (!p) return;
+  const box = $('#wf-callout');
+  // A hover callout is a tooltip clicks pass through; a tapped one stays clickable for its Open project button.
+  box.classList.toggle('pinned', !!pinned);
+  if (wfOpenFor !== String(p.id)){ box.innerHTML = wfCalloutHtml(p); box.setAttribute('data-testid', `wf-callout-${p.id}`); }
+  box.hidden = false; box.style.maxHeight = ''; wfOpenFor = String(p.id);
+  // Beside a narrow card, else below the row (or above it): never over the row that opened it.
+  const r = el.getBoundingClientRect(), w = box.offsetWidth, h = box.offsetHeight;
+  let left, top;
+  if (r.right + 8 + w <= innerWidth - 8){ left = r.right + 8; top = Math.min(Math.max(8, r.top), innerHeight - h - 8); }
+  else {
+    // Below or above the row, whichever has more room; the callout scrolls inside that space.
+    left = Math.min(Math.max(8, r.left), innerWidth - w - 8);
+    const below = innerHeight - r.bottom - 14, above = r.top - 14;
+    const room = Math.max(below, above);
+    box.style.maxHeight = `${Math.max(160, room)}px`;
+    const hh = Math.min(box.offsetHeight, Math.max(160, room));
+    top = below >= above ? r.bottom + 6 : r.top - hh - 6;
+  }
+  box.style.left = `${left}px`; box.style.top = `${Math.max(8, top)}px`;
+}
+function hideCallout(){ clearTimeout(wfHoverT); const box = $('#wf-callout'); if (box){ box.hidden = true; } wfOpenFor = null; }
+
 /* The 10 phases as icons, each coloured by its health (worst stage wins), with a tooltip of its stages.
    Hover or focus shows the tooltip; a tap toggles it. Colour is never the only signal: aria-label and tooltip text. */
 const HEALTH_LABEL = {done: 'completed', waiting: 'waiting', delayed: 'delayed', upcoming: 'upcoming'};
@@ -1582,7 +1673,7 @@ function legacySteps(p){
 function projectCard(p){
   const at = p.phase ? p.phase.number : 0;
   const now = (p.current_stages || []).join(' + ');
-  return `<div class="pcard" role="button" tabindex="0" data-act="open-project" data-pid="${p.id}" data-testid="project-card-${p.id}" aria-label="Open ${esc(p.name)}, phase ${at} of 10">
+  return `<div class="pcard" role="button" tabindex="0" data-act="open-project" data-pid="${p.id}" data-testid="project-card-${p.id}" aria-label="Open ${esc(p.name)}, phase ${at} of 10" ${wfTrigger(p)}>
     <div><h3>${esc(p.name)}</h3><div class="loc">${esc(p.location)}</div></div>
     ${phaseStrip(p)}
     <div class="now"><span>${now ? `<span class="muted">Now:</span> <b>${esc(now)}</b>` : '<b>All stages complete</b>'}</span><span class="mono muted">${pct(p.official_progress)}</span></div>
@@ -1701,7 +1792,7 @@ V.dashboard = {
           ${d.needs_attention.length ? `<div class="tasks">${d.needs_attention.map(attentionRow).join('')}</div>` : '<div class="empty">No red flags. Nothing needs your attention.</div>'}</section>
         <section class="panel" data-testid="panel-projects"><div class="panel-h"><h2>All Projects</h2></div>
           ${d.all_projects.length ? `<div class="tbl-wrap"><table class="ftable dash-table"><thead><tr><th>Project</th><th>Stage</th><th>Client</th><th>Progress</th><th>Open problems</th><th>Last visit</th><th>Flags</th></tr></thead><tbody>
-            ${d.all_projects.map(p => `<tr data-act="open-project" data-pid="${p.id}" data-testid="dash-row-${p.id}" class="clickable">
+            ${d.all_projects.map(p => `<tr data-act="open-project" data-pid="${p.id}" data-testid="dash-row-${p.id}" class="clickable" ${wfTrigger(p)}>
               <td><b>${esc(p.name)}</b><div class="small muted">${esc(p.location)}</div></td>
               <td>${p.phase ? `<span class="small muted">Phase ${p.phase.number}</span><div>${esc((p.current_stages || []).join(' + ') || 'Complete')}</div>${p.workflow ? phaseStrip(p) : ''}` : esc(p.current_step || 'Complete')}</td>
               <td>${p.client ? esc(p.client) : '<span class="muted small">Not invited</span>'}${p.waiting_for_client ? `<div>${pill('submitted', 'Waiting for client')}</div>` : ''}</td>
@@ -1729,7 +1820,7 @@ V.dashboard = {
 const waitedText = m => m < 60 ? `${m} min` : m < 1440 ? `${Math.floor(m / 60)} h` : `${Math.floor(m / 1440)} d`;
 
 function attentionRow(p){
-  return `<div class="task attn-row" data-testid="attention-${p.id}">
+  return `<div class="task attn-row" data-testid="attention-${p.id}" ${wfTrigger(p)}>
     <span class="ti" style="background:var(--bad-soft);color:var(--bad)">${ico('flag')}</span>
     <span><b><button class="linkish" data-act="open-project" data-pid="${p.id}">${esc(p.name)}</button></b><span class="small muted">${esc(p.location)} · ${esc(p.current_step || 'Complete')}</span>
       <span class="flag-list">${p.flags.map(f => flagChip(f)).join('')}</span></span>
@@ -2704,8 +2795,28 @@ function syncLegalSave(){
 }
 
 /* ---------- events ---------- */
+let lastPointer = 'mouse';
+document.addEventListener('pointerdown', e => { lastPointer = e.pointerType || 'mouse'; }, true);
+document.addEventListener('mouseover', e => {
+  if (lastPointer === 'touch') return;
+  const el = e.target.closest('[data-wf-pid]');
+  clearTimeout(wfHoverT);
+  if (!el || e.target.closest('.pstrip')) return;
+  if (wfOpenFor === el.dataset.wfPid) return;
+  wfHoverT = setTimeout(() => { if (el.matches(':hover')) showCallout(el); }, 350);  // a short pause, not a flash
+});
+document.addEventListener('mouseout', e => {
+  if (lastPointer === 'touch' || !wfOpenFor) return;
+  const to = e.relatedTarget;
+  if (to && (to.closest('#wf-callout') || (to.closest('[data-wf-pid]') || {}).dataset?.wfPid === wfOpenFor)) return;
+  if (e.target.closest('#wf-callout') || e.target.closest('[data-wf-pid]')) hideCallout();
+});
+// Keyboard focus opens the callout; a tap's focus doesn't (the tap itself toggles it).
+document.addEventListener('focusin', e => { if (lastPointer === 'touch') return; const el = e.target.closest && e.target.closest('[data-wf-pid]'); if (el && e.target === el) showCallout(el); });
+document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('[data-wf-pid]') && !(e.relatedTarget && e.relatedTarget.closest('#wf-callout'))) hideCallout(); });
+
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape'){ document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open')); return; }
+  if (e.key === 'Escape'){ document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open')); hideCallout(); return; }
   const el = e.target;
   if ((e.key === 'Enter' || e.key === ' ') && el.matches && el.matches('[role="button"][data-act]')){ e.preventDefault(); el.click(); }
 });
@@ -2714,7 +2825,12 @@ document.addEventListener('click', async e => {
   const g = e.target.closest('[data-go]'); if (g){ go(g.dataset.go); return; }
   const a = e.target.closest('[data-act]'); if (!a) return;
   switch (a.dataset.act){
-    case 'open-project': go('project', {pid: +a.dataset.pid}); break;
+    case 'open-project':
+      if (!a.dataset.force && a.dataset.wfPid && lastPointer === 'touch'){
+        if (wfOpenFor === a.dataset.wfPid) hideCallout(); else showCallout(a, true);
+        break;
+      }
+      hideCallout(); go('project', {pid: +a.dataset.pid}); break;
     case 'phase-tip': {
       const open = a.classList.contains('open');
       document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open'));

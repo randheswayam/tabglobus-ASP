@@ -259,6 +259,30 @@ button.ph{padding:0;cursor:zoom-in}
 .section-h{font-size:15px;margin:18px 0 10px}
 .so-summary{white-space:pre-wrap}
 .row-bad td{background:var(--warn-soft)}
+.wfc{position:fixed;z-index:60;width:460px;max-width:calc(100vw - 24px);max-height:min(78vh,720px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 40px rgba(20,35,38,.22);padding:12px 14px;font-size:12px}
+.wfc[hidden]{display:none}
+.wfc:not(.pinned){pointer-events:none}
+.wfc-h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.wfc-h b{font-size:14px}
+.wfc-legend{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px}
+.wfc-legend span{display:inline-flex;align-items:center;gap:4px}
+.wfc-ph{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;padding:6px 0;border-top:1px dashed var(--line-2)}
+.wfc-ph-name{font-weight:600;font-size:11px;color:var(--ink-2);line-height:1.3}
+.wfc-flow{display:flex;flex-direction:column;align-items:stretch;gap:0}
+.wfc-row{display:grid;grid-template-columns:1fr;gap:6px}
+.wfc-row.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.wfc-col{display:flex;flex-direction:column;gap:0}
+.wfc-col-h{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:2px}
+.wfc-box{min-width:0;overflow-wrap:anywhere;display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px;align-items:start;border:1px solid var(--line);border-radius:8px;padding:5px 7px;background:var(--surface-2)}
+.wfc-box .wi{width:16px;height:16px;margin-top:1px}
+.wfc-box.h-done{background:var(--ok-soft);border-color:var(--ok)}.wfc-box.h-done .wi{color:var(--ok)}
+.wfc-box.h-waiting{background:var(--hivis-soft);border-color:var(--hivis)}.wfc-box.h-waiting .wi{color:var(--warn)}
+.wfc-box.h-delayed{background:var(--bad-soft);border-color:var(--bad)}.wfc-box.h-delayed .wi{color:var(--bad)}
+.wfc-box .st{display:inline-flex;align-items:center;gap:3px;font-size:11px}
+.wfc-box .st .i{width:12px;height:12px}
+.wfc-arrow{text-align:center;color:var(--ink-3);line-height:12px;font-size:11px}
+.wfc-loop{font-size:11px;color:var(--ink-2);margin-top:2px}
+@media (max-width:600px){.wfc{left:8px!important;right:8px;top:auto!important;bottom:72px;width:auto;max-height:62vh}.wfc-ph{grid-template-columns:1fr}}
 .pcard[role="button"]{cursor:pointer}
 .pcard[role="button"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .pstrip{display:flex;gap:3px;overflow-x:auto;padding:2px 0;scrollbar-width:thin}
@@ -452,6 +476,7 @@ body.anon .side,body.anon .tabs{display:none}
   <nav class="tabs" id="tabs"></nav>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="wf-callout" class="wfc" role="tooltip" hidden></div>
 
 <script>
 /*__APP_JS__*/
