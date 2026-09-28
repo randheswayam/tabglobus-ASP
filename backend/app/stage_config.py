@@ -15,6 +15,8 @@ Owner roles follow PRD v3.2 section 5 (TBD_PARVEZ: stage owners, to confirm with
 can also complete any ordinary stage (services/stages.py STAFF_COMPLETERS).
 """
 
+from app import workflow_config as wc
+
 PHASES = [
     {"number": 1, "name": "Initiation and requirements", "icon": "folder"},
     {"number": 2, "name": "Parallel pre-design", "icon": "hard_hat"},
@@ -24,7 +26,7 @@ PHASES = [
     {"number": 6, "name": "Detailed drawings", "icon": "sheet"},
     {"number": 7, "name": "Construction execution", "icon": "surveyor"},
     {"number": 8, "name": "Civil completion", "icon": "city"},
-    {"number": 9, "name": "Interiors", "icon": "sofa"},
+    {"number": 9, "name": "Finishing", "icon": "sofa"},
     {"number": 10, "name": "Handover", "icon": "key"},
 ]
 
@@ -68,6 +70,7 @@ STAGE_ICONS = {
     "line_out": "surveyor",
     "construction": "clipboard",
     "civil_completion": "city",
+    "finishing_fee_gate": "card",
     "interiors_signoff": "sofa",
     "handover_signoff": "key",
 }
@@ -241,7 +244,7 @@ STAGES = [
     _stage(
         "payment_gate",
         "12",
-        "50% upfront gate",
+        f"{wc.UPFRONT_FEE_PERCENT}% upfront gate",
         5,
         "Both",
         "accounts",
@@ -293,15 +296,26 @@ STAGES = [
         detail="Civil completion checklist and quality sign-off; ready for interiors.",
     ),
     _stage(
+        "finishing_fee_gate",
+        None,
+        f"{wc.FINISHING_FEE_PERCENT}% fee gate",
+        9,
+        "Both",
+        "accounts",
+        ["civil_completion"],
+        gates=["payment"],
+        detail=f"{wc.FINISHING_FEE_PERCENT}% of fees collected before the finishing package",
+    ),
+    _stage(
         "interiors_signoff",
         "17",
-        "Client sign-off: interiors and tile selection",
+        "Client sign-off: finishing package (tile and material selection)",
         9,
         "Both",
         "client",
-        ["civil_completion"],
+        ["finishing_fee_gate"],
         gates=["client_signoff"],
-        detail="Material and tile selection approvals.",
+        detail="Finishing package: material, tile and fixture selection approvals",
     ),
     _stage(
         "handover_signoff",

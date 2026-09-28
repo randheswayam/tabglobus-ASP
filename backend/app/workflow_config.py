@@ -76,3 +76,8 @@ MAX_STAGE_ATTACHMENT_MB = {
 # TBD_PARVEZ: days a stage may stay open before the dashboard shows it as Delayed, per stage key. Empty: the rule
 # is off, and Delayed comes only from red flags. No day counts are assumed.
 STAGE_DELAYED_AFTER_DAYS: dict[str, int] = {}
+
+# Fee gates. Supplied by TAN GLOBUS AI on 28 September 2026; confirm with Parvez.
+# TBD_PARVEZ (D-05): the basis of these percentages (total fee, stage fee or another basis) is still open.
+UPFRONT_FEE_PERCENT = 50  # before detailed drawings (stage 12)
+FINISHING_FEE_PERCENT = 80  # before the finishing package (tile and material selection)

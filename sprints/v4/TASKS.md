@@ -418,7 +418,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
 
 ### Finishing package and the 80% fee gate (requested 28 September 2026)
 
-- [ ] Task 30: Rename Interiors to the Finishing package and add the 80% fee gate (P0)
+- [x] Task 30: Rename Interiors to the Finishing package and add the 80% fee gate (P0)
   - Acceptance:
     - Phase 9 "Interiors" becomes "Finishing". Stage 17 becomes "Client sign-off: finishing package (tile and material selection)", and its detail says "Finishing package: material, tile and fixture selection approvals". The label changes everywhere the stage is shown: staff tracker, client app, dashboard, notifications and the callout.
     - A new stage `finishing_fee_gate` is added:
@@ -443,6 +443,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - New tests cover the gate order, the migration, and the label built from the percentage.
     - The v3 client demo (`demo-api.js`) isn't changed; its build still passes the demo E2E test.
   - Files: backend/app/stage_config.py, backend/app/workflow_config.py, backend/migrations/versions/0020_finishing_fee_gate.py, backend/tests/test_stage_config.py, backend/tests/test_stage_engine.py, backend/tests/test_migrations.py, web-src/icons.js, tests/e2e/*.spec.js (label updates)
+  - Completed: 2026-09-28. Phase 9 is 'Finishing'. Stage 17 (key interiors_signoff, kept for existing data) is 'Client sign-off: finishing package (tile and material selection)', with detail 'Finishing package: material, tile and fixture selection approvals'. New stage finishing_fee_gate: '80% fee gate', phase 9, owner Accounts, Both, after civil completion; the finishing sign-off now waits for it; gates ['payment'], passed by an exception until S10 and V12; card icon. workflow_config gains UPFRONT_FEE_PERCENT = 50 and FINISHING_FEE_PERCENT = 80 (supplied by TAN GLOBUS AI, confirm with Parvez; basis D-05 TBD_PARVEZ); both gate labels are built from them. Migration 0016 (frozen keys): the gate is historical where finishing is already done, active where civil completion is done, else locked; an open finishing sign-off with no package goes back to locked; downgrade reverses. The dashboard filter says '9 Finishing'. The v3 demo builds and passes with the new stage. Tests: stage config, migration and completion updated; 665 pass on SQLite and PostgreSQL.
 
 ### Project image and the principal architect's overview (requested 28 September 2026)
 

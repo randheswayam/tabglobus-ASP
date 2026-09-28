@@ -32,9 +32,9 @@ def test_eighteen_numbered_stages_and_four_pre_design_activities():
         "17",
         "18",
     ]
-    pre = [s["key"] for s in sc.STAGES if s["number"] is None]
+    pre = [s["key"] for s in sc.STAGES if s["number"] is None and s["phase"] == 2]
     assert pre == ["predesign_site_visit", "investigations", "concept", "tentative_elevations"]
-    assert len(sc.STAGES) == 23
+    assert len(sc.STAGES) == 24  # 18 numbered (8A and 8B), 4 pre-design activities, and the 80% fee gate
 
 
 def test_phases_follow_the_diagram():
@@ -47,7 +47,7 @@ def test_phases_follow_the_diagram():
         "Detailed drawings",
         "Construction execution",
         "Civil completion",
-        "Interiors",
+        "Finishing",
         "Handover",
     ]
     order = [s["phase"] for s in sc.STAGES]
@@ -117,6 +117,7 @@ def test_gates_sit_on_the_right_stages():
         "13": ["document_status"],
         "14": ["legal_approval"],
         "16": ["no_open_major_problems", "checklist"],
+        None: ["payment"],  # the 80% fee gate before the finishing package
         "17": ["client_signoff"],
         "18": ["client_signoff"],
     }
@@ -198,3 +199,21 @@ def test_the_web_icon_set_draws_every_icon():
     js = (Path(__file__).resolve().parents[2] / "web-src" / "icons.js").read_text(encoding="utf-8")
     for name in ICONS:
         assert f"{name}:" in js, name
+
+
+def test_finishing_package_and_its_80_percent_fee_gate():
+    from app import workflow_config as wc
+
+    gate = sc.BY_KEY["finishing_fee_gate"]
+    assert gate["label"] == f"{wc.FINISHING_FEE_PERCENT}% fee gate" == "80% fee gate"
+    assert gate["phase"] == 9 and gate["owner_role"] == "accounts" and gate["workstream"] == "Both"
+    assert gate["predecessors"] == ["civil_completion"] and gate["gates"] == ["payment"]
+    assert gate["icon"] == "card" and gate["detail"] == "80% of fees collected before the finishing package"
+    finishing = sc.BY_KEY["interiors_signoff"]
+    assert finishing["label"] == "Client sign-off: finishing package (tile and material selection)"
+    assert finishing["detail"] == "Finishing package: material, tile and fixture selection approvals"
+    assert finishing["predecessors"] == ["finishing_fee_gate"]
+    assert next(p for p in sc.PHASES if p["number"] == 9)["name"] == "Finishing"
+    assert sc.BY_KEY["payment_gate"]["label"] == f"{wc.UPFRONT_FEE_PERCENT}% upfront gate" == "50% upfront gate"
+    keys = [s["key"] for s in sc.STAGES]
+    assert keys.index("civil_completion") < keys.index("finishing_fee_gate") < keys.index("interiors_signoff")

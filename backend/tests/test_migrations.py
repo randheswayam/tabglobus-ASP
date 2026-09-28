@@ -99,3 +99,53 @@ def test_stage_backfill_treats_v2_projects_as_onboarded_mid_way(tmp_path):
     assert (by[(1, "line_out")][0], by[(1, "construction")][0]) == ("active", "locked")
     assert (by[(2, "line_out")][0], by[(2, "construction")][0]) == ("active", "locked")
     assert (by[(3, "line_out")][0], by[(3, "construction")][0]) == ("completed", "active")
+
+
+def test_finishing_fee_gate_is_added_to_existing_projects(tmp_path):
+    engine = create_engine(f"sqlite+pysqlite:///{(tmp_path / 'v3.db').as_posix()}")
+    migrate(engine, target="0015")
+    with engine.begin() as c:
+        c.execute(
+            text(
+                "insert into users (id, name, email, role, password_hash, is_active, created_at) "
+                "values (1, 'Meera', 'a@x', 'architect', 'x', 1, '2026-09-27')"
+            )
+        )
+        for pid in (1, 2, 3, 4):
+            _seed_v2_project(c, pid, "Approved", 0)
+
+        def set_stage(pid, key, status):
+            c.execute(
+                text("insert into project_stages (project_id, key, status) values (:p, :k, :s)"),
+                {"s": status, "p": pid, "k": key},
+            )
+
+        # 1: finishing already signed off; 2: civil done, finishing open with no package;
+        # 3: finishing waiting on a sent package; 4: still in construction.
+        for pid in (1, 2, 3):
+            set_stage(pid, "civil_completion", "completed")
+        set_stage(4, "civil_completion", "locked")
+        set_stage(1, "interiors_signoff", "completed")
+        set_stage(2, "interiors_signoff", "active")
+        set_stage(3, "interiors_signoff", "active")
+        set_stage(4, "interiors_signoff", "locked")
+        c.execute(
+            text(
+                "insert into signoff_requests (project_id, stage_key, version, status, title, summary, created_by_id, "
+                "created_at, sent_at) values (3, 'interiors_signoff', 1, 'sent', 'Tiles', 'All tiles', 1, "
+                "'2026-09-27', '2026-09-27')"
+            )
+        )
+    migrate(engine)
+    with engine.connect() as c:
+        rows = c.execute(
+            text(
+                "select project_id, key, status from project_stages "
+                "where key in ('finishing_fee_gate', 'interiors_signoff')"
+            )
+        ).all()
+    by = {(p, k): s for p, k, s in rows}
+    assert by[(1, "finishing_fee_gate")] == "historical" and by[(1, "interiors_signoff")] == "completed"
+    assert by[(2, "finishing_fee_gate")] == "active" and by[(2, "interiors_signoff")] == "locked"
+    assert by[(3, "finishing_fee_gate")] == "active" and by[(3, "interiors_signoff")] == "active"
+    assert by[(4, "finishing_fee_gate")] == "locked"

@@ -1166,7 +1166,7 @@ function filterBar(f){
     <div class="panel-b flt-grid">
       ${inp('fl-q', 'Project name', 'search', f.q)}${inp('fl-location', 'Location', 'search', f.location)}
       ${sel('fl-phase', 'Phase', [[1, '1 Initiation'], [2, '2 Pre-design'], [3, '3 Structural'], [4, '4 Design development'], [5, '5 Client approval'],
-        [6, '6 Detailed drawings'], [7, '7 Construction'], [8, '8 Civil completion'], [9, '9 Interiors'], [10, '10 Handover']], f.phase)}
+        [6, '6 Detailed drawings'], [7, '7 Construction'], [8, '8 Civil completion'], [9, '9 Finishing'], [10, '10 Handover']], f.phase)}
       ${sel('fl-client_pending', 'Waiting for client', [['true', 'Yes'], ['false', 'No']], f.client_pending)}
       ${sel('fl-step', 'Construction step', [['Legal Approval', 'Legal Approval'], ['Site Visit', 'Site Visit'], ['Team Lead Review', 'Team Lead Review']], f.step)}
       ${sel('fl-engineer_id', 'Civil Engineer', Object.entries(ui.data.engineers || {}), f.engineer_id)}

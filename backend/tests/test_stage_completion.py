@@ -81,7 +81,9 @@ def test_civil_completion_is_blocked_by_open_major_problems(client, auth_headers
     problem = client.get(f"/projects/{pid}/problems", headers=lead).json()[0]
     client.post(f"/problems/{problem['id']}/resolve", json={"note": "Fixed"}, headers=lead)
     assert _complete(client, lead, pid, "civil_completion").status_code == 200
-    assert _state(client, lead, pid, "interiors_signoff")["state"] == "blocked"
+    # Civil completion opens the 80% fee gate (a payment placeholder), and the finishing sign-off waits for it.
+    assert _state(client, lead, pid, "finishing_fee_gate")["state"] == "blocked"
+    assert _state(client, lead, pid, "interiors_signoff")["state"] == "locked"
 
 
 @pytest.mark.parametrize(
