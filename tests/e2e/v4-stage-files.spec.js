@@ -50,6 +50,9 @@ test('engineer attaches a photo, a DWG and a PDF, removes one, and completes the
   await expect(done).toContainText('well-near-gate.png');
   await expect(done).toContainText('centerline.dwg');
   await expect(done.getByTestId(/^stage-file-remove-\d+$/)).toHaveCount(0);
+  await expect(page.getByTestId('stage-file-count-predesign_site_visit')).toHaveText('2 files');
+  await expect(page.getByTestId('stage-detail-predesign_site_visit')).toContainText('Well near the gate');
+  await expect(page.getByTestId('audit-list')).toContainText('Stage completed: Pre-design site visit');
   await expect(page.getByTestId('stage-attach-photo-predesign_site_visit')).toHaveCount(0);
   await shot(page, 'task25-03-completed-with-files');
 });

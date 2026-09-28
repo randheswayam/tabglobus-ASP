@@ -175,3 +175,29 @@ def test_other_projects_are_404(client, client_headers, new_project):
 
 def test_staff_cannot_use_the_client_api(client, auth_headers, my_project):
     assert client.get("/client/projects", headers=auth_headers("architect")).status_code == 403
+
+
+def test_stage_files_and_completion_notes_never_reach_the_client(client, client_headers, auth_headers, my_project, db):
+    from tests.test_stage_attachments import DWG, JPEG
+
+    arch = auth_headers("architect")
+    # Evidence on a historical stage, and a completed construction-phase file.
+    for name, data, ctype in (
+        ("secret-grid.dwg", DWG, "application/octet-stream"),
+        ("site-evidence.jpg", JPEG, "image/jpeg"),
+    ):
+        r = client.post(
+            f"/projects/{my_project}/stages/grid/attachments", files={"file": (name, data, ctype)}, headers=arch
+        )
+        assert r.status_code == 201, r.text
+    aid = r.json()["id"]
+    for path in ("/client/projects", f"/client/projects/{my_project}"):
+        body = client.get(path, headers=client_headers).json()
+        assert _keys(body) <= ALLOWED_KEYS, _keys(body) - ALLOWED_KEYS
+        text = json.dumps(body)
+        for word in ("secret-grid.dwg", "site-evidence.jpg", "attachments", "completion_note"):
+            assert word not in text, f"{word!r} leaked through {path}"
+    # The file itself: the staff route refuses the client, and no client route serves stage files.
+    staff_url = f"/projects/{my_project}/stages/grid/attachments/{aid}"
+    assert client.get(staff_url, headers=client_headers).status_code == 403
+    assert client.get(f"/client{staff_url}", headers=client_headers).status_code == 404

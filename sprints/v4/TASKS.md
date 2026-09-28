@@ -320,13 +320,14 @@ Applies to every workflow activity in the v3 tracker: staff mark a stage complet
   - Files: web-src/app.js, web-src/api.js, web-src/app.html, tests/e2e/v4-stage-files.spec.js, tests/e2e/helpers.js
   - Completed: 2026-09-28. The stage detail gains the files area beside the note: Add photo (camera on phones), Add video, and Add drawing or document (.dwg, .dxf, .pdf), each an XHR upload with progress that renews the session once on 401. Photos show as thumbnails; video, PDF and AutoCAD files show as chips with type, size and uploader, and download on click. The uploader can remove a file until the stage is completed. The evidence rule appears as a banner and disables Mark complete while files are missing. Backend: the tracker returns can_attach. E2E v4-stage-files.spec.js (2): photo, DWG and PDF attached, one removed, completed with a note, files kept and locked; and a phone layout. Screenshots task25-01 to 04.
 
-- [ ] Task 26: Completed stages show their note and files; clients don't see them (P0)
+- [x] Task 26: Completed stages show their note and files; clients don't see them (P0)
   - Acceptance:
     - A completed or historical stage shows the completion note, who completed it and when, and its files: images open in the viewer, and DWG, DXF, PDF and video download. The stage chip shows "N files".
     - The completion is audited with the file list.
     - The client view (`client_view.py`) never includes stage attachments or completion notes. The allow-list key test is extended, and a client request for a stage attachment id gets 404.
     - The client demo is unchanged (sprint v4 PRD, R-16); this is recorded in `docs/PROGRESS.md` as a possible later demo update.
   - Files: web-src/app.js, backend/app/services/client_view.py, backend/tests/test_client_view.py, docs/PROGRESS.md
+  - Completed: 2026-09-28. Stage chips show 'N files'. A completed or historical stage shows its note, completer and time, and its files (photos open, other kinds download). The completion audit lists the files (Task 24). test_client_view gains a leak test: evidence files and completion notes never appear in the client's project list or detail, the allow-list key check holds, and the client gets 403 on the staff file route with no client route serving stage files. docs/PROGRESS.md records that the v3 client demo is unchanged, and the demo filename bug found in Task 3.
 
 ### Dashboard workflow callout (requested 28 September 2026)
 

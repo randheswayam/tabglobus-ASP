@@ -2138,7 +2138,7 @@ function stageChip(s){
   const [cls, label] = STAGE_STATE[s.state];
   return `<button class="stage st-${s.state} ${ui.p.openStage === s.key ? 'open' : ''}" data-act="open-stage" data-key="${s.key}" data-testid="stage-${s.key}" aria-expanded="${ui.p.openStage === s.key}">
     <span class="stage-n">${s.number ? esc(s.number) : ico('flow')}</span>
-    <span class="stage-b"><b>${esc(s.label)}</b><span class="small muted">${esc(s.workstream)} · ${esc(ROLES[s.owner_role] || s.owner_role)}${s.signed_by_client ? ' · signed by the client' : ''}</span></span>
+    <span class="stage-b"><b>${esc(s.label)}</b><span class="small muted">${esc(s.workstream)} · ${esc(ROLES[s.owner_role] || s.owner_role)}${s.signed_by_client ? ' · signed by the client' : ''}${(s.attachments || []).length ? ` · <span data-testid="stage-file-count-${s.key}">${s.attachments.length} file${s.attachments.length === 1 ? '' : 's'}</span>` : ''}</span></span>
     ${pill(cls, label)}</button>`;
 }
 function stageDetail(s){

@@ -52,3 +52,7 @@
   - Confirm decision 0002 (client app) together with V4-D01.
   - Ask for V4-D16 (pilot projects) with the V4.1 decisions, not V4.4.
   - Decide whether to keep the strict core-first order or approve an early V4.1 start (`docs/V4_EXECUTION_PLAN.md` section 4 and R-18).
+
+## Sprint v4 notes (in progress)
+- **Client demo (published v3 Artifact): not updated, as requested on 28 September 2026.** It doesn't show v4 features: stage files, exceptions, the Team and Import screens, the fee plan, or the dashboard icons and callout. A later demo update is possible if asked. `web-src/build.py` still gives the demo its v3 stage shape, so the demo build and its E2E test keep passing.
+- **Found, not fixed (the demo is frozen):** `demo-api.js` `uploadSignoffAttachment` strips only `/` from file names, not `\` as intended.
