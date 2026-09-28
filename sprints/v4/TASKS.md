@@ -1,6 +1,6 @@
 # Sprint v4 — Tasks
 
-## Status: In Progress
+## Status: Done
 
 Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` and `docs/V4_EXECUTION_PLAN.md`. Every task ends with the full backend and E2E suites plus scans green, unless the task says a rule deliberately changed.
 
@@ -601,10 +601,11 @@ A small image of each project's 3D model sits beside the project name, so each p
   - Files: web-src/demo-api.js, web-src/build.py, tests/e2e/demo.spec.js, docs/PROGRESS.md
   - Completed: 2026-09-28. demo-api.js serves the v4 shapes (gates and exceptions, stage files, workflow health, project images, fee plan, fee ledger, principal overview, Admin team, members and CSV import); build.py passes the full stage rules; Accounts (Vikram Mehta) on the sign-in screen; demo.spec.js adds a v4 test with 5 screenshots; reset confirmation fixed; Artifact republished at the same URL (version 4); PROGRESS updated
 
-- [ ] Task 43: Sprint close: status docs (P1)
+- [x] Task 43: Sprint close: status docs (P1)
   - Acceptance:
     - `docs/V4_EXECUTION_PLAN.md` section 2 updates S00 to S04 with the new evidence (file paths and test names) and their new status.
     - `docs/PROGRESS.md` gets a dated entry: done, not done, deviations, and open questions (stage owners, field matrix, exception roles, stage evidence rules and file size limits, stage delay thresholds, the basis of the 50% and 80% fee percentages, principal-only views and who else may read fees, major milestones list, overall completion weights, project image on the client app, D-13 data).
     - The next sprint is named: execution-plan step 6 onwards (S05).
     - The full suites and scans are green.
   - Files: docs/V4_EXECUTION_PLAN.md, docs/PROGRESS.md
+  - Completed: 2026-09-28. V4_EXECUTION_PLAN section 2 updates S00 to S04 with sprint v4 evidence and status; PROGRESS dated close entry (done, not done, deviations, open questions, next sprint S05); 842 backend tests (SQLite and PostgreSQL), 52 E2E, scans clean

@@ -59,3 +59,47 @@
 - **Open question:** should the client app show the project image (the 3D view) on the client's own project? It doesn't yet (Task 31).
 - **Open question:** may more than one person be the principal architect? The build allows one or more; the seed marks only Parvez (Task 32).
 - **Follow-up for S05 (from Task 38):** wire `modules/workflow/states.py` into ProjectStage. Store the activity state, drive the stage engine through `transition()` and migrate the stored statuses with `from_stored()`. Today it is a pure module with tests only.
+
+## 28 September 2026 — Sprint v4 closed
+
+**Done (Tasks 1 to 43).**
+- **Foundations:** tooling and CI configuration, the module layout (decision 0003), and every PRD role.
+- **Identity:** sessions with refresh tokens, Admin screens for users and memberships, and field-level rules for commercial data.
+- **Workflow:** the gate registry with placeholder gates and recorded exceptions, domain events, and stage completion with a note plus photo, video, PDF and AutoCAD files.
+- **Dashboard:** workflow health with phase icons and the hover callout.
+- **Finishing:** the Finishing package and the 80% fee gate.
+- **Projects:** clients, contacts and sites, the fee plan, CSV and XLSX import, and project images (a 3D view).
+- **Principal architect:** the designation, the interim fee ledger for Accounts, and the principal overview.
+- **Later tasks:** the password reset stub, approval delegation, the pure activity state machine, flow version pinning, the PRD stage mapping, and the client demo refreshed to show all of the above.
+
+**Suites at close.** 842 backend tests pass on SQLite and PostgreSQL. 52 Playwright E2E tests pass. semgrep, pip-audit and npm audit are clean.
+
+**Not done.**
+- CI has never run on GitHub, because nothing has been pushed.
+- v2 Task 20 (Android build) is still blocked: it needs JDK 21 and the Android SDK.
+- The state machine isn't wired into ProjectStage (S05).
+- The password reset sends nothing.
+- Delegation covers site-visit review only, and the web review queue still shows only for Team Leads.
+
+**Deviations.**
+- Migration numbers in the task list were stale; the real ones are 0019 to 0022.
+- Flow versions snapshot `stage_config` rather than an editable template.
+- The demo, frozen at v3 by the PRD, was refreshed at the user's request (Task 42).
+
+**Open questions for Parvez (seeded as TBD_PARVEZ).**
+- Stage owners.
+- The field visibility matrix (FIELD_RULES).
+- The exception roles.
+- Stage evidence rules and file size limits.
+- Stage delay thresholds (STAGE_DELAYED_AFTER_DAYS).
+- The basis of the 50% and 80% fee percentages.
+- Principal-only views: more than one principal, and who else may read fees.
+- The major milestones list.
+- Overall completion weights.
+- The resolved-issues window and the password reset TTL.
+- The delegation maximum length.
+- Whether the client app should show the project image.
+- The D-13 data.
+
+**Next sprint.** Execution-plan step 6 onwards, starting with S05: meetings, requirements, the baseline and sign-off. It includes wiring the activity state machine into ProjectStage.
+
