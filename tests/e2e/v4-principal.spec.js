@@ -7,6 +7,7 @@ const CRACK = {category: 'Structural', problem: 'Honeycombing in concrete', othe
   location: 'Plinth beam, north face', responsible_party: 'Site contractor', target_date: '2026-11-20'};
 
 test('accounts records fees; the principal sees totals, milestones and major issues; the architect does not', async ({ page, request }) => {
+  test.setTimeout(60_000);  // three roles sign in
   const p = await createApprovedProject(request, 'Principal Villa');
   const users = await api(request, 'admin', 'GET', '/admin/users');
   const accounts = users.find(u => u.role === 'accounts');

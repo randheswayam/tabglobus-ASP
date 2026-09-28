@@ -4,6 +4,9 @@
    Legal Approval transitions, mandatory site visit validation with photo evidence, derived progress,
    the Team Lead review with recurring visits, open problems, red flags, the dashboard, notifications,
    the 18-stage tracker, client invites, milestone sign-offs, the client app and shared site updates.
+   Sprint v4 adds: stage gates with recorded exceptions, stage files and completion notes, workflow health
+   (phase icons and the callout), project images, the fee plan, the Accounts fee ledger, the principal
+   overview, and the Admin team, membership and CSV import screens.
    DEMO_TEMPLATE is injected by build.py from the backend's template and workflow config, so stages,
    checklists, the problem list, media limits and red flag thresholds stay in step. */
 /* global DEMO_TEMPLATE */
@@ -11,7 +14,7 @@
 const SiteFlowAPI = (() => {
   'use strict';
   const T = DEMO_TEMPLATE;
-  const K_DB = 'siteflow.demo.db.v3', K_TOKEN = 'siteflow.demo.token';
+  const K_DB = 'siteflow.demo.db.v4', K_TOKEN = 'siteflow.demo.token';
   const PASSWORD = 'demo';
   const mem = {};
   const store = {
@@ -35,11 +38,13 @@ const SiteFlowAPI = (() => {
   const nowMs = () => Date.now() - clockOffset;
   const now = () => new Date(nowMs()).toISOString();
   const ymd = daysAgo => new Date(Date.now() - daysAgo * 864e5).toISOString().slice(0, 10);
-  function load(){ try { db = JSON.parse(store.get(K_DB) || 'null'); } catch (_) { db = null; } if (!db || db.v !== 3) seed(); }
+  function load(){ try { db = JSON.parse(store.get(K_DB) || 'null'); } catch (_) { db = null; } if (!db || db.v !== 4) seed(); }
   function save(){ if (!store.set(K_DB, JSON.stringify(db))) fail(507, 'The demo has run out of browser storage. Use Reset demo data to start again.'); }
   const nextId = kind => (db.seq[kind] = (db.seq[kind] || 0) + 1);
   const user = id => db.users.find(u => u.id === id);
   const brief = u => u ? {id: u.id, name: u.name, role: u.role} : null;
+  const userOut = u => ({id: u.id, name: u.name, email: u.email, role: u.role, active: u.active !== false, principal: !!u.principal});
+  const meOut = u => ({id: u.id, name: u.name, email: u.email, role: u.role, principal: !!u.principal});
   const byId = (list, id) => list.find(x => x.id === +id);
 
   /* ---------- auth and access ---------- */
@@ -189,18 +194,22 @@ const SiteFlowAPI = (() => {
       media: mediaOf(v).map(mediaOut),
       reviews: reviewsOf(v).map(r => ({decision: r.decision, comment: r.comment, reviewer: brief(user(r.reviewer_id)), at: r.at}))};
   }
-  function summary(p){
+  // Field rules (mirror modules/identity/fields.py): only these roles receive the fee plan.
+  const FEE_PLAN_ROLES = ['admin', 'accounts', 'team_lead', 'architect'];
+  const seesFeePlan = u => !!u && FEE_PLAN_ROLES.includes(u.role);
+  function summary(p, u){
     const v = latest(p), active = p.steps.find(s => s.status === 'active');
     return {id: p.id, name: p.name, location: p.location, current_step: active ? active.name : null,
       official_progress: p.official_progress, latest_visit_status: v ? v.status : null, civil_engineer: brief(engineerOf(p)),
-      ...stageSummary(p)};
+      ...stageSummary(p), ...(seesFeePlan(u) ? {fee_plan: feePlanOut(p)} : {}), image: imageOut(p), workflow: projectHealth(p)};
   }
-  function detail(p){
+  function detail(p, u){
     const approved = visitsOf(p).filter(v => v.status === 'approved').length;
-    return {...summary(p), template: {id: T.id, version: T.version}, steps: p.steps.map(s => ({order: s.order, name: s.name, status: s.status})),
+    return {...summary(p, u), template: {id: T.id, version: T.version}, steps: p.steps.map(s => ({order: s.order, name: s.name, status: s.status})),
       legal_approval: {...p.legal}, latest_visit: visitBrief(latest(p)),
       approved_visits: approved, visit_number: step(p, 1).status === 'completed' ? approved + 1 : null,
-      audit: db.audit.filter(e => e.project_id === p.id).map(e => ({action: e.action, actor: e.actor_id ? (user(e.actor_id) || {}).name : null, at: e.at, detail: e.detail}))};
+      audit: db.audit.filter(e => e.project_id === p.id).map(e => ({action: e.action, actor: e.actor_id ? (user(e.actor_id) || {}).name : null, at: e.at,
+        detail: e.action.startsWith('fee_plan.') && !seesFeePlan(u) ? {} : e.detail}))};
   }
   function problemOut(x){
     const p = byId(db.projects, x.project_id);
@@ -353,7 +362,7 @@ const SiteFlowAPI = (() => {
       return {id: p.id, name: p.name, location: p.location, current_step: summary(p).current_step, official_progress: p.official_progress,
         open_problems: open.filter(x => x.project_id === p.id).length, last_visit_at: last, red_flags: flags.length,
         flag_labels: flags.map(x => x.label), flags, civil_engineer: brief(engineerOf(p)), ...stageSummary(p),
-        client: client ? client.name : null,
+        client: client ? client.name : null, ...(seesFeePlan(u) ? {fee_plan: feePlanOut(p)} : {}), image: imageOut(p), workflow: projectHealth(p),
         waiting_for_client: waiting ? {signoff_id: waiting.id, stage: BYKEY[waiting.stage_key].label, version: waiting.version,
           sent_at: waiting.sent_at, days_waiting: Math.floor((Date.now() - Date.parse(waiting.sent_at)) / 864e5)} : null};
     });
@@ -388,20 +397,28 @@ const SiteFlowAPI = (() => {
   const STAFF_COMPLETERS = ['architect', 'team_lead'];
   const latestSignoff = (p, key) => db.signoffs.filter(r => r.project_id === p.id && r.stage_key === key).sort((a, b) => a.version - b.version).pop();
   const fmtDay = iso => new Date(iso).toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'});
-  function gateReasons(p, x){
-    if (x.gate === 'legal_approval' && p.legal.status !== 'Approved') return [`Legal Approval is ${p.legal.status}, not Approved`];
-    if (x.gate === 'no_open_major_problems'){
+  // Mirrors modules/workflow/gates.py: a stage's reasons are every unmet gate's reasons, in order.
+  const PLACEHOLDERS = T.placeholder_gates;
+  const isSignoff = x => x.gates.includes('client_signoff');
+  const hasException = (p, key, gate) => (p.exceptions || []).some(e => e.stage_key === key && e.gate === gate);
+  function oneGate(p, x, gate){
+    if (gate === 'legal_approval') return p.legal.status !== 'Approved' ? [`Legal Approval is ${p.legal.status}, not Approved`] : [];
+    if (gate === 'no_open_major_problems'){
       const n = db.problems.filter(q => q.project_id === p.id && q.status === 'open' && ['High', 'Critical'].includes(q.severity)).length;
-      if (n) return [`${n} open High or Critical problem${n === 1 ? '' : 's'}`];
+      return n ? [`${n} open High or Critical problem${n === 1 ? '' : 's'}`] : [];
     }
-    if (x.gate === 'client_signoff'){
+    if (gate === 'client_signoff'){
       const r = latestSignoff(p, x.key);
       if (!r || r.status === 'draft') return ['Sign-off package not sent to the client yet'];
       if (r.status === 'sent') return [`Waiting for client sign-off on version ${r.version}, sent ${fmtDay(r.sent_at)}`];
       if (r.status === 'changes_requested') return [`The client asked for changes on version ${r.version}; prepare version ${r.version + 1}`];
+      return [];
     }
+    if (gate in PLACEHOLDERS) return hasException(p, x.key, gate) ? []
+      : [`${PLACEHOLDERS[gate]} is not built in SiteFlow yet. An Admin or Team Lead can record an exception with a reason.`];
     return [];
   }
+  const gateReasons = (p, x) => x.gates.flatMap(g => oneGate(p, x, g));
   function evaluateStages(p){
     const out = {};
     FLOW.forEach(x => {
@@ -425,8 +442,10 @@ const SiteFlowAPI = (() => {
     });
   }
   function completeStage(p, key, actor, note){
-    Object.assign(p.stages[key], {status: 'completed', completed_at: now(), completed_by: actor ? actor.id : null, note});
-    audit(p, actor, 'stage.completed', {stage: BYKEY[key].label, key, note});
+    const at = now(), files = stageFiles(p, key).filter(a => !a.completed_at);
+    files.forEach(a => { a.completed_at = at; });
+    Object.assign(p.stages[key], {status: 'completed', completed_at: at, completed_by: actor ? actor.id : null, note});
+    audit(p, actor, 'stage.completed', {stage: BYKEY[key].label, key, note, files: files.map(a => a.filename)});
     releaseStages(p, actor);
   }
   function stageSummary(p){
@@ -437,28 +456,40 @@ const SiteFlowAPI = (() => {
     const phase = T.phases.find(ph => ph.number === n);
     return {phase: phase ? {...phase} : null, current_stages: open.map(x => x.label), stage_progress: {done, total: FLOW.length}};
   }
+  const KIND_NAMES = {photo: 'photo', video: 'video', document: 'document (PDF)', cad: 'AutoCAD drawing'};
+  const evidenceMissing = (x, files) => { const have = new Set(files.map(a => a.kind)); return (x.evidence_required || []).filter(k => !have.has(k)); };
+  const evidenceReason = miss => miss.length ? 'Add at least one ' + miss.map(k => KIND_NAMES[k]).join(' and one ') + ' before completing this stage' : null;
+  const mayAttach = (u, x, status) => (u.role === x.owner_role || STAFF_COMPLETERS.includes(u.role)) && !isSignoff(x) && ['active', 'historical'].includes(status);
   function stageView(p, u){
     const view = evaluateStages(p);
     const out = x => {
-      const r = p.stages[x.key], v = view[x.key], req = latestSignoff(p, x.key);
-      return {key: x.key, number: x.number, label: x.label, detail: x.detail, workstream: x.workstream, owner_role: x.owner_role,
-        gate: x.gate, state: v.state, reasons: v.reasons,
-        can_complete: v.state === 'active' && x.gate !== 'client_signoff' && (u.role === x.owner_role || STAFF_COMPLETERS.includes(u.role)),
+      const r = p.stages[x.key], v = view[x.key], req = latestSignoff(p, x.key), files = stageFiles(p, x.key);
+      const miss = r.status === 'active' ? evidenceMissing(x, files) : [];
+      return {key: x.key, number: x.number, label: x.label, detail: x.detail, prd_stage: x.prd_stage, workstream: x.workstream, owner_role: x.owner_role,
+        gates: x.gates, icon: x.icon, state: v.state, reasons: v.reasons,
+        can_complete: v.state === 'active' && !isSignoff(x) && (u.role === x.owner_role || STAFF_COMPLETERS.includes(u.role)),
         started_at: r.started_at, completed_at: r.completed_at, completed_by: brief(user(r.completed_by)), completion_note: r.note,
         historical: r.status === 'historical' ? {label: HISTORICAL_LABEL, confirmed_by: r.hist_by, note: r.hist_note} : null,
-        signed_by_client: !!(req && req.status === 'approved' && r.status === 'completed')};
+        signed_by_client: !!(req && req.status === 'approved' && r.status === 'completed'),
+        exceptions: (p.exceptions || []).filter(e => e.stage_key === x.key).map(e => ({gate: e.gate, reason: e.reason, by: brief(user(e.by)), at: e.at})),
+        open_exceptions: ['active', 'blocked'].includes(v.state) ? x.gates.filter(g => g in PLACEHOLDERS && !hasException(p, x.key, g)) : [],
+        can_record_exception: T.exception_roles.includes(u.role),
+        attachments: files.map(attachmentOut), can_attach: mayAttach(u, x, r.status),
+        evidence_required: x.evidence_required || [], evidence_missing: miss, evidence_reason: evidenceReason(miss)};
     };
     return {phases: T.phases.map(ph => ({...ph, stages: FLOW.filter(x => x.phase === ph.number).map(out)})),
       current_stages: FLOW.filter(x => ['active', 'blocked'].includes(view[x.key].state)).map(x => x.label),
-      stage_progress: {done: FLOW.filter(x => DONE.includes(view[x.key].state)).length, total: FLOW.length}};
+      stage_progress: {done: FLOW.filter(x => DONE.includes(view[x.key].state)).length, total: FLOW.length}, flow_version: 1};
   }
   function completeStageOp(u, pid, key, note){
     const p = project(u, pid), x = BYKEY[key];
     if (!x) fail(404, 'Stage not found');
     const v = evaluateStages(p)[key];
-    if (x.gate === 'client_signoff') fail(409, 'This stage completes when the client approves the sign-off package', {reasons: v.reasons});
+    if (isSignoff(x)) fail(409, 'This stage completes when the client approves the sign-off package', {reasons: v.reasons});
     if (u.role !== x.owner_role && !STAFF_COMPLETERS.includes(u.role)) fail(403, 'Your role cannot complete this stage');
     if (v.state !== 'active') fail(409, DONE.includes(v.state) ? 'This stage is already completed' : 'This stage cannot be completed yet', {reasons: v.reasons});
+    const miss = evidenceMissing(x, stageFiles(p, key).filter(a => !a.completed_at));
+    if (miss.length) fail(422, evidenceReason(miss), {missing: ['attachments']});
     note = (note || '').trim();
     if (!note) fail(422, 'Add a note on what was completed', {missing: ['note']});
     completeStage(p, key, u, note);
@@ -537,7 +568,7 @@ const SiteFlowAPI = (() => {
   function createSignoff(u, pid, b){
     role(u, 'architect');
     const p = project(u, pid);
-    if (!BYKEY[b.stage_key] || BYKEY[b.stage_key].gate !== 'client_signoff') fail(422, 'stage_key must be a client sign-off stage');
+    if (!BYKEY[b.stage_key] || !isSignoff(BYKEY[b.stage_key])) fail(422, 'stage_key must be a client sign-off stage');
     if (p.stages[b.stage_key].status !== 'active') fail(409, `${SIGNOFF_LABEL(b.stage_key)} is not open yet`);
     const history = db.signoffs.filter(r => r.project_id === p.id && r.stage_key === b.stage_key);
     if (history.some(r => ['draft', 'sent'].includes(r.status))) fail(409, 'This stage already has a package in progress');
@@ -610,10 +641,10 @@ const SiteFlowAPI = (() => {
     const shared = db.signoffs.filter(r => r.project_id === p.id && r.status !== 'draft');
     const approved = Object.fromEntries(shared.filter(r => r.status === 'approved').map(r => [r.stage_key, r]));
     return {...clientCard(p),
-      phases: T.phases.map(ph => ({number: ph.number, name: ph.name, stages: FLOW.filter(x => x.phase === ph.number).map(x => {
+      phases: T.phases.map(ph => ({number: ph.number, name: ph.name, icon: ph.icon, stages: FLOW.filter(x => x.phase === ph.number).map(x => {
         const r = p.stages[x.key], signed = r.status === 'completed' ? approved[x.key] : null;
-        return {key: x.key, number: x.number, label: x.label, detail: x.detail, workstream: x.workstream, state: CLIENT_STATE[r.status],
-          is_signoff: x.gate === 'client_signoff', started_at: r.started_at, completed_at: r.completed_at,
+        return {key: x.key, number: x.number, label: x.label, icon: x.icon, detail: x.detail, workstream: x.workstream, state: CLIENT_STATE[r.status],
+          is_signoff: isSignoff(x), started_at: r.started_at, completed_at: r.completed_at,
           historical: r.status === 'historical' ? 'Completed before SiteFlow' : null,
           signed: signed ? {by: signed.signer_name, at: signed.responded_at, version: signed.version} : null};
       })})),
@@ -638,6 +669,303 @@ const SiteFlowAPI = (() => {
     audit(p, u, 'update.shared', {visit_id: v.id, photos: x.photo_ids.length});
     send(clientsOf(p), 'update_shared', p, `Your architect shared a site update on ${p.name}.`, u);
     return {id: x.id, visit_id: x.visit_id, note: x.note, shared_at: x.created_at, shared_by: brief(u), photo_ids: x.photo_ids};
+  }
+
+  /* ---------- workflow health (mirrors modules/workflow/health.py) ---------- */
+  // Which stage each red flag rule delays; client_decision_overdue names its sign-off.
+  const FLAG_STAGE = {legal_delay: 'line_out', critical_issue: 'construction', overdue_fix: 'construction',
+    review_overdue: 'construction', repeated_rework: 'construction', no_recent_visit: 'construction'};
+  function phaseHealth(items){
+    const kinds = new Set(items.map(i => i.health));
+    if (kinds.has('delayed')) return 'delayed';
+    if (kinds.has('waiting')) return 'waiting';
+    if (kinds.size === 1 && kinds.has('done')) return 'done';
+    if (kinds.size === 1 && kinds.has('upcoming')) return 'upcoming';
+    return 'waiting';
+  }
+  function projectHealth(p){
+    if (!p.stages) return null;
+    const view = evaluateStages(p), flagged = {};
+    db.flags.filter(f => f.project_id === p.id && !f.cleared_at).forEach(f => {
+      let key = FLAG_STAGE[f.rule];
+      if (f.rule === 'client_decision_overdue' && f.key.startsWith('signoff-')) key = (byId(db.signoffs, f.key.split('-')[1]) || {}).stage_key;
+      if (key && !(key in flagged)) flagged[key] = RULES[f.rule].label;
+    });
+    const counts = {done: 0, waiting: 0, delayed: 0, upcoming: 0};
+    const one = x => {
+      const {state, reasons} = view[x.key];
+      let health, reason = null;
+      if (DONE.includes(state)){ health = 'done'; reason = state === 'historical' ? 'Completed before SiteFlow' : 'Completed'; }
+      else if (x.key in flagged){ health = 'delayed'; reason = flagged[x.key]; }
+      else if (state === 'active' || state === 'blocked'){ health = 'waiting'; reason = reasons[0] || 'In progress'; }
+      else health = 'upcoming';
+      counts[health] += 1;
+      return {key: x.key, number: x.number, label: x.label, icon: x.icon, health, reason};
+    };
+    const phases = T.phases.map(ph => { const items = FLOW.filter(x => x.phase === ph.number).map(one);
+      return {number: ph.number, name: ph.name, icon: ph.icon, health: phaseHealth(items), stages: items}; });
+    return {phases, counts};
+  }
+
+  /* ---------- recorded exceptions (mirror modules/workflow/exceptions.py) ---------- */
+  function recordException(u, pid, key, gate, reason){
+    const p = project(u, pid), x = BYKEY[key];
+    if (!x) fail(404, 'Stage not found');
+    if (!T.exception_roles.includes(u.role)) fail(403, 'Your role cannot record exceptions');
+    if (!x.gates.includes(gate) || !(gate in PLACEHOLDERS)) fail(422, "Exceptions can be recorded only for this stage's placeholder checks", {invalid: ['gate']});
+    reason = (reason || '').trim();
+    if (!reason) fail(422, 'Give the reason for the exception', {missing: ['reason']});
+    if (DONE.includes(p.stages[key].status)) fail(409, 'This stage is already completed');
+    if (hasException(p, key, gate)) fail(409, 'An exception is already recorded for this check');
+    p.exceptions = p.exceptions || [];
+    p.exceptions.push({stage_key: key, gate, reason, by: u.id, at: now()});
+    audit(p, u, 'stage.exception_recorded', {stage: x.label, key, gate, reason});
+    return {stage_key: key, gate, reason, by: brief(u), at: now()};
+  }
+
+  /* ---------- stage files (mirror modules/workflow/attachments.py) ---------- */
+  const stageFiles = (p, key) => (p.files || []).filter(a => a.stage_key === key);
+  const attachmentOut = a => ({id: a.id, kind: a.kind, filename: a.filename, content_type: a.content_type, size: a.size,
+    uploaded_by: brief(user(a.uploaded_by)), uploaded_at: a.uploaded_at, completed_at: a.completed_at});
+  const EXT_KIND = {jpg: 'photo', jpeg: 'photo', png: 'photo', webp: 'photo', mp4: 'video', mov: 'video', webm: 'video', pdf: 'document', dwg: 'cad', dxf: 'cad'};
+  const EXT_TYPE = {jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/jpeg', webp: 'image/jpeg', mp4: 'video/mp4', mov: 'video/quicktime',
+    webm: 'video/webm', pdf: 'application/pdf', dwg: 'application/acad', dxf: 'application/dxf'};
+  const extOf = name => (String(name || '').split('.').pop() || '').toLowerCase();
+  async function signatureOk(file, kind){
+    if (kind === 'photo' || kind === 'video') return true;  // photos are re-drawn below; a bad one fails to load
+    const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer()), text = String.fromCharCode(...head);
+    if (kind === 'document') return text.startsWith('%PDF');
+    return extOf(file.name) === 'dwg' ? text.startsWith('AC10') : /(^|\n)\s*0\s*\r?\n\s*SECTION/.test(text);
+  }
+
+  /* ---------- project image (mirrors modules/projects/image.py) ---------- */
+  const imageOut = p => p.image ? {thumb_url: `/projects/${p.id}/image?size=thumb`, updated_at: p.image.updated_at} : null;
+
+  /* ---------- fee plan and the interim fee ledger (mirror modules/projects/fee_plan.py, modules/fees/ledger.py) ---------- */
+  const money2 = n => (Math.round(n * 100) / 100).toFixed(2);
+  const feePlanOut = p => ({contract_value: p.fee_plan && p.fee_plan.contract_value != null ? money2(p.fee_plan.contract_value) : null,
+    currency: (p.fee_plan && p.fee_plan.currency) || 'INR', fee_basis: (p.fee_plan || {}).fee_basis || null, fee_notes: (p.fee_plan || {}).fee_notes || null});
+  function updateFeePlan(u, pid, b){
+    role(u, 'architect', 'admin', 'accounts');
+    const p = project(u, pid), f = {...feePlanOut(p)}, changes = {};
+    if ('contract_value' in b){
+      const v = b.contract_value === null || b.contract_value === '' ? null : Number(b.contract_value);
+      if (v !== null && (!isFinite(v) || v < 0)) fail(422, 'Give the contract value as a number of 0 or more', {invalid: ['contract_value']});
+      changes.contract_value = v;
+    }
+    if ('currency' in b){ const c = String(b.currency || 'INR').trim().toUpperCase(); if (!/^[A-Z]{3}$/.test(c)) fail(422, 'Currency is a 3-letter code such as INR', {invalid: ['currency']}); changes.currency = c; }
+    ['fee_basis', 'fee_notes'].forEach(k => { if (k in b) changes[k] = (b[k] || '').trim() || null; });
+    p.fee_plan = {...(p.fee_plan || {}), ...changes};
+    audit(p, u, 'fee_plan.updated', {changes: Object.fromEntries(Object.keys(changes).map(k => [k, [f[k], changes[k]]]))});
+    return feePlanOut(p);
+  }
+  const mayUseFees = u => u.role === 'accounts' || !!u.principal;
+  function feeTotals(p){
+    let due = 0, received = 0;
+    (p.fees || []).forEach(e => { if (e.kind === 'due') due += e.amount; else received += e.amount; });
+    return {due: money2(due), received: money2(received), outstanding: money2(due - received), currency: feePlanOut(p).currency};
+  }
+  const feeEntryOut = (p, e) => ({id: e.id, kind: e.kind, amount: money2(e.amount), currency: feePlanOut(p).currency, date: e.date,
+    reference: e.reference, note: e.note, recorded_by: brief(user(e.recorded_by)), recorded_at: e.recorded_at});
+  function feeLedger(u, pid){
+    if (!mayUseFees(u)) fail(403, 'Only Accounts and the principal architect see client fees');
+    const p = project(u, pid);
+    return {entries: (p.fees || []).slice().sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(e => feeEntryOut(p, e)), totals: feeTotals(p)};
+  }
+  function recordFee(u, pid, b){
+    if (!mayUseFees(u)) fail(403, 'Only Accounts and the principal architect see client fees');
+    const p = project(u, pid), amount = Number(b.amount), reference = (b.reference || '').trim() || null, note = (b.note || '').trim() || null;
+    if (!['due', 'received'].includes(b.kind)) fail(422, 'Type must be a fee due or a payment received', {invalid: ['kind']});
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(b.date || '') || isNaN(Date.parse(b.date))) fail(422, 'Give the date', {invalid: ['date']});
+    const missing = [], invalid = [];
+    if (!isFinite(amount) || amount === 0 || String(b.amount).trim() === '') invalid.push('amount');
+    if (amount < 0 && !note) missing.push('note');
+    if (b.kind === 'received' && !reference) missing.push('reference');
+    if (missing.length || invalid.length) fail(422, 'Give an amount above 0 (a correction is negative with a reason), and a reference for money received', {missing, invalid});
+    const e = {id: nextId('fee'), kind: b.kind, amount: Math.round(amount * 100) / 100, date: b.date, reference, note, recorded_by: u.id, recorded_at: now()};
+    p.fees = p.fees || [];
+    p.fees.push(e);
+    audit(p, u, 'fee.recorded', {kind: e.kind, correction: amount < 0});
+    return feeEntryOut(p, e);
+  }
+
+  /* ---------- the principal architect's overview (mirrors modules/principal/overview.py) ---------- */
+  const MAJOR = ['Critical', 'High'];
+  function principalOverview(u){
+    if (u.role === 'client' || !u.principal) fail(403, 'This view is only for the principal architect');
+    const P = T.principal, w = k => (P.completion_weights || {})[k] ?? 1, today = businessDate(nowMs());
+    const days = iso => Math.round((Date.parse(today) - Date.parse(businessDate(Date.parse(iso)))) / 864e5);
+    const issueOut = x => {
+      const v = byId(db.visits, x.visit_id);
+      return {id: x.id, severity: x.severity, category: x.category, problem: x.problem, location: x.location, responsible_party: x.responsible_party,
+        target_date: x.target_date, days_open: days(x.created_at), overdue: x.status === 'open' && x.target_date < today,
+        recommended_action: v && v.form ? v.form.recommended_action : null, status: x.status,
+        ...(x.status === 'resolved' ? {resolved_at: x.resolved_at, resolved_by: brief(user(x.resolved_by)), resolution_note: x.resolution_note} : {})};
+    };
+    const rows = visible(u).map(p => {
+      syncFlags(p);
+      const done = FLOW.filter(x => DONE.includes(p.stages[x.key].status)), total = FLOW.reduce((a, x) => a + w(x.key), 0);
+      const health = projectHealth(p), hk = Object.fromEntries(health.phases.flatMap(ph => ph.stages).map(x => [x.key, x]));
+      const major = db.problems.filter(x => x.project_id === p.id && MAJOR.includes(x.severity));
+      const since = nowMs() - P.resolved_issues_days * 864e5;
+      return {id: p.id, name: p.name, location: p.location, image: imageOut(p),
+        completion: {percent: Math.round(1000 * done.reduce((a, x) => a + w(x.key), 0) / total) / 10, stages_done: done.length,
+          stages_total: FLOW.length, construction_progress: p.official_progress},
+        fees: feeTotals(p),
+        milestones: FLOW.filter(x => P.major_milestones.includes(x.key)).map(x => { const r = p.stages[x.key];
+          return {key: x.key, number: x.number, label: x.label, icon: x.icon, health: hk[x.key].health, reason: hk[x.key].reason,
+            completed_at: r.completed_at, completed_by: brief(user(r.completed_by))}; }),
+        issues: {
+          open: major.filter(x => x.status === 'open').sort((a, b) => MAJOR.indexOf(a.severity) - MAJOR.indexOf(b.severity)
+            || a.target_date.localeCompare(b.target_date) || a.id - b.id).map(issueOut),
+          resolved: major.filter(x => x.status === 'resolved' && Date.parse(x.resolved_at) >= since)
+            .sort((a, b) => b.resolved_at.localeCompare(a.resolved_at)).map(issueOut)}};
+    });
+    const cur = {};
+    rows.forEach(r => { const t = cur[r.fees.currency] = cur[r.fees.currency] || {due: 0, received: 0}; t.due += +r.fees.due; t.received += +r.fees.received; });
+    const pcts = rows.map(r => r.completion.percent);
+    return {portfolio: {projects: rows.length, average_completion: pcts.length ? Math.round(10 * pcts.reduce((a, b) => a + b, 0) / pcts.length) / 10 : null,
+      fees: Object.keys(cur).sort().map(c => ({currency: c, due: money2(cur[c].due), received: money2(cur[c].received), outstanding: money2(cur[c].due - cur[c].received)})),
+      open_major_issues: rows.reduce((a, r) => a + r.issues.open.length, 0),
+      milestones_waiting: rows.reduce((a, r) => a + r.milestones.filter(m => ['waiting', 'delayed'].includes(m.health)).length, 0)}, projects: rows};
+  }
+
+  /* ---------- Admin: team, memberships and project import (mirror modules/identity/admin.py, modules/projects/importer.py) ---------- */
+  const STAFF_ROLES = ['architect', 'team_lead', 'civil_engineer', 'admin', 'structural_consultant', 'mep_consultant', 'interior_designer', 'accounts', 'office_coordinator'];
+  function createUser(u, b){
+    role(u, 'admin');
+    const name = (b.name || '').trim(), email = (b.email || '').trim().toLowerCase();
+    if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !STAFF_ROLES.includes(b.role))
+      fail(422, 'Give a name, an email address and a staff role', {invalid: [...(name ? [] : ['name']), ...(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? [] : ['email']), ...(STAFF_ROLES.includes(b.role) ? [] : ['role'])]});
+    if (db.users.some(x => x.email === email)) fail(409, 'A user with this email already exists');
+    const temporary = Array.from(crypto.getRandomValues(new Uint8Array(9)), n => ALPHABET[n % ALPHABET.length]).join('');
+    const nu = {id: nextId('user'), name, email, role: b.role, password: temporary};  // demo only: kept in this browser
+    db.users.push(nu);
+    return {user: userOut(nu), temporary_password: temporary};
+  }
+  function updateUser(u, id, b){
+    role(u, 'admin');
+    const t = user(+id); if (!t) fail(404, 'User not found');
+    if (t.role === 'client') fail(409, 'Client accounts are managed through the project invite');
+    if (t.id === u.id && ((b.role && b.role !== t.role) || b.active === false)) fail(409, "You can't change your own role or deactivate yourself");
+    if (b.role && !STAFF_ROLES.includes(b.role)) fail(422, "A staff user can't become a client");
+    if (b.role) t.role = b.role;
+    if (b.active !== undefined && b.active !== null) t.active = !!b.active;
+    if (b.principal !== undefined && b.principal !== null){ if (b.principal && t.active === false) fail(409, 'Only an active staff user can be the principal architect'); t.principal = !!b.principal; }
+    if (t.active === false) t.principal = false;
+    return userOut(t);
+  }
+  const fixedMembers = p => [p.created_by, ...(engineerOf(p) ? [engineerOf(p).id] : [])];
+  function members(u, pid){ role(u, 'admin'); const p = project(u, pid);
+    return p.members.map(user).filter(m => m && m.role !== 'client').map(m => ({...userOut(m), removable: !fixedMembers(p).includes(m.id)})); }
+  function addMember(u, pid, uid){
+    role(u, 'admin'); const p = project(u, pid), m = user(+uid);
+    if (!m) fail(404, 'User not found');
+    if (m.role === 'client') fail(409, 'Clients join a project through the client invite');
+    if (p.members.includes(m.id)) fail(409, `${m.name} is already on this project`);
+    p.members.push(m.id); audit(p, u, 'member.added', {user: m.name, role: m.role}); return userOut(m);
+  }
+  function removeMember(u, pid, uid){
+    role(u, 'admin'); const p = project(u, pid), m = user(+uid);
+    if (!m || !p.members.includes(m.id)) fail(404, 'Not a member of this project');
+    if (fixedMembers(p).includes(m.id)) fail(409, "The project's architect and civil engineer stay on the project");
+    p.members = p.members.filter(x => x !== m.id); audit(p, u, 'member.removed', {user: m.name, role: m.role});
+  }
+  const IMPORT_COLUMNS = ['project_name', 'location', 'client_name', 'client_email', 'site_address', 'current_stage', 'civil_engineer_email', 'confirmed_by', 'legal_expected_date'];
+  const IMPORT_REQUIRED = ['project_name', 'location', 'civil_engineer_email'];
+  const IMPORT_EXAMPLE = 'Mane Villa,Wakad Pune,Mane family,mane@example.com,Survey 8 Wakad,grid,engineer@siteflow.demo,Parvez,';
+  function csvRows(text){
+    const rows = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < text.length; i++){
+      const c = text[i];
+      if (q){ if (c === '"' && text[i + 1] === '"'){ cell += '"'; i++; } else if (c === '"') q = false; else cell += c; }
+      else if (c === '"') q = true;
+      else if (c === ','){ row.push(cell); cell = ''; }
+      else if (c === '\n' || c === '\r'){ if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+      else cell += c;
+    }
+    if (cell || row.length){ row.push(cell); rows.push(row); }
+    return rows.filter(r => r.some(x => x.trim()));
+  }
+  function parseImport(text){
+    const [head, ...body] = csvRows(text.replace(/^\ufeff/, ''));
+    const header = (head || []).map(h => h.trim()), missing = IMPORT_COLUMNS.filter(c => !header.includes(c));
+    if (missing.length) fail(422, "The file needs the template's columns", {missing});
+    if (body.length > 500) fail(422, 'Import at most 500 projects at a time');
+    const engineers = Object.fromEntries(db.users.filter(x => x.role === 'civil_engineer' && x.active !== false).map(x => [x.email, x]));
+    const existing = new Set(db.projects.map(p => p.name.toLowerCase())), seen = {};
+    return body.map((cells, n) => {
+      const values = Object.fromEntries(IMPORT_COLUMNS.map(c => [c, (cells[header.indexOf(c)] || '').trim()])), errors = [], at = n + 2;
+      IMPORT_COLUMNS.forEach(c => { if (/^[=+\-@]/.test(values[c])) errors.push(`${c} starts with = + - or @`); });
+      IMPORT_REQUIRED.forEach(c => { if (!values[c]) errors.push(`${c} is required`); });
+      const st = values.current_stage;
+      if (st){
+        if (!BYKEY[st]) errors.push(`current_stage '${st}' is not a stage`);
+        else if (st === FLOW[0].key) errors.push(`current_stage '${st}' is the first stage; leave it blank for a new project`);
+        if (!values.confirmed_by) errors.push('confirmed_by is required when current_stage is set');
+      }
+      if (values.civil_engineer_email && !engineers[values.civil_engineer_email.toLowerCase()]) errors.push('civil_engineer_email is not an active Civil Engineer');
+      if (values.client_email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.client_email)) errors.push('client_email is not an email address');
+      if (values.legal_expected_date && (!/^\d{4}-\d{2}-\d{2}$/.test(values.legal_expected_date) || isNaN(Date.parse(values.legal_expected_date)))) errors.push('legal_expected_date must be YYYY-MM-DD');
+      const name = values.project_name.toLowerCase();
+      if (name){ if (name in seen) errors.push(`project_name repeats row ${seen[name]}`); else seen[name] = at;
+        if (existing.has(name)) errors.push(`a project named '${values.project_name}' already exists`); }
+      return {row: at, ok: !errors.length, errors, values, engineer: engineers[values.civil_engineer_email.toLowerCase()] || null};
+    });
+  }
+  const importRowOut = r => ({row: r.row, ok: r.ok, errors: r.errors, values: r.values});
+  const importCounts = rs => ({rows: rs.length, ok: rs.filter(r => r.ok).length, errors: rs.filter(r => !r.ok).length});
+  async function readImportFile(file){
+    if (!/\.csv$/i.test(file.name || '')) throw new ApiError(415, 'In the demo, import a .csv file (the full app also reads .xlsx)');
+    if (file.size > 1048576) throw new ApiError(413, 'The file can be at most 1 MB');
+    return file.text();
+  }
+  function commitImport(u, text, filename, mode, architectId){
+    role(u, 'admin');
+    if (!['all_or_nothing', 'valid_rows_only'].includes(mode)) fail(422, 'mode must be all_or_nothing or valid_rows_only');
+    const arch = user(+architectId);
+    if (!arch || arch.role !== 'architect' || arch.active === false) fail(422, 'architect_id must be an active Architect');
+    const rs = parseImport(text), counts = importCounts(rs);
+    const batch = {id: nextId('batch'), at: now(), by: u.id, filename: String(filename || 'import.csv').split(/[\\/]/).pop().slice(0, 200), mode, rows: counts.rows, imported: 0, errors: rs.filter(r => !r.ok).map(r => ({row: r.row, errors: r.errors}))};
+    db.batches = db.batches || []; db.batches.push(batch);
+    if (mode === 'all_or_nothing' && counts.errors) fail(422, 'Nothing was imported: fix the rows with errors, or import the valid rows only', {counts, rows: rs.map(importRowOut), batch_id: batch.id});
+    const made = rs.filter(r => r.ok).map(r => {
+      const v = r.values, p = createProject(arch, {name: v.project_name, location: v.location, civil_engineer_id: r.engineer.id, legal_expected_date: v.legal_expected_date || null,
+        start_stage: v.current_stage || null, historical_confirmed_by: v.confirmed_by || null});
+      if (!p.members.includes(u.id)) p.members.push(u.id);
+      db.users.filter(x => x.role === 'accounts').forEach(x => { if (!p.members.includes(x.id)) p.members.push(x.id); });
+      return {id: p.id, name: p.name};
+    });
+    batch.imported = made.length;
+    return {batch_id: batch.id, counts, rows: rs.map(importRowOut), projects: made};
+  }
+  const batchOut = b => ({id: b.id, at: b.at, by: brief(user(b.by)), filename: b.filename, mode: b.mode, rows: b.rows, imported: b.imported, errors: b.errors});
+
+  /* ---------- sample 3D views: a small house drawn in perspective on a canvas ---------- */
+  function sampleRender(seed, name){
+    const c = document.createElement('canvas'); c.width = 480; c.height = 320; const g = c.getContext('2d');
+    const hue = [18, 200, 140, 30, 260][seed % 5];
+    const sky = g.createLinearGradient(0, 0, 0, 320); sky.addColorStop(0, `hsl(${hue + 180},45%,86%)`); sky.addColorStop(1, '#f4f2ea');
+    g.fillStyle = sky; g.fillRect(0, 0, 480, 320);
+    g.fillStyle = '#c9d6b8'; g.beginPath(); g.moveTo(0, 250); g.lineTo(480, 220); g.lineTo(480, 320); g.lineTo(0, 320); g.fill();
+    const face = (pts, fill) => { g.fillStyle = fill; g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fill(); g.strokeStyle = 'rgba(40,40,40,.35)'; g.stroke(); };
+    const floors = 1 + (seed % 3);
+    for (let f = 0; f < floors; f++){
+      const y = 240 - f * 62;
+      face([[110, y], [270, y + 20], [270, y - 42], [110, y - 62]], `hsl(${hue},25%,${88 - f * 3}%)`);
+      face([[270, y + 20], [390, y - 10], [390, y - 72], [270, y - 42]], `hsl(${hue},20%,${74 - f * 3}%)`);
+      for (let k = 0; k < 3; k++) face([[130 + k * 48, y - 12 + k * 6], [160 + k * 48, y - 6 + k * 6], [160 + k * 48, y - 36 + k * 6], [130 + k * 48, y - 42 + k * 6]], 'rgba(70,110,140,.75)');
+      face([[300, y + 4], [330, y - 4], [330, y - 34], [300, y - 26]], 'rgba(70,110,140,.7)');
+    }
+    const top = 240 - floors * 62;
+    face([[100, top + 2], [270, top + 24], [400, top - 8], [230, top - 30]], `hsl(${hue},35%,42%)`);
+    g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, 292, 480, 28);
+    g.fillStyle = '#fff'; g.font = '13px ui-sans-serif, system-ui'; g.fillText(`${name} · 3D view (sample)`, 10, 311);
+    return c.toDataURL('image/jpeg', 0.7);
+  }
+  function setImage(p, data, u){
+    p.image = {data, updated_at: now()};
+    audit(p, u, 'project.image_set', {});
   }
 
   /* ---------- sample elevations for the design-freeze sign-off ---------- */
@@ -692,16 +1020,17 @@ const SiteFlowAPI = (() => {
 
   /* ---------- sample data ---------- */
   function seed(){
-    db = {v: 3, seq: {user: 6}, users: [
+    db = {v: 4, seq: {user: 7}, users: [
       {id: 1, name: 'Meera Joshi', email: 'architect@siteflow.demo', role: 'architect'},
-      {id: 2, name: 'Parvez', email: 'parvez@siteflow.demo', role: 'team_lead'},
+      {id: 2, name: 'Parvez', email: 'parvez@siteflow.demo', role: 'team_lead', principal: true},
       {id: 3, name: 'Farhan Shaikh', email: 'engineer@siteflow.demo', role: 'civil_engineer'},
       {id: 4, name: 'Office Coordinator', email: 'admin@siteflow.demo', role: 'admin'},
       {id: 5, name: 'Mr. Gokhale', email: 'gokhale@siteflow.demo', role: 'client'},
-      {id: 6, name: 'Mrs. Kapoor', email: 'kapoor@siteflow.demo', role: 'client'}
+      {id: 6, name: 'Mrs. Kapoor', email: 'kapoor@siteflow.demo', role: 'client'},
+      {id: 7, name: 'Vikram Mehta', email: 'vikram@siteflow.demo', role: 'accounts'}
     ], projects: [], visits: [], reviews: [], audit: [], media: [], problems: [], flags: [], notifications: [],
-      signoffs: [], invites: [], updates: []};
-    const [arch, lead, eng, admin, gokhale, kapoor] = db.users;
+      signoffs: [], invites: [], updates: [], batches: []};
+    const [arch, lead, eng, admin, gokhale, kapoor, accounts] = db.users;
     const at = days => { clockOffset = days * 864e5; };
     const onboard = {start_stage: 'line_out', historical_confirmed_by: 'Parvez'};
     const applied = (p, d, ref) => { at(d); updateLegal(admin, p.id, {status: 'Applied', authority_name: 'Pune Municipal Corporation', application_reference: ref, application_date: ymd(d)}); };
@@ -767,9 +1096,35 @@ const SiteFlowAPI = (() => {
       summary: 'Internal plaster done. A crack has opened over the east window lintel.', action: 'Stop external plaster on the east wall until the lintel is checked.'}));
     at(7); review(lead, v.id, {decision: 'approve'});
 
-    // 5. Early design: the Site and Studio pre-design branches running in parallel.
-    at(9); createProject(arch, {name: 'Sathe House', location: 'Pashan, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(-60),
+    // 5. Early design: the Site and Studio pre-design branches running in parallel. Farhan has completed the
+    //    pre-design site visit with a photo and the surveyor's AutoCAD drawing; Investigations is now open.
+    at(9); p = createProject(arch, {name: 'Sathe House', location: 'Pashan, Pune', civil_engineer_id: eng.id, legal_expected_date: ymd(-60),
       start_stage: 'predesign_site_visit', historical_confirmed_by: 'Parvez'});
+    at(4); p.files = [
+      {id: nextId('stagefile'), stage_key: 'predesign_site_visit', kind: 'photo', filename: 'well-near-gate.jpg', content_type: 'image/jpeg',
+        data: samplePhoto(77, 'Pashan plot · well near the gate'), size: 48000, uploaded_by: eng.id, uploaded_at: now(), completed_at: null},
+      {id: nextId('stagefile'), stage_key: 'predesign_site_visit', kind: 'cad', filename: 'site-survey.dxf', content_type: 'application/dxf',
+        data: 'data:application/dxf;base64,' + btoa('0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nEOF\n'), size: 42, uploaded_by: eng.id, uploaded_at: now(), completed_at: null}];
+    completeStage(p, 'predesign_site_visit', eng, 'Site visited with the owner. Well near the gate; black cotton soil on the east side; 3 m road on the north.');
+
+    // Sprint v4: images of each project's 3D model, fee plans, and Accounts' ledger of fees due and received.
+    at(3);
+    const FEES = {
+      'Gokhale Residence': {value: 9500000, due: [[40, 2375000, '25% on concept, invoice 101']], received: [[35, 2375000, 'NEFT 88121']]},
+      'Patil Villa': {value: 14000000, due: [[60, 3500000, '25% on concept'], [20, 3500000, '50% upfront balance']], received: [[55, 3500000, 'NEFT 77310'], [12, 2000000, 'Cheque 004512']]},
+      'Deshmukh Residence': {value: 11000000, due: [[80, 5500000, '50% upfront']], received: [[70, 5500000, 'NEFT 66203']]},
+      'Kapoor House': {value: 18500000, due: [[100, 9250000, '50% upfront'], [15, 2775000, 'Civil stage 15%']], received: [[90, 9250000, 'RTGS 55108']]},
+      'Sathe House': {value: 7500000, due: [[8, 1875000, '25% on appointment']], received: []}
+    };
+    db.projects.forEach((q, i) => {
+      if (!q.members.includes(accounts.id)) q.members.push(accounts.id);
+      setImage(q, sampleRender(i, q.name), arch);
+      const f = FEES[q.name];
+      q.fee_plan = {contract_value: f.value, currency: 'INR', fee_basis: 'Percentage of construction cost', fee_notes: null};
+      q.fees = [...f.due.map(([d, amount, note]) => ({kind: 'due', amount, date: ymd(d), reference: null, note})),
+        ...f.received.map(([d, amount, reference]) => ({kind: 'received', amount, date: ymd(d), reference, note: null}))]
+        .map(e => ({id: nextId('fee'), ...e, recorded_by: accounts.id, recorded_at: now()}));
+    });
 
     clockOffset = 0;
     db.projects.forEach(syncFlags);
@@ -798,7 +1153,8 @@ const SiteFlowAPI = (() => {
       {email: 'architect@siteflow.demo', label: 'Meera Joshi', role: 'Architect'},
       {email: 'admin@siteflow.demo', label: 'Office Coordinator', role: 'Admin'},
       {email: 'engineer@siteflow.demo', label: 'Farhan Shaikh', role: 'Civil Engineer'},
-      {email: 'parvez@siteflow.demo', label: 'Parvez', role: 'Team Lead'},
+      {email: 'parvez@siteflow.demo', label: 'Parvez', role: 'Team Lead · principal architect'},
+      {email: 'vikram@siteflow.demo', label: 'Vikram Mehta', role: 'Accounts'},
       {email: 'gokhale@siteflow.demo', label: 'Mr. Gokhale', role: 'Client'}
     ],
     resetDemo(){ store.set(K_DB, null); load(); },
@@ -806,16 +1162,17 @@ const SiteFlowAPI = (() => {
       const u = db.users.find(x => x.email === String(email).trim().toLowerCase());
       if (!u || u.active === false || password !== (u.password || PASSWORD)) fail(401, 'Incorrect email or password');
       store.set(K_TOKEN, String(u.id));
-      return {id: u.id, name: u.name, email: u.email, role: u.role};
+      return meOut(u);
     }),
     logout(){ store.set(K_TOKEN, null); },
-    me: () => run(() => { const u = current(); return {id: u.id, name: u.name, email: u.email, role: u.role}; }),
-    template: () => run(() => T),
-    projects: () => run(() => visible(staff()).map(summary)),
-    project: id => run(() => detail(project(staff(), id))),
-    createProject: body => run(() => detail(createProject(staff(), body))),
+    me: () => run(() => meOut(current())),
+    template: () => run(() => ({...T, stage_flow: undefined})),
+    projects: () => run(() => { const u = staff(); return visible(u).map(p => summary(p, u)); }),
+    project: id => run(() => { const u = staff(); return detail(project(u, id), u); }),
+    createProject: body => run(() => { const u = staff(), p = createProject(u, body);
+      db.users.filter(x => x.role === 'accounts').forEach(x => { if (!p.members.includes(x.id)) p.members.push(x.id); }); return detail(p, u); }),
     engineers: () => run(() => { role(staff(), 'architect'); return db.users.filter(u => u.role === 'civil_engineer').map(brief); }),
-    updateLegal: (id, body) => run(() => detail(updateLegal(staff(), id, body))),
+    updateLegal: (id, body) => run(() => { const u = staff(); return detail(updateLegal(u, id, body), u); }),
     submitVisit: (id, body) => run(() => visitOut(submitVisit(staff(), id, body))),
     visit: id => run(() => visitOut(visibleVisit(staff(), id))),
     visits: pid => run(() => submittedVisits(project(staff(), pid)).slice().reverse().map(v => ({id: v.id, status: v.status,
@@ -875,6 +1232,77 @@ const SiteFlowAPI = (() => {
       return db.updates.filter(x => x.project_id === p.id).slice().reverse().map(x => ({id: x.id, visit_id: x.visit_id, note: x.note,
         shared_at: x.created_at, shared_by: brief(user(x.shared_by)), photo_ids: x.photo_ids})); }),
     shareUpdate: (vid, note, ids) => run(() => shareUpdate(staff(), vid, note, ids)),
+
+    /* ---------- sprint v4 ---------- */
+    recordException: (pid, key, gate, reason) => run(() => recordException(staff(), pid, key, gate, reason)),
+    updateFeePlan: (pid, body) => run(() => updateFeePlan(staff(), pid, body || {})),
+    fees: pid => run(() => feeLedger(staff(), pid)),
+    recordFee: (pid, body) => run(() => recordFee(staff(), pid, body || {})),
+    principalOverview: () => run(() => principalOverview(staff())),
+    adminUsers: () => run(() => { role(staff(), 'admin'); return db.users.map(userOut); }),
+    createUser: body => run(() => createUser(staff(), body || {})),
+    updateUser: (id, body) => run(() => updateUser(staff(), id, body || {})),
+    projectMembers: pid => run(() => members(staff(), pid)),
+    addMember: (pid, uid) => run(() => addMember(staff(), pid, uid)),
+    removeMember: (pid, uid) => run(() => removeMember(staff(), pid, uid)),
+    importBatches: () => run(() => { role(staff(), 'admin'); return (db.batches || []).slice().reverse().map(batchOut); }),
+    async importTemplateUrl(){ return 'data:text/csv;charset=utf-8,' + encodeURIComponent(IMPORT_COLUMNS.join(',') + '\n' + IMPORT_EXAMPLE + '\n'); },
+    async importPreview(file){
+      const text = await readImportFile(file);
+      return run(() => { role(staff(), 'admin'); const rs = parseImport(text); return {counts: importCounts(rs), rows: rs.map(importRowOut), stages: FLOW.map(x => x.key)}; });
+    },
+    async importCommit(file, mode, architectId){
+      const text = await readImportFile(file);
+      return run(() => commitImport(staff(), text, file.name, mode, architectId));
+    },
+    async setProjectImage(pid, file){
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new ApiError(415, 'Use a JPEG, PNG or WEBP image of the 3D model');
+      if (file.size > 10 * 1048576) throw new ApiError(413, 'The image can be at most 10 MB');
+      const data = await readAsImage(file);
+      return run(() => { const u = staff(); role(u, 'architect', 'admin'); const p = project(u, pid); setImage(p, data, u); return imageOut(p); });
+    },
+    removeProjectImage: pid => run(() => { const u = staff(); role(u, 'architect', 'admin'); const p = project(u, pid);
+      if (!p.image) fail(404, 'This project has no image'); p.image = null; audit(p, u, 'project.image_removed', {}); }),
+    async projectImageUrl(pid){
+      load(); const u = staff(), p = project(u, pid);
+      if (!p.image) throw new ApiError(404, 'This project has no image');
+      return p.image.data;
+    },
+    async uploadStageFile(pid, key, file, onProgress){
+      const ext = extOf(file.name), kind = EXT_KIND[ext];
+      if (!kind) throw new ApiError(415, 'Attach a photo (JPEG, PNG, WEBP), a video (MP4, MOV, WEBM), a PDF, or an AutoCAD drawing (DWG, DXF)');
+      const limit = kind === 'video' ? T.stage_file_mb.video * 1048576 : Math.min(T.stage_file_mb[kind], 2) * 1048576;
+      if (file.size > limit) throw new ApiError(413, `In the demo a ${KIND_NAMES[kind]} can be at most ${Math.round(limit / 1048576)} MB`);
+      if (!(await signatureOk(file, kind))) throw new ApiError(415, `The file's contents don't look like a ${KIND_NAMES[kind]}`);
+      const data = kind === 'photo' ? await readAsImage(file) : kind === 'video' ? null : await fileAsDataUrl(file);
+      if (onProgress) onProgress(1);
+      return run(() => {
+        const u = staff(), p = project(u, pid), x = BYKEY[key];
+        if (!x) fail(404, 'Stage not found');
+        if (u.role !== x.owner_role && !STAFF_COMPLETERS.includes(u.role)) fail(403, 'Your role cannot add files to this stage');
+        if (!mayAttach(u, x, p.stages[key].status)) fail(409, 'Files can be added while the stage is open');
+        const a = {id: nextId('stagefile'), stage_key: key, kind, filename: String(file.name).split(/[\\/]/).pop().slice(0, 200),
+          content_type: EXT_TYPE[ext], data, size: file.size, uploaded_by: u.id, uploaded_at: now(), completed_at: null};
+        p.files = p.files || []; p.files.push(a);
+        if (kind === 'video') sessionFiles[`s${a.id}`] = URL.createObjectURL(file);
+        audit(p, u, 'stage.attachment_added', {stage: x.label, filename: a.filename, kind});
+        return attachmentOut(a);
+      });
+    },
+    removeStageFile: (pid, key, id) => run(() => {
+      const u = staff(), p = project(u, pid), a = stageFiles(p, key).find(f => f.id === +id);
+      if (!a) fail(404, 'File not found');
+      if (a.completed_at) fail(409, "Files on a completed stage can't be removed");
+      if (a.uploaded_by !== u.id && !STAFF_COMPLETERS.includes(u.role)) fail(403, 'Only the person who added it can remove it');
+      p.files = p.files.filter(f => f.id !== a.id);
+      audit(p, u, 'stage.attachment_removed', {stage: BYKEY[key].label, filename: a.filename});
+    }),
+    async stageFileUrl(pid, key, id){
+      if (sessionFiles[`s${id}`]) return sessionFiles[`s${id}`];
+      load(); const u = staff(), p = project(u, pid), a = stageFiles(p, key).find(f => f.id === +id);
+      if (!a) throw new ApiError(404, 'File not found');
+      return a.data || samplePhoto(+id, 'Video from an earlier session');
+    },
 
     /* ---------- customer app ---------- */
     clientProjects: () => run(() => { const u = clientUser(); return db.projects.filter(p => p.members.includes(u.id)).map(clientCard); }),

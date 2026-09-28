@@ -32,15 +32,13 @@ def write(path, text):
     open(path, 'w', encoding='utf-8').write(text)
 
 
-DEMO_GATES = ("client_signoff", "legal_approval", "no_open_major_problems")
-
-
 def demo_template():
     """The /template payload, built from the backend's own config so the demo never drifts from it."""
     sys.path.insert(0, os.path.join(root, 'backend'))
     from app import stage_config as sc
     from app import template_config as tc
     from app import workflow_config as wc
+    from app.modules.workflow.gates import PLACEHOLDER_GATES  # plain Python, no database imports
     return {
         "id": tc.TEMPLATE_ID, "version": tc.TEMPLATE_VERSION, "steps": tc.WORKFLOW_STEPS,
         "stages": [{"name": s["name"], "weight": s["weight"],
@@ -55,12 +53,14 @@ def demo_template():
         # The 18-stage flow (as /template serves it) and, for the demo's own engine, the full stage rules.
         "phases": sc.PHASES,
         "flow": [{"key": s["key"], "number": s["number"], "label": s["label"], "phase": s["phase"]} for s in sc.STAGES],
-        # The v3 demo (frozen) reads one `gate` per stage and knows only the v3 gate types.
-        "stage_flow": [
-            {**{k: v for k, v in s.items() if k != "gates"},
-             "gate": next((g for g in s["gates"] if g in DEMO_GATES), None)}
-            for s in sc.STAGES
-        ],
+        # Sprint v4: the full stage rules (gates, icons, PRD stage, evidence) for the demo's own engine.
+        "stage_flow": sc.STAGES,
+        "placeholder_gates": PLACEHOLDER_GATES,
+        "exception_roles": wc.EXCEPTION_ROLES,
+        "fee_basis_help": wc.FEE_BASIS_HELP,
+        "stage_file_mb": wc.MAX_STAGE_ATTACHMENT_MB,
+        "principal": {"major_milestones": wc.MAJOR_MILESTONES, "completion_weights": wc.OVERALL_COMPLETION_WEIGHTS,
+                      "resolved_issues_days": wc.RESOLVED_ISSUES_DAYS},
         "business_timezone": wc.BUSINESS_TIMEZONE,
         "signoff": {"sla_days": wc.CLIENT_SIGNOFF_SLA_DAYS, "invite_ttl_days": wc.INVITE_CODE_TTL_DAYS,
                     "invite_max_attempts": wc.INVITE_MAX_ATTEMPTS, "attachment_types": wc.SIGNOFF_ATTACHMENT_TYPES,

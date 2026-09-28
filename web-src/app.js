@@ -115,7 +115,7 @@ function shell(){
       <div class="whois"><span class="eyebrow">Signed in</span>${who}</div>
       <button class="btn ghost sm" data-act="sign-out" data-testid="sign-out">Sign out</button>
       ${API.demo ? '' : `<button class="btn ghost sm" data-act="sign-out-all" data-testid="signout-all">Sign out on all devices</button>`}
-      ${API.demo ? `<button class="btn ghost sm" data-act="reset-demo" data-testid="reset-demo">Reset demo data</button>` : ''}
+      ${API.demo ? `<button class="btn ghost sm" data-act="reset-demo" data-testid="reset-demo">${ui.resetArmed ? 'Tap again to reset' : 'Reset demo data'}</button>` : ''}
       <div class="credit">${API.demo ? 'Demo with sample data · ' : ''}SiteFlow by TAN GLOBUS AI</div>
     </div>`;
   $('#tabs').innerHTML = nav.map(([r, i, l]) => `<button data-go="${r}" data-testid="tab-${r}" class="${cur === r ? 'on' : ''}">${ico(i)}${l}${count(r)}</button>`).join('');
@@ -304,6 +304,9 @@ function demoPanel(){
       <li><b>Mr. Gokhale</b> (client) opens the elevations and signs off the design freeze.</li>
       <li><b>Farhan Shaikh</b> records a site visit with photos on Patil Villa.</li>
       <li><b>Parvez</b> reviews Deshmukh Residence with its photos, then clears or follows up on flags.</li>
+      <li><b>Parvez</b>, as principal architect, sees the overview only he can see: completion, fees due and received, milestones and major issues.</li>
+      <li><b>Vikram Mehta</b> (Accounts) records fees due and received. Hover over any project to see its whole workflow.</li>
+      <li><b>Office Coordinator</b> (Admin) manages the team and imports projects from a spreadsheet.</li>
     </ol>
     <p class="small muted">Sample projects and people. Changes stay in this browser.</p>
   </div>`;
@@ -1552,8 +1555,10 @@ document.addEventListener('click', async e => {
       catch (err){ ui.error = err.message; render(); }
       break;
     case 'reset-demo':
-      // The viewer blocks confirm(), so a second tap confirms.
-      if (!a.dataset.confirm){ a.dataset.confirm = '1'; a.textContent = 'Tap again to reset'; setTimeout(() => { if (a.isConnected){ delete a.dataset.confirm; a.textContent = 'Reset demo data'; } }, 3000); break; }
+      // The viewer blocks confirm(), so a second tap within 3 seconds confirms. The armed state lives in ui, not on the
+      // button, because the sidebar re-renders when notifications refresh.
+      if (!ui.resetArmed){ ui.resetArmed = setTimeout(() => { ui.resetArmed = null; shell(); }, 3000); shell(); break; }
+      clearTimeout(ui.resetArmed); ui.resetArmed = null;
       API.resetDemo(); try { Object.keys(localStorage).filter(k => k.startsWith('siteflow.draft.')).forEach(k => localStorage.removeItem(k)); } catch (_) {}
       toast('Demo data reset.'); await go(home()); break;
     case 'open-review': go('review', {vid: +a.dataset.vid}); break;

@@ -585,7 +585,7 @@ A small image of each project's 3D model sits beside the project name, so each p
   - Files: backend/requirements.txt, backend/app/modules/projects/importer.py, backend/tests/test_import.py, backend/tests/fixtures/import.xlsx
   - Completed: 2026-09-28. Preview and commit accept .xlsx (first sheet) via openpyxl in read-only mode with row and column limits; defusedxml added against XML entity attacks; the zip signature must match the name (a CSV named .xlsx or a workbook named .csv gets 415); formulas read as text and are refused by the row checks; Excel dates read as ISO; CSV cases reused; fixture tests/fixtures/import.xlsx; Import screen accepts .xlsx
 
-- [ ] Task 42: Update the client demo with the sprint v4 enhancements (P1)
+- [x] Task 42: Update the client demo with the sprint v4 enhancements (P1)
   - Acceptance:
     - `web-src/demo-api.js` serves the v4 shapes the app now reads, so the demo shows:
       - phase icons and the hover callout (workflow health per project);
@@ -599,6 +599,7 @@ A small image of each project's 3D model sits beside the project name, so each p
     - `demo.spec.js` gains checks for the icons, the callout, the principal overview and the fee ledger. The existing demo checks still pass, with screenshots saved.
     - After the user has seen it, the published demo Artifact is republished at the same URL. `docs/PROGRESS.md` records the refresh and supersedes the "demo not updated" note.
   - Files: web-src/demo-api.js, web-src/build.py, tests/e2e/demo.spec.js, docs/PROGRESS.md
+  - Completed: 2026-09-28. demo-api.js serves the v4 shapes (gates and exceptions, stage files, workflow health, project images, fee plan, fee ledger, principal overview, Admin team, members and CSV import); build.py passes the full stage rules; Accounts (Vikram Mehta) on the sign-in screen; demo.spec.js adds a v4 test with 5 screenshots; reset confirmation fixed; Artifact republished at the same URL (version 4); PROGRESS updated
 
 - [ ] Task 43: Sprint close: status docs (P1)
   - Acceptance:

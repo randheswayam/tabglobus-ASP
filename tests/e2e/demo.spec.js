@@ -15,6 +15,7 @@ async function as(page, who){
 }
 
 test('demo walks the whole loop on sample data: stages, client sign-off, photos, the dashboard and red flags', async ({ page }) => {
+  test.setTimeout(120_000);  // one long walk through every role
   await page.goto(DEMO);
   await expect(page.getByTestId('demo-accounts')).toBeVisible();
   await shot(page, 'demo-01-sign-in');
@@ -60,7 +61,8 @@ test('demo walks the whole loop on sample data: stages, client sign-off, photos,
   await expect(page.getByTestId('panel-waiting-client')).not.toContainText('Gokhale Residence');
   await page.getByTestId('panel-projects').getByText('Gokhale Residence').click();
   await expect(page.getByTestId('stage-design_freeze_signoff')).toContainText('signed by the client');
-  await expect(page.getByTestId('stage-payment_gate')).toContainText('In progress');
+  // The 50% upfront gate waits for the payment check, which isn't built yet (sprint v4 placeholder gate).
+  await expect(page.getByTestId('stage-payment_gate')).toContainText('Blocked');
 
   // Engineer records the first visit on Patil Villa, with five photos.
   await as(page, 'engineer');
@@ -105,9 +107,86 @@ test('demo walks the whole loop on sample data: stages, client sign-off, photos,
   await expect(page.getByTestId('panel-attention')).not.toContainText('Kapoor House');
   await shot(page, 'demo-06-flag-cleared');
 
+  // Parvez records an exception for the payment check on Gokhale Residence, so the gate can be completed.
+  await page.getByTestId('nav-projects').click();
+  await page.getByTestId('projects-view').getByText('Gokhale Residence').click();
+  await page.getByTestId('stage-payment_gate').click();
+  await page.getByTestId('stage-exception-reason-payment_gate').fill('50% received by bank transfer, NEFT 88342; Accounts confirmed.');
+  await page.getByTestId('stage-exception-payment_gate').click();
+  await expect(page.getByTestId('stage-exception-note-payment_gate-payment')).toContainText('NEFT 88342');
+  await expect(page.getByTestId('stage-payment_gate')).toContainText('In progress');
+  await page.getByTestId('nav-dashboard').click();
+
   // Reset puts the sample data back.
   await page.locator('[data-testid="reset-demo"]:visible').first().click();
   await page.locator('[data-testid="reset-demo"]:visible').first().click();
   await expect(page.getByTestId('panel-attention')).toContainText('Kapoor House');
   await expect(page.getByTestId('panel-waiting-client')).toContainText('Gokhale Residence');
+});
+
+test('demo shows the sprint v4 enhancements', async ({ page }) => {
+  test.setTimeout(90_000);
+  // Architect: phase icons, 3D images beside the names, and the workflow callout on hover.
+  await as(page, 'architect');
+  const row = page.locator('[data-testid^="dash-row-"]', {hasText: 'Kapoor House'});
+  const pid = (await row.getAttribute('data-testid')).replace('dash-row-', '');
+  await expect(row.getByTestId(`phase-strip-${pid}`)).toBeVisible();
+  await expect(row.getByTestId(`project-thumb-${pid}`).locator('img')).toHaveAttribute('src', /^data:image\/jpeg/);
+  await row.locator('td').first().hover();
+  const box = page.getByTestId(`wf-callout-${pid}`);
+  await expect(box).toBeVisible();
+  await expect(box.getByTestId('wfc-stage-construction')).toHaveClass(/h-delayed/);
+  await expect(box.getByTestId('wfc-stage-setup')).toHaveClass(/h-done/);
+  await shot(page, 'demo-07-callout');
+
+  // Engineer: Sathe House's pre-design site visit was completed with a note, a photo and an AutoCAD drawing.
+  await as(page, 'engineer');
+  await page.getByTestId('projects-view').getByText('Sathe House').click();
+  await expect(page.getByTestId('stage-file-count-predesign_site_visit')).toHaveText('2 files');
+  await page.getByTestId('stage-predesign_site_visit').click();
+  const files = page.getByTestId('stage-files-predesign_site_visit');
+  await expect(files).toContainText('well-near-gate.jpg');
+  await expect(files).toContainText('AutoCAD drawing');
+  await expect(page.getByTestId('stage-detail-predesign_site_visit')).toContainText('black cotton soil');
+  await expect(page.getByTestId('stage-prd-predesign_site_visit')).toHaveText('PRD stage 3');
+  await expect(page.getByTestId('stage-investigations')).toContainText('In progress');
+  await shot(page, 'demo-08-stage-files');
+
+  // Accounts: the fee ledger.
+  await as(page, 'vikram');
+  await expect(page.getByTestId('principal-overview')).toHaveCount(0);
+  await page.locator('[data-testid="nav-fees"]:visible, [data-testid="tab-fees"]:visible').first().click();
+  const kapoor = await page.getByTestId('fees-project').locator('option', {hasText: 'Kapoor House'}).getAttribute('value');
+  await page.getByTestId('fees-project').selectOption(kapoor);
+  await expect(page.getByTestId('fees-totals')).toContainText('₹1,20,25,000');
+  await page.getByTestId('fee-kind').selectOption('received');
+  await page.getByTestId('fee-amount').fill('2775000');
+  await page.getByTestId('fee-reference').fill('NEFT 90211');
+  await page.getByTestId('fee-submit').click();
+  await expect(page.getByTestId('fees-entries')).toContainText('NEFT 90211');
+  await expect(page.getByTestId('fees-totals')).toContainText('₹1,20,25,000');
+  await shot(page, 'demo-09-fees');
+
+  // Parvez: the principal overview, with the Critical crack and its recommended action.
+  await as(page, 'parvez');
+  await expect(page.getByTestId('principal-overview')).toBeVisible();
+  await expect(page.getByTestId('po-received')).toContainText('₹');
+  await page.getByTestId(`po-toggle-${pid}`).click();
+  const detail = page.getByTestId(`po-detail-${pid}`);
+  await expect(detail).toContainText('Crack in beam, column or slab');
+  await expect(detail).toContainText('Stop external plaster on the east wall');
+  await expect(detail).toContainText('80% fee gate');
+  await shot(page, 'demo-10-principal-overview');
+
+  // Admin: the team, and a CSV import preview.
+  await as(page, 'admin');
+  await page.getByTestId('nav-team').click();
+  await expect(page.getByTestId('team-view')).toContainText('Vikram Mehta');
+  await page.getByTestId('nav-import').click();
+  const csv = 'project_name,location,client_name,client_email,site_address,current_stage,civil_engineer_email,confirmed_by,legal_expected_date\n'
+    + 'Mane Villa,Wakad Pune,,,,grid,engineer@siteflow.demo,Parvez,\nBad Row,Baner Pune,,,,roofing,engineer@siteflow.demo,Parvez,\n';
+  await page.getByTestId('import-file').setInputFiles({name: 'projects.csv', mimeType: 'text/csv', buffer: Buffer.from(csv)});
+  await page.getByTestId('import-preview').click();
+  await expect(page.getByTestId('import-counts')).toContainText('2 rows · 1 ready · 1 with errors');
+  await shot(page, 'demo-11-import-preview');
 });

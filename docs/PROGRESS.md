@@ -54,7 +54,7 @@
   - Decide whether to keep the strict core-first order or approve an early V4.1 start (`docs/V4_EXECUTION_PLAN.md` section 4 and R-18).
 
 ## Sprint v4 notes (in progress)
-- **Client demo (published v3 Artifact): not updated, as requested on 28 September 2026.** It doesn't show v4 features: stage files, exceptions, the Team and Import screens, the fee plan, or the dashboard icons and callout. A later demo update is possible if asked. `web-src/build.py` still gives the demo its v3 stage shape, so the demo build and its E2E test keep passing.
+- **Client demo: updated to sprint v4 on 28 September 2026 (Task 42), at the user's request. This supersedes the note that the demo was frozen at v3.** The republished Artifact (same link, version 4) shows the phase icons and the workflow callout, sample 3D images, stage completion with files (Sathe House), the placeholder gates with recorded exceptions (Gokhale's 50% gate), the Accounts fee ledger (Vikram Mehta), the principal overview (Parvez), and the Admin Team and CSV Import screens. The demo doesn't cover server-only behaviour: sessions, password reset, delegation, flow versions and XLSX. Downloads inside the Artifact viewer (the import template, stage files) do nothing, because the viewer doesn't allow downloads. The reset button's two-tap confirmation now survives a sidebar refresh.
 - **Found, not fixed (the demo is frozen):** `demo-api.js` `uploadSignoffAttachment` strips only `/` from file names, not `\` as intended.
 - **Open question:** should the client app show the project image (the 3D view) on the client's own project? It doesn't yet (Task 31).
 - **Open question:** may more than one person be the principal architect? The build allows one or more; the seed marks only Parvez (Task 32).
