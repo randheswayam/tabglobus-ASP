@@ -502,6 +502,25 @@ class ClientInvite(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class ApprovalDelegation(Base):
+    """A holder of an approval authority lends it to another staff user for a date range (inclusive, business
+    timezone). Sprint v4 covers site-visit review; the delegation never exceeds the delegator's own authority."""
+
+    __tablename__ = "approval_delegations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    scope: Mapped[str] = mapped_column(String(40), default="site_visit_review")
+    delegator_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    delegate_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+    reason: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    delegator: Mapped[User] = relationship(foreign_keys=[delegator_id])
+    delegate: Mapped[User] = relationship(foreign_keys=[delegate_id])
+
+
 class PasswordReset(Base):
     """A one-time password reset token issued by an Admin (sprint v4 stub; nothing is emailed until S15).
     Only the SHA-256 of the token is stored; used_at is set when it is used or replaced by a newer one."""

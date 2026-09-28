@@ -538,7 +538,7 @@ A small image of each project's 3D model sits beside the project name, so each p
   - Files: backend/app/models.py, backend/migrations/versions/0017_password_resets.py, backend/app/modules/identity/reset.py, backend/tests/test_password_reset.py
   - Completed: 2026-09-28. PasswordReset (migration 0020, the task's 0017 number was taken); POST /admin/users/{id}/password-reset (Admin, active staff only) returns a one-time token stored as SHA-256, TTL PASSWORD_RESET_TTL_HOURS (TBD_PARVEZ), a newer token replaces older ones; POST /auth/reset sets the password (10+ chars) and revokes every session; both audited; nothing emailed
 
-- [ ] Task 37: Approval delegation (P1)
+- [x] Task 37: Approval delegation (P1)
   - Acceptance:
     - A new `ApprovalDelegation` model (delegator, delegate, start, end, reason) has a migration. A Team Lead can delegate site-visit review to another staff user for a date range.
     - The delegate can review while the range is active in the business timezone; after the end date they get 403.
@@ -546,6 +546,7 @@ A small image of each project's 3D model sits beside the project name, so each p
     - Creating a delegation and each review under it are audited. The review audit names both people.
     - Tests: `test_delegation.py` (active, expired, over-authority).
   - Files: backend/app/models.py, backend/migrations/versions/0018_delegations.py, backend/app/modules/identity/delegation.py, backend/app/routers/reviews.py, backend/tests/test_delegation.py
+  - Completed: 2026-09-28. ApprovalDelegation (migration 0021); modules/identity/delegation.py: POST and GET /delegations, AUTHORITY map (site_visit_review held by Team Lead), inclusive business-date range, DELEGATION_MAX_DAYS (TBD_PARVEZ); review and review queue use require_reviewer, so a delegate acts only while active and the delegator still holds the role; review audit carries on_behalf_of and delegation_id. The web review queue still shows only for Team Leads
 
 - [ ] Task 38: Activity state machine (pure) (P1)
   - Acceptance:

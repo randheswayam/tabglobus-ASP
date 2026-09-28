@@ -6,8 +6,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import require_role, require_staff, visible_projects
-from app.models import Project, Review, ReviewDecision, Role, SiteVisit, User, VisitStatus
+from app.deps import require_staff, visible_projects
+from app.models import Project, Review, ReviewDecision, SiteVisit, VisitStatus
+from app.modules.identity.delegation import Authority, require_reviewer
 from app.schemas import iso_utc, user_brief, visit_out
 from app.services import audit, notify, problems, red_flags, stages, workflow
 
@@ -26,8 +27,8 @@ def _minutes_since(t: datetime) -> int:
 
 
 @router.get("/reviews/queue")
-def review_queue(db: Session = Depends(get_db), user: User = Depends(require_role(Role.team_lead))) -> list[dict]:
-    return queue_rows(db, visible_projects(user).with_only_columns(Project.id))
+def review_queue(db: Session = Depends(get_db), who: Authority = Depends(require_reviewer)) -> list[dict]:
+    return queue_rows(db, visible_projects(who.principal_user).with_only_columns(Project.id))
 
 
 def queue_rows(db: Session, project_ids) -> list[dict]:
@@ -54,10 +55,13 @@ def queue_rows(db: Session, project_ids) -> list[dict]:
 
 @router.post("/site-visits/{visit_id}/review")
 def review_site_visit(
-    visit_id: int, body: ReviewIn, user: User = Depends(require_role(Role.team_lead)), db: Session = Depends(get_db)
+    visit_id: int, body: ReviewIn, who: Authority = Depends(require_reviewer), db: Session = Depends(get_db)
 ) -> dict:
+    """Parvez reviews, or someone he delegated review to while the delegation is active; the audit names both."""
+    user = who.user
     visit = db.get(SiteVisit, visit_id)
-    if visit is None or db.scalars(visible_projects(user).where(Project.id == visit.project_id)).first() is None:
+    scope = visible_projects(who.principal_user)
+    if visit is None or db.scalars(scope.where(Project.id == visit.project_id)).first() is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Site visit not found")
     if visit.status != VisitStatus.submitted:
         raise HTTPException(status.HTTP_409_CONFLICT, f"Site visit is {visit.status.value}, not waiting for review")
@@ -71,7 +75,7 @@ def review_site_visit(
 
     project = visit.project
     db.add(Review(site_visit_id=visit.id, reviewer_id=user.id, decision=body.decision, comment=comment))
-    detail = {"submission": visit.submission_count, "comment": comment}
+    detail = {"submission": visit.submission_count, "comment": comment, **who.audit_detail()}
 
     if body.decision == ReviewDecision.approve:
         visit.status = VisitStatus.approved

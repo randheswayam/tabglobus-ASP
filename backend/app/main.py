@@ -7,6 +7,7 @@ from app.config import get_settings
 from app.db import create_all, migrate
 from app.modules.fees import ledger as fees_ledger
 from app.modules.identity import admin as identity_admin
+from app.modules.identity import delegation as identity_delegation
 from app.modules.identity import reset as identity_reset
 from app.modules.principal import overview as principal_overview
 from app.modules.projects import clients as project_clients
@@ -71,6 +72,7 @@ app.include_router(project_image.router)
 app.include_router(fees_ledger.router)
 app.include_router(principal_overview.router)
 app.include_router(identity_reset.router)
+app.include_router(identity_delegation.router)
 app.include_router(project_importer.batches_router)
 app.include_router(legal.router)
 app.include_router(site_visits.router)

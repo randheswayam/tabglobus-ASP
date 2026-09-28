@@ -106,3 +106,6 @@ RESOLVED_ISSUES_DAYS = 30
 
 # TBD_PARVEZ: how long an Admin-issued password reset token stays valid (sprint v4 Task 36).
 PASSWORD_RESET_TTL_HOURS = 24
+
+# TBD_PARVEZ: the longest approval delegation allowed, in days (sprint v4 Task 37).
+DELEGATION_MAX_DAYS = 90
