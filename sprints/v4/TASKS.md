@@ -175,7 +175,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/modules/workflow/__init__.py, backend/app/modules/workflow/gates.py, backend/app/stage_config.py, backend/app/services/stages.py, backend/app/routers/stages.py, backend/tests/test_stage_config.py, backend/tests/test_gates.py
   - Completed: 2026-09-28. modules/workflow/gates.py is a registry: register() decorator, unregister, registered, and reasons(stage, facts), which concatenates the reasons of every gate on the stage in order; an unknown type raises. The three v3 gates are registered with unchanged wording. stage_config stages carry gates: [...]; SIGNOFF_STAGES and the new is_signoff() are derived from them. The engine, stages router, client view and web app use gates. The API returns gates instead of gate. build.py still gives the frozen v3 demo one v3 gate per stage. Tests: test_gates.py (6), and test_stage_config checks that every gate is registered.
 
-- [ ] Task 15: In-process domain event bus (P0)
+- [x] Task 15: In-process domain event bus (P0)
   - Acceptance:
     - `backend/app/modules/workflow/events.py` provides `subscribe(event_type, handler)` and `publish(db, event_type, **payload)`. It is synchronous, in the same transaction, and runs handlers in registration order.
     - `stages.release` and `stages.complete` publish `stage.activated` and `stage.completed`.
@@ -183,6 +183,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - A test shows a handler error rolls back the transaction, so no half-applied stage change remains.
     - `test_notifications.py` still passes.
   - Files: backend/app/modules/workflow/events.py, backend/app/services/stages.py, backend/app/services/notify.py, backend/tests/test_events.py
+  - Completed: 2026-09-28. modules/workflow/events.py: subscribe, unsubscribe, subscribers and publish; synchronous, inside the caller's transaction, handlers in registration order. stages.complete publishes stage.completed and release publishes stage.activated. The stage_ready notification is now the notify.on_stage_activated subscriber, with no direct call. Tests: test_events.py (5): order, completed-then-activated, a failing handler rolling back the change, and the subscriber wiring.
 
 - [ ] Task 16: Placeholder gates with a recorded exception (P0)
   - Acceptance:

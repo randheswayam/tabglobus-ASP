@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Notification, Project, ProjectMember, Role, User
+from app.modules.workflow import events
 from app.schemas import civil_engineer_of
 
 
@@ -48,6 +49,13 @@ def stage_ready(db: Session, project: Project, stage: dict, actor: User | None) 
         return
     users = _team_leads(db) if role == "team_lead" else _members_with_role(db, project, role)
     _send(db, users, "stage_ready", project, f"{stage['label']} is open on {project.name}.", actor)
+
+
+def on_stage_activated(db: Session, *, project: Project, stage: dict, actor: User | None) -> None:
+    stage_ready(db, project, stage, actor)
+
+
+events.subscribe("stage.activated", on_stage_activated)
 
 
 def update_shared(db: Session, project: Project, actor: User) -> None:

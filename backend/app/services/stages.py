@@ -13,9 +13,11 @@ from sqlalchemy.orm import Session
 
 from app import stage_config as sc
 from app.models import LegalStatus, Problem, ProblemStatus, Project, ProjectStage, StageStatus, User
-from app.modules.workflow import gates
+from app.modules.workflow import events, gates
 from app.schemas import iso_utc, user_brief
-from app.services import audit, notify
+
+# notify subscribes to stage events on import; importing it here keeps that true wherever stages is used.
+from app.services import audit, notify  # noqa: F401
 from app.services.signoffs import latest_by_stage
 
 DONE = ("completed", "historical")
@@ -178,7 +180,7 @@ def release(db: Session, project: Project, actor: User | None) -> list[str]:
             entity_id=rows[key].id,
             detail={"stage": sc.BY_KEY[key]["label"], "key": key},
         )
-        notify.stage_ready(db, project, sc.BY_KEY[key], actor)
+        events.publish(db, "stage.activated", project=project, stage=sc.BY_KEY[key], actor=actor)
     db.flush()
     return opened
 
@@ -211,4 +213,5 @@ def complete(db: Session, project: Project, key: str, actor: User | None, note: 
         detail={"stage": sc.BY_KEY[key]["label"], "key": key, "note": note},
     )
     db.flush()
+    events.publish(db, "stage.completed", project=project, stage=sc.BY_KEY[key], actor=actor)
     return release(db, project, actor)
