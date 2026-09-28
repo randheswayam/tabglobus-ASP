@@ -45,23 +45,25 @@ def _tracker(client, auth_headers, pid):
 def test_a_new_project_pins_the_current_version(new_project, db):
     pid = new_project()["id"]
     p = db.get(Project, pid)
-    assert p.flow_version is not None and p.flow_version.number == 1
+    # On PostgreSQL the migrations seed version 1 (frozen); the current config may already be a later version.
+    assert p.flow_version is not None and p.flow_version.snapshot == versions.config_snapshot()
     assert [s["key"] for s in p.flow_version.snapshot["stages"]] == [s["key"] for s in sc.STAGES]
 
 
 def test_the_same_config_reuses_the_version(new_project, db):
-    new_project("A"), new_project("B")
-    assert db.query(FlowVersion).count() == 1
+    a, b = new_project("A")["id"], new_project("B")["id"]
+    assert db.get(Project, a).flow_version_id == db.get(Project, b).flow_version_id
+    assert len({v.number for v in db.query(FlowVersion)}) == db.query(FlowVersion).count()
 
 
 def test_an_edit_makes_a_new_version_and_running_projects_keep_the_old_flow(
     client, auth_headers, new_project, db, edited_flow
 ):
     old = new_project("Running Villa")["id"]
+    before = db.get(Project, old).flow_version.number
     edited_flow()
     new = new_project("New Villa")["id"]
-    assert db.query(FlowVersion).count() == 2
-    assert db.get(Project, new).flow_version.number == 2
+    assert db.get(Project, new).flow_version.number == before + 1
 
     before, after = _tracker(client, auth_headers, old), _tracker(client, auth_headers, new)
     assert before["concept"]["label"] != "Concept design (revised)"
