@@ -502,6 +502,21 @@ class ClientInvite(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class PasswordReset(Base):
+    """A one-time password reset token issued by an Admin (sprint v4 stub; nothing is emailed until S15).
+    Only the SHA-256 of the token is stored; used_at is set when it is used or replaced by a newer one."""
+
+    __tablename__ = "password_resets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class FeeEntry(Base):
     """Interim fee ledger (sprint v4): a client fee due or received, recorded by Accounts or the principal architect.
     Append-only: a correction is a new negative entry with a reason. V12's fee module replaces this and migrates it."""

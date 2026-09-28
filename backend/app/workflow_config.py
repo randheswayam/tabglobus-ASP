@@ -103,3 +103,6 @@ MAJOR_MILESTONES = [
 ]
 # TBD_PARVEZ: how many days a resolved major issue stays on the overview with its resolution note.
 RESOLVED_ISSUES_DAYS = 30
+
+# TBD_PARVEZ: how long an Admin-issued password reset token stays valid (sprint v4 Task 36).
+PASSWORD_RESET_TTL_HOURS = 24

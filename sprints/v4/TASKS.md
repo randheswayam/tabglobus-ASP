@@ -529,13 +529,14 @@ A small image of each project's 3D model sits beside the project name, so each p
 
 ### P1 — Should have
 
-- [ ] Task 36: Password reset stub (P1)
+- [x] Task 36: Password reset stub (P1)
   - Acceptance:
     - An Admin can issue a reset for a staff user: a one-time token hashed at rest, a TTL setting, and single use. Nothing is emailed (no channel until S15).
     - `POST /auth/reset` with the token sets a new password (minimum 10 characters) and revokes every session.
     - It is audited.
     - Tests cover expiry, reuse and the session revocation.
   - Files: backend/app/models.py, backend/migrations/versions/0017_password_resets.py, backend/app/modules/identity/reset.py, backend/tests/test_password_reset.py
+  - Completed: 2026-09-28. PasswordReset (migration 0020, the task's 0017 number was taken); POST /admin/users/{id}/password-reset (Admin, active staff only) returns a one-time token stored as SHA-256, TTL PASSWORD_RESET_TTL_HOURS (TBD_PARVEZ), a newer token replaces older ones; POST /auth/reset sets the password (10+ chars) and revokes every session; both audited; nothing emailed
 
 - [ ] Task 37: Approval delegation (P1)
   - Acceptance:
