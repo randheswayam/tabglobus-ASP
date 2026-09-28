@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app import template_config as tc
 from app.models import LegalApproval, Project, ProjectMember, Role, StepStatus, User, WorkflowStep
 from app.modules.projects.clients import ClientIn, SiteIn, resolve_client, resolve_site
+from app.modules.workflow import versions
 from app.services import audit, stages
 
 
@@ -71,6 +72,7 @@ def create_project(
             **(audit_extra or {}),
         },
     )
+    project.flow_version = versions.current_version(db)
     stages.create_stages(db, project, start_stage, historical_confirmed_by)
     stages.release(db, project, actor)
     return project

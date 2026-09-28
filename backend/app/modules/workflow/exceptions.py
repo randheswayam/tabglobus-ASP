@@ -6,12 +6,11 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import stage_config as sc
 from app import workflow_config as wc
 from app.db import get_db
 from app.deps import get_current_user, get_visible_project, require_staff
 from app.models import Project, StageException, User
-from app.modules.workflow import events
+from app.modules.workflow import events, versions
 from app.modules.workflow.gates import PLACEHOLDER_GATES
 from app.services import audit, stages
 
@@ -31,7 +30,7 @@ def record_exception(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    stage = sc.BY_KEY.get(key)
+    stage = versions.flow_for(project).by_key.get(key)
     if stage is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Stage not found")
     if user.role.value not in wc.EXCEPTION_ROLES:

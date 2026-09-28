@@ -24,7 +24,7 @@ from app.models import (
     StageStatus,
     User,
 )
-from app.modules.workflow import events, gates
+from app.modules.workflow import events, gates, versions
 from app.schemas import iso_utc, user_brief
 
 # notify subscribes to stage events on import; importing it here keeps that true wherever stages is used.
@@ -85,8 +85,9 @@ def create_stages(
     note: str | None = None,
 ) -> None:
     """All stages for a new project. With start_stage, earlier stages are historical (PRD 7.19)."""
-    cut = [s["key"] for s in sc.STAGES].index(start_stage) if start_stage else 0
-    for i, s in enumerate(sc.STAGES):
+    flow = versions.flow_for(project)
+    cut = [s["key"] for s in flow.stages].index(start_stage) if start_stage else 0
+    for i, s in enumerate(flow.stages):
         row = ProjectStage(project_id=project.id, key=s["key"], status=StageStatus.locked)
         if i < cut:
             row.status = StageStatus.historical
@@ -147,10 +148,11 @@ def signoff_facts(db: Session, project: Project) -> dict:
 
 def project_view(db: Session, project: Project, user: User) -> dict:
     """The tracker: phases with their stages, each with state, reasons and what the caller may do."""
+    flow = versions.flow_for(project)
     rows = stage_rows(db, project)
     signoffs = signoff_facts(db, project)
     gate_facts = facts(db, project, signoffs)
-    view = evaluate({k: r.status.value for k, r in rows.items()}, gate_facts)
+    view = evaluate({k: r.status.value for k, r in rows.items()}, gate_facts, flow.stages)
     files: dict[str, list[StageAttachment]] = {}
     for a in db.scalars(
         select(StageAttachment).where(StageAttachment.project_id == project.id).order_by(StageAttachment.id)
@@ -207,16 +209,20 @@ def project_view(db: Session, project: Project, user: User) -> dict:
 
     done = sum(1 for v in view.values() if v["state"] in DONE)
     return {
-        "phases": [{**p, "stages": [stage_out(s) for s in sc.STAGES if s["phase"] == p["number"]]} for p in sc.PHASES],
-        "current_stages": [s["label"] for s in sc.STAGES if view[s["key"]]["state"] in ("active", "blocked")],
-        "stage_progress": {"done": done, "total": len(sc.STAGES)},
+        "phases": [
+            {**p, "stages": [stage_out(s) for s in flow.stages if s["phase"] == p["number"]]} for p in flow.phases
+        ],
+        "current_stages": [s["label"] for s in flow.stages if view[s["key"]]["state"] in ("active", "blocked")],
+        "stage_progress": {"done": done, "total": len(flow.stages)},
+        "flow_version": flow.version,
     }
 
 
 def release(db: Session, project: Project, actor: User | None) -> list[str]:
     """Activate every stage whose predecessors are done; audit each one. Returns the keys activated."""
+    flow = versions.flow_for(project)
     rows = stage_rows(db, project)
-    opened = to_release({k: r.status.value for k, r in rows.items()})
+    opened = to_release({k: r.status.value for k, r in rows.items()}, flow.stages)
     now = datetime.now(UTC)
     for key in opened:
         rows[key].status, rows[key].started_at = StageStatus.active, now
@@ -227,9 +233,9 @@ def release(db: Session, project: Project, actor: User | None) -> list[str]:
             project_id=project.id,
             entity_type="project_stage",
             entity_id=rows[key].id,
-            detail={"stage": sc.BY_KEY[key]["label"], "key": key},
+            detail={"stage": flow.by_key[key]["label"], "key": key},
         )
-        events.publish(db, "stage.activated", project=project, stage=sc.BY_KEY[key], actor=actor)
+        events.publish(db, "stage.activated", project=project, stage=flow.by_key[key], actor=actor)
     db.flush()
     return opened
 
@@ -291,6 +297,7 @@ def visit_approved(db: Session, project: Project, actor: User) -> None:
 
 def complete(db: Session, project: Project, key: str, actor: User | None, note: str | None) -> list[str]:
     """Mark a stage completed, audit it and release its successors. The caller has checked the rules."""
+    stage = versions.flow_for(project).by_key[key]
     row = stage_rows(db, project)[key]
     now = datetime.now(UTC)
     row.status, row.completed_at = StageStatus.completed, now
@@ -305,8 +312,8 @@ def complete(db: Session, project: Project, key: str, actor: User | None, note: 
         project_id=project.id,
         entity_type="project_stage",
         entity_id=row.id,
-        detail={"stage": sc.BY_KEY[key]["label"], "key": key, "note": note, "files": [a.filename for a in files]},
+        detail={"stage": stage["label"], "key": key, "note": note, "files": [a.filename for a in files]},
     )
     db.flush()
-    events.publish(db, "stage.completed", project=project, stage=sc.BY_KEY[key], actor=actor)
+    events.publish(db, "stage.completed", project=project, stage=stage, actor=actor)
     return release(db, project, actor)

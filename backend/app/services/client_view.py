@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import stage_config as sc
 from app.models import Project, SharedUpdate, SignoffRequest, SignoffStatus, StageStatus, User
+from app.modules.workflow import versions
 from app.schemas import iso_utc, stage_summary
 
 _STATE = {
@@ -65,6 +66,7 @@ def project_detail(db: Session, project: Project, user: User, signoff_out) -> di
             else None,
         }
 
+    flow = versions.flow_for(project)
     return {
         **project_card(db, project),
         "phases": [
@@ -72,9 +74,9 @@ def project_detail(db: Session, project: Project, user: User, signoff_out) -> di
                 "number": p["number"],
                 "name": p["name"],
                 "icon": p["icon"],
-                "stages": [stage(s) for s in sc.STAGES if s["phase"] == p["number"]],
+                "stages": [stage(s) for s in flow.stages if s["phase"] == p["number"]],
             }
-            for p in sc.PHASES
+            for p in flow.phases
         ],
         "signoffs": [signoff_out(db, user, r) for r in requests],
         "shared_updates": [

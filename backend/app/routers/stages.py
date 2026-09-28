@@ -6,6 +6,7 @@ from app import stage_config as sc
 from app.db import get_db
 from app.deps import get_current_user, get_visible_project, require_staff
 from app.models import Project, User
+from app.modules.workflow import versions
 from app.services import stages
 
 router = APIRouter(tags=["stages"], dependencies=[Depends(require_staff)])
@@ -32,12 +33,15 @@ def complete_stage(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    stage = sc.BY_KEY.get(key)
+    flow = versions.flow_for(project)
+    stage = flow.by_key.get(key)
     if stage is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Stage not found")
     rows = stages.stage_rows(db, project)
     view = stages.evaluate(
-        {k: r.status.value for k, r in rows.items()}, stages.facts(db, project, stages.signoff_facts(db, project))
+        {k: r.status.value for k, r in rows.items()},
+        stages.facts(db, project, stages.signoff_facts(db, project)),
+        flow.stages,
     )[key]
     if sc.is_signoff(stage):
         raise HTTPException(

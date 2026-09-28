@@ -15,6 +15,7 @@ from app import workflow_config as wc
 from app.db import get_db
 from app.deps import get_current_user, get_visible_project, require_staff
 from app.models import Project, StageAttachment, StageStatus, User
+from app.modules.workflow import versions
 from app.services import audit, stages
 from app.services.filecheck import EXTENSIONS, STAGE_FILE_TYPES, read_checked
 from app.services.stages import attachment_out
@@ -29,8 +30,8 @@ def _display_name(name: str | None) -> str:
     return re.sub(r"[\x00-\x1f\"]", "", base)[:200] or "file"
 
 
-def _stage(key: str) -> dict:
-    stage = sc.BY_KEY.get(key)
+def _stage(key: str, project: Project) -> dict:
+    stage = versions.flow_for(project).by_key.get(key)
     if stage is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Stage not found")
     return stage
@@ -49,7 +50,7 @@ async def add_attachment(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    stage = _stage(key)
+    stage = _stage(key, project)
     _may_attach(user, stage)
     if sc.is_signoff(stage):
         raise HTTPException(
@@ -116,7 +117,7 @@ def remove_attachment(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
-    stage = _stage(key)
+    stage = _stage(key, project)
     a = _attachment(db, project, key, attachment_id)
     if a.uploaded_by_id != user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the person who added a file can remove it")
@@ -142,7 +143,7 @@ def remove_attachment(
 def download_attachment(
     key: str, attachment_id: int, project: Project = Depends(get_visible_project), db: Session = Depends(get_db)
 ) -> Response:
-    _stage(key)
+    _stage(key, project)
     a = _attachment(db, project, key, attachment_id)
     return Response(
         get_storage().open(a.storage_key),

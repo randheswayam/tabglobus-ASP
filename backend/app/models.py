@@ -149,6 +149,18 @@ class Site(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class FlowVersion(Base):
+    """A frozen copy of the flow (stage_config.PHASES and STAGES). Each project is pinned to the version current
+    when it was created, so a later edit to stage_config changes new projects only."""
+
+    __tablename__ = "flow_versions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    number: Mapped[int] = mapped_column(Integer, unique=True)
+    snapshot: Mapped[dict] = mapped_column(Json)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class Project(Base):
     __tablename__ = "projects"
 
@@ -173,7 +185,9 @@ class Project(Base):
     image_content_type: Mapped[str | None] = mapped_column(String(40))
     image_sha256: Mapped[str | None] = mapped_column(String(64))
     image_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    flow_version_id: Mapped[int | None] = mapped_column(ForeignKey("flow_versions.id", name="fk_projects_flow_version"))
 
+    flow_version: Mapped[FlowVersion | None] = relationship()
     client: Mapped[Client | None] = relationship()
     site: Mapped[Site | None] = relationship()
     members: Mapped[list["ProjectMember"]] = relationship(back_populates="project", cascade="all, delete-orphan")

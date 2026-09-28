@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import stage_config as sc
 from app import workflow_config as wc
 from app.clock import business_date
 from app.db import get_db
@@ -16,6 +15,7 @@ from app.deps import require_principal, require_staff, visible_projects
 from app.models import Problem, ProblemStatus, Project, SiteVisit, User
 from app.modules.fees.ledger import totals as fee_totals
 from app.modules.projects.image import image_out
+from app.modules.workflow import versions
 from app.modules.workflow.health import project_health
 from app.schemas import iso_utc, user_brief
 from app.services import stages
@@ -33,20 +33,21 @@ def _weight(key: str) -> float:
 def completion(project: Project, rows: dict) -> dict:
     """Stages completed or historical out of all stages, weighted by OVERALL_COMPLETION_WEIGHTS. The construction
     progress from approved visits is reported beside it, not mixed in."""
-    done = [s["key"] for s in sc.STAGES if s["key"] in rows and rows[s["key"]].status.value in stages.DONE]
-    total = sum(_weight(s["key"]) for s in sc.STAGES)
+    flow = versions.flow_for(project)
+    done = [s["key"] for s in flow.stages if s["key"] in rows and rows[s["key"]].status.value in stages.DONE]
+    total = sum(_weight(s["key"]) for s in flow.stages)
     return {
         "percent": round(100 * sum(_weight(k) for k in done) / total, 1) if total else 0.0,
         "stages_done": len(done),
-        "stages_total": len(sc.STAGES),
+        "stages_total": len(flow.stages),
         "construction_progress": project.official_progress,
     }
 
 
-def milestones(rows: dict, health: dict | None) -> list[dict]:
+def milestones(project: Project, rows: dict, health: dict | None) -> list[dict]:
     by_key = {s["key"]: s for p in (health or {}).get("phases", []) for s in p["stages"]}
     out = []
-    for s in sc.STAGES:
+    for s in versions.flow_for(project).stages:
         if s["key"] not in wc.MAJOR_MILESTONES:
             continue
         h, row = by_key.get(s["key"], {}), rows.get(s["key"])
@@ -153,7 +154,7 @@ def overview(user: User = Depends(require_principal), db: Session = Depends(get_
                 "image": image_out(p),
                 "completion": completion(p, rows),
                 "fees": fee_totals(db, p),
-                "milestones": milestones(rows, project_health(db, p, now)),
+                "milestones": milestones(p, rows, project_health(db, p, now)),
                 "issues": issues(db, p, now),
             }
         )

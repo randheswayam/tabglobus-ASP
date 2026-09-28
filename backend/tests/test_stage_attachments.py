@@ -166,10 +166,12 @@ def test_a_note_is_still_required(client, auth_headers, site_stage):
     assert r.status_code == 422 and r.json()["detail"]["missing"] == ["note"]
 
 
-def test_a_stage_can_require_a_file_of_a_kind(client, auth_headers, site_stage, monkeypatch):
+def test_a_stage_can_require_a_file_of_a_kind(client, auth_headers, new_project, monkeypatch):
     from app import stage_config as sc
 
+    # The rule is part of the flow a project is pinned to, so set it before the project exists.
     monkeypatch.setitem(sc.BY_KEY["predesign_site_visit"], "evidence_required", ["photo"])
+    site_stage = new_project(start_stage="predesign_site_visit", historical_confirmed_by="Parvez")["id"]
     eng = auth_headers("civil_engineer")
     s = _view_stage(client, eng, site_stage, "predesign_site_visit")
     assert s["evidence_required"] == ["photo"] and s["evidence_missing"] == ["photo"]

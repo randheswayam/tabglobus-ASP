@@ -560,13 +560,14 @@ A small image of each project's 3D model sits beside the project name, so each p
   - Files: backend/app/modules/workflow/states.py, backend/tests/test_states.py
   - Completed: 2026-09-28. modules/workflow/states.py: PRD 6.3 states and actions, TRANSITIONS table, transition() raising IllegalTransition or CommentRequired (rework, reject), allowed(), from_stored() with the documented mapping; pure, not wired into ProjectStage (S05 follow-up in PROGRESS)
 
-- [ ] Task 39: Pin each project to a flow version (P1)
+- [x] Task 39: Pin each project to a flow version (P1)
   - Acceptance:
     - A new `FlowVersion` model (number, created_at, snapshot JSON of `stage_config.PHASES` and `STAGES`) has a migration that backfills version 1 from a frozen copy.
     - `projects.flow_version_id` is added, and new projects pin the current version.
     - The stage engine reads the project's pinned snapshot, so a later edit to `stage_config.py` doesn't change running projects.
     - A test changes the config in memory, creates a new version, and shows that an existing project keeps the old flow.
   - Files: backend/app/models.py, backend/migrations/versions/0019_flow_versions.py, backend/app/modules/workflow/versions.py, backend/app/services/stages.py, backend/tests/test_flow_versions.py
+  - Completed: 2026-09-28. FlowVersion (migration 0022, version 1 backfilled from a frozen copy, all projects pinned); modules/workflow/versions.py flow_for and current_version; new projects pin the current version; the stage engine, stage routes, attachments, exceptions, health, stage summary, client view and principal overview read the pinned snapshot; test_flow_versions.py shows a config edit changes only new projects
 
 - [ ] Task 40: Map the diagram stages to PRD Stage 0 to 15 (P1)
   - Acceptance:

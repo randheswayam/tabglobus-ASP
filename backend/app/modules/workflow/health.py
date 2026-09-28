@@ -18,6 +18,7 @@ from app import stage_config as sc
 from app import workflow_config as wc
 from app.clock import business_date
 from app.models import Project, RedFlag, SignoffRequest
+from app.modules.workflow import versions
 from app.services import stages
 
 # Which stage each red flag rule delays. client_decision_overdue names its sign-off: key signoff-<id>.
@@ -56,6 +57,7 @@ def stage_health(
     flags: list[tuple[str, str]],
     signoff_stages: dict[int, str],
     now: datetime,
+    flow: "versions.Flow | None" = None,
 ) -> dict:
     """view: the stage engine's {key: {state, reasons}}; flags: open (rule, key) pairs."""
     flagged: dict[str, str] = {}
@@ -94,9 +96,10 @@ def stage_health(
             "reason": reason,
         }
 
+    phase_list, stage_list = (flow.phases, flow.stages) if flow else (sc.PHASES, sc.STAGES)
     phases = []
-    for p in sc.PHASES:
-        items = [one(s) for s in sc.STAGES if s["phase"] == p["number"]]
+    for p in phase_list:
+        items = [one(s) for s in stage_list if s["phase"] == p["number"]]
         phases.append(
             {
                 "number": p["number"],
@@ -113,9 +116,11 @@ def project_health(db: Session, project: Project, now: datetime | None = None) -
     rows = stages.stage_rows(db, project)
     if not rows:
         return None
+    flow = versions.flow_for(project)
     view = stages.evaluate(
         {k: r.status.value for k, r in rows.items()},
         stages.facts(db, project, stages.signoff_facts(db, project)),
+        flow.stages,
     )
     open_flags = db.execute(
         select(RedFlag.rule, RedFlag.key).where(RedFlag.project_id == project.id, RedFlag.cleared_at.is_(None))
@@ -131,4 +136,5 @@ def project_health(db: Session, project: Project, now: datetime | None = None) -
         flags=[(rule, key) for rule, key in open_flags],
         signoff_stages=signoff_stages,
         now=now or datetime.now(UTC),
+        flow=flow,
     )

@@ -184,17 +184,21 @@ def project_summary(project: Project) -> dict:
 
 def stage_summary(project: Project) -> dict:
     """Phase, open stages and progress through the flow, from the stored stage statuses."""
+    from app.modules.workflow.versions import flow_for  # imports models, which imports this module's users
+
     status = {r.key: r.status.value for r in project.stages}
     if not status:
         return {"phase": None, "current_stages": [], "stage_progress": None}
-    open_ = [s for s in sc.STAGES if status.get(s["key"]) == "active"]
+    flow = flow_for(project)
+    open_ = [s for s in flow.stages if status.get(s["key"]) == "active"]
     done = sum(1 for v in status.values() if v in ("completed", "historical"))
-    number = min(s["phase"] for s in open_) if open_ else (sc.PHASES[-1]["number"] if done == len(sc.STAGES) else None)
-    phase = next((p for p in sc.PHASES if p["number"] == number), None)
+    last = flow.phases[-1]["number"]
+    number = min(s["phase"] for s in open_) if open_ else (last if done == len(flow.stages) else None)
+    phase = next((p for p in flow.phases if p["number"] == number), None)
     return {
         "phase": dict(phase) if phase else None,
         "current_stages": [s["label"] for s in open_],
-        "stage_progress": {"done": done, "total": len(sc.STAGES)},
+        "stage_progress": {"done": done, "total": len(flow.stages)},
     }
 
 
