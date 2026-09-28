@@ -217,3 +217,7 @@ These core decisions from PRD v3.2 are also still open and hold back the missing
 ```text
 Read CLAUDE.md, docs/IMPLEMENTATION_PLAN.md step S00, docs/V4_EXECUTION_PLAN.md sections 2, 4 and 6 (R-01, R-02, R-04, R-15) and docs/decisions/0001-evolve-current-stack.md. Complete step S00 for this repository without building business features: add a GitHub Actions workflow that runs pytest on SQLite and PostgreSQL 16, the Playwright suite, semgrep, pip-audit and npm audit; add ruff and eslint with a pre-commit config; add api and web services to docker compose; update CLAUDE.md to point to docs/SiteFlow-PRD-v3.2.md and docs/SiteFlow-PRD-V4.md and add the V4 integration and AI rules from docs/reference/CLAUDE-reference-v4.md while keeping the actual stack section; and write docs/decisions/0003 on where new domain code lives. Run all tests and scans, then update docs/PROGRESS.md.
 ```
+
+## Notes added during sprint v4
+
+- **Interim fee ledger (sprint v4 Task 33).** `fee_entries` records client fees due and received by hand, for Accounts and the principal architect. It is not the V12 fee module: no milestones, payment requests, reminders or verification. **V12 must migrate these entries** into its fee agreements and payment records and then retire the ledger.

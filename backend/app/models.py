@@ -502,6 +502,26 @@ class ClientInvite(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class FeeEntry(Base):
+    """Interim fee ledger (sprint v4): a client fee due or received, recorded by Accounts or the principal architect.
+    Append-only: a correction is a new negative entry with a reason. V12's fee module replaces this and migrates it."""
+
+    __tablename__ = "fee_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(10))  # due | received
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    currency: Mapped[str] = mapped_column(String(3), default="INR")
+    date: Mapped[date] = mapped_column(Date)
+    reference: Mapped[str | None] = mapped_column(String(120))
+    note: Mapped[str | None] = mapped_column(Text)
+    recorded_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    recorded_by: Mapped[User] = relationship()
+
+
 class StageAttachment(Base):
     """A file attached to a stage (photo, video, PDF or AutoCAD drawing). completed_at is set when the stage is
     completed with it; from then on it can't change."""
@@ -661,3 +681,13 @@ def _block_completed_stage_changes(session, _ctx, _instances):
                 inspect(obj).attrs[f].history.has_changes() for f in _COMPLETION_FIELDS
             ):
                 raise StageImmutableError("A completed stage's note can't change")
+
+
+@event.listens_for(Session, "before_flush")
+def _block_fee_entry_changes(session, _ctx, _instances):
+    for obj in session.deleted:
+        if isinstance(obj, FeeEntry):
+            raise StageImmutableError("A recorded fee entry can't be removed; record a correction instead")
+    for obj in session.dirty:
+        if isinstance(obj, FeeEntry) and session.is_modified(obj):
+            raise StageImmutableError("A recorded fee entry can't be changed; record a correction instead")

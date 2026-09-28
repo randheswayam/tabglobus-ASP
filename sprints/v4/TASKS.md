@@ -482,7 +482,7 @@ A small image of each project's 3D model sits beside the project name, so each p
   - Files: backend/app/models.py, backend/migrations/versions/0022_principal.py, backend/app/deps.py, backend/app/modules/identity/admin.py, backend/app/seed.py, docs/decisions/0003-module-layout.md, backend/tests/test_principal.py
   - Completed: 2026-09-28. users.is_principal (boolean, default false; migration 0018 with a portable false default). Set only by an Admin through PATCH /admin/users/{id} {principal}: an active staff user only (409 otherwise, clients included); deactivation clears it; changes are audited. The seed marks Parvez. deps.require_principal returns 403 for everyone else, Admin included. /auth/me and login return principal; the admin user list shows it. Decision 0003 records that it is a designation, not a role (Parvez stays Team Lead). PROGRESS records the open question of more than one principal. An existing database gets the designation from the Admin; the migration doesn't guess who Parvez is. Tests: test_principal.py (10); 692 pass on SQLite and PostgreSQL.
 
-- [ ] Task 33: Client fees due and received (interim ledger) (P0)
+- [x] Task 33: Client fees due and received (interim ledger) (P0)
   - Acceptance:
     - A new append-only `FeeEntry` model (project, kind `due` or `received`, amount, currency, date, reference, note, recorded by, recorded at) has a migration.
     - Accounts or the principal records entries through `POST /projects/{id}/fees`:
@@ -495,6 +495,7 @@ A small image of each project's 3D model sits beside the project name, so each p
     - This interim ledger is replaced by the V12 fee module. A note in `docs/V4_EXECUTION_PLAN.md` says V12 migrates these entries.
     - Tests: `test_fees_ledger.py` covers recording, totals, the correction entry, and access for each role.
   - Files: backend/app/models.py, backend/migrations/versions/0023_fee_entries.py, backend/app/modules/fees/__init__.py, backend/app/modules/fees/ledger.py, backend/app/main.py, backend/tests/test_fees_ledger.py, docs/V4_EXECUTION_PLAN.md
+  - Completed: 2026-09-28. fee_entries (migration 0019), append-only with a guard; modules/fees/ledger.py GET and POST /projects/{id}/fees for Accounts and the principal only; totals due, received, outstanding; corrections are negative entries with a reason; V12 migration note in V4_EXECUTION_PLAN
 
 - [ ] Task 34: Principal overview API (P0)
   - Acceptance:
