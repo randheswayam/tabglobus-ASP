@@ -16,6 +16,10 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // -PsiteflowDemo builds the sample-data demo under its own app id, so it installs next to the real app.
+    if (project.hasProperty('siteflowDemo')) {
+        defaultConfig.applicationIdSuffix ".demo"
+    }
     buildTypes {
         release {
             minifyEnabled false
