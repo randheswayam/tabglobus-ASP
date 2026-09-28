@@ -14,7 +14,7 @@ def test_admin_lists_users(client, auth_headers, users):
     assert r.status_code == 200
     by_email = {u["email"]: u for u in r.json()}
     assert by_email["parvez@siteflow.local"]["role"] == "team_lead"
-    assert set(by_email["parvez@siteflow.local"]) == {"id", "name", "email", "role", "active"}
+    assert set(by_email["parvez@siteflow.local"]) == {"id", "name", "email", "role", "active", "principal"}
 
 
 def test_admin_creates_a_staff_user_with_a_one_time_password(client, auth_headers, db):

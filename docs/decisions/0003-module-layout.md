@@ -25,6 +25,8 @@ The repository was built in sprints v1 to v3 with a flat layout: `backend/app/ro
 
 Sprint v4 Task 7 added the remaining PRD roles, stored as `structural_consultant`, `mep_consultant`, `interior_designer`, `accounts` and `office_coordinator`. They are staff roles. Like the Civil Engineer, they see only the projects they are members of.
 
+**The principal architect** (sprint v4 Task 32) is a designation on a staff user (`users.is_principal`), not a separate role. The person keeps their role's permissions (Parvez stays Team Lead for reviews) and adds the principal-only views. Only an Admin sets it, and only on an active staff user.
+
 The role column is a 32-character string with no database check constraint, so adding a role needs no migration.
 
 ## Consequences

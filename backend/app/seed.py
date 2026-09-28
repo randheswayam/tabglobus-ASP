@@ -14,7 +14,7 @@ from app.passwords import hash_password
 
 SEED_USERS = [
     {"name": "Meera Joshi", "email": "architect@siteflow.local", "role": Role.architect},
-    {"name": "Parvez", "email": "parvez@siteflow.local", "role": Role.team_lead},
+    {"name": "Parvez", "email": "parvez@siteflow.local", "role": Role.team_lead, "is_principal": True},
     {"name": "Farhan Shaikh", "email": "engineer@siteflow.local", "role": Role.civil_engineer},
     {"name": "Office Coordinator", "email": "admin@siteflow.local", "role": Role.admin},
     {"name": "Rahul Deshpande", "email": "structural@siteflow.local", "role": Role.structural_consultant},

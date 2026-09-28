@@ -39,6 +39,13 @@ def get_current_user(
     return user
 
 
+def require_principal(user: User = Depends(get_current_user)) -> User:
+    """Principal-only views (the principal architect's overview). Everyone else, Admin included, gets 403."""
+    if user.role == Role.client or not user.is_principal:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This view is only for the principal architect")
+    return user
+
+
 def require_staff(user: User = Depends(get_current_user)) -> User:
     """Router-level guard for every staff API. Clients use /client/* only."""
     if user.role == Role.client:

@@ -24,6 +24,7 @@ def test_login_returns_jwt_and_user(client, users):
         "name": "Parvez",
         "email": "parvez@siteflow.local",
         "role": "team_lead",
+        "principal": True,
     }
 
 

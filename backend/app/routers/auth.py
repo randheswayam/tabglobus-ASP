@@ -29,10 +29,11 @@ class UserOut(BaseModel):
     name: str
     email: str
     role: str
+    principal: bool = False
 
     @classmethod
     def of(cls, u: User) -> "UserOut":
-        return cls(id=u.id, name=u.name, email=u.email, role=u.role.value)
+        return cls(id=u.id, name=u.name, email=u.email, role=u.role.value, principal=bool(u.is_principal))
 
 
 class TokenOut(BaseModel):

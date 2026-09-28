@@ -18,6 +18,9 @@ from sqlalchemy import (
     event,
     inspect,
 )
+from sqlalchemy import (
+    false as sa_false,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
@@ -99,6 +102,8 @@ class User(Base):
     role: Mapped[Role] = mapped_column(_enum(Role))
     password_hash: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # The principal architect (Parvez): a designation on a staff user, not a role. Principal-only views check it.
+    is_principal: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa_false())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 

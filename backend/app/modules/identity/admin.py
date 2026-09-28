@@ -24,7 +24,14 @@ STAFF_ROLES = [r for r in Role if r != Role.client]
 
 
 def user_out(u: User) -> dict:
-    return {"id": u.id, "name": u.name, "email": u.email, "role": u.role.value, "active": u.is_active}
+    return {
+        "id": u.id,
+        "name": u.name,
+        "email": u.email,
+        "role": u.role.value,
+        "active": u.is_active,
+        "principal": u.is_principal,
+    }
 
 
 class UserIn(BaseModel):
@@ -58,6 +65,7 @@ class UserIn(BaseModel):
 class UserPatch(BaseModel):
     role: Role | None = None
     active: bool | None = None
+    principal: bool | None = None
 
 
 @router.get("/admin/users")
@@ -106,6 +114,13 @@ def update_user(
         new["role"] = body.role
     if body.active is not None:
         new["is_active"] = body.active
+    if body.principal is not None:
+        will_be_active = new.get("is_active", user.is_active)
+        if body.principal and not will_be_active:
+            raise HTTPException(status.HTTP_409_CONFLICT, "Only an active staff user can be the principal architect")
+        new["is_principal"] = body.principal
+    if new.get("is_active") is False:
+        new["is_principal"] = False  # a deactivated user loses the designation
     changes = audit.diff(user, new)
     for field, value in new.items():
         setattr(user, field, value)
