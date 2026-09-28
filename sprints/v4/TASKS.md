@@ -238,7 +238,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/modules/identity/fields.py, backend/app/routers/projects.py, backend/app/routers/dashboard.py, web-src/app.js, backend/tests/test_field_rules.py
   - Completed: 2026-09-28. modules/identity/fields.py: FIELD_RULES (fee_plan: admin, accounts, team_lead, architect; TBD_PARVEZ), can_see, visible_fields and redact_audit. Project detail (now built for the viewer), project list and dashboard rows carry fee_plan only for allowed roles. Fee-plan audit entries keep the event but drop the values for everyone else. The fee-plan routes follow the same rule; editing also needs an editor role. The client app never carries it. The web project page shows a Fee plan panel (INR with Indian grouping) only when the key is present, editable by the Architect, Admin and Accounts. Tests: test_field_rules.py (16), walking detail, list, fee-plan and dashboard for every staff role, plus the client app; E2E v4-fee-plan.spec.js.
 
-- [ ] Task 20: CSV import preview (P0)
+- [x] Task 20: CSV import preview (P0)
   - Acceptance:
     - `POST /admin/import/projects/preview` (Admin only; multipart CSV, up to 1 MB and 500 rows) parses the file. The columns are project name, location, client name, client email, site address, current stage key, civil engineer email, confirmed by and legal expected date.
     - It returns per-row `ok` or `errors` (unknown stage, unknown engineer, missing required field, duplicate project name in the file or the database) and writes nothing.
@@ -246,6 +246,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - Formula-injection cells (starting with `=`, `+`, `-` or `@`) are rejected with a row error.
     - Tests: `test_import.py` covers the preview with good and bad rows.
   - Files: backend/app/modules/projects/importer.py, backend/app/main.py, backend/tests/test_import.py
+  - Completed: 2026-09-28. modules/projects/importer.py (Admin only): GET /admin/import/projects/template (CSV header and an example row) and POST /admin/import/projects/preview. The preview accepts .csv only (415 otherwise), up to 1 MB (413) and 500 rows, in UTF-8 with Excel's byte-order mark allowed (422 otherwise), and needs the template's columns (422 listing missing ones). It returns counts and per-row ok, errors and values, and writes nothing. Row checks: required fields; stage key known and not the first stage; confirmed_by required when a stage is set; the engineer is an active Civil Engineer; client email format; YYYY-MM-DD dates; formula-injection cells (= + - @); duplicate names within the file and in SiteFlow (case-insensitive). parse() is shared with the commit in Task 21. Tests: test_import.py (19).
 
 - [ ] Task 21: CSV import commit and ImportBatch (P0)
   - Acceptance:
