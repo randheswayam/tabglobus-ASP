@@ -19,6 +19,7 @@ from app.models import (
     ProblemStatus,
     Project,
     ProjectStage,
+    StageAttachment,
     StageException,
     StageStatus,
     User,
@@ -144,6 +145,11 @@ def project_view(db: Session, project: Project, user: User) -> dict:
     signoffs = signoff_facts(db, project)
     gate_facts = facts(db, project, signoffs)
     view = evaluate({k: r.status.value for k, r in rows.items()}, gate_facts)
+    files: dict[str, list[StageAttachment]] = {}
+    for a in db.scalars(
+        select(StageAttachment).where(StageAttachment.project_id == project.id).order_by(StageAttachment.id)
+    ):
+        files.setdefault(a.stage_key, []).append(a)
     recorded = {}
     for ex in db.scalars(select(StageException).where(StageException.project_id == project.id)):
         recorded.setdefault(ex.stage_key, []).append(
@@ -184,6 +190,12 @@ def project_view(db: Session, project: Project, user: User) -> dict:
             if v["state"] in ("active", "blocked")
             else [],
             "can_record_exception": user.role.value in wc.EXCEPTION_ROLES,
+            "attachments": [attachment_out(a) for a in files.get(s["key"], [])],
+            "evidence_required": s["evidence_required"],
+            "evidence_missing": evidence_missing(s, files.get(s["key"], [])) if r.status == StageStatus.active else [],
+            "evidence_reason": evidence_reason(evidence_missing(s, files.get(s["key"], [])))
+            if r.status == StageStatus.active
+            else None,
         }
 
     done = sum(1 for v in view.values() if v["state"] in DONE)
@@ -215,6 +227,48 @@ def release(db: Session, project: Project, actor: User | None) -> list[str]:
     return opened
 
 
+def attachment_out(a: StageAttachment) -> dict:
+    return {
+        "id": a.id,
+        "kind": a.kind,
+        "filename": a.filename,
+        "content_type": a.content_type,
+        "size": a.size,
+        "uploaded_by": user_brief(a.uploaded_by),
+        "uploaded_at": iso_utc(a.uploaded_at),
+        "completed_at": iso_utc(a.completed_at),
+    }
+
+
+KIND_NAMES = {"photo": "photo", "video": "video", "document": "document (PDF)", "cad": "AutoCAD drawing"}
+
+
+def pending_attachments(db: Session, project: Project, key: str) -> list[StageAttachment]:
+    return list(
+        db.scalars(
+            select(StageAttachment)
+            .where(
+                StageAttachment.project_id == project.id,
+                StageAttachment.stage_key == key,
+                StageAttachment.completed_at.is_(None),
+            )
+            .order_by(StageAttachment.id)
+        )
+    )
+
+
+def evidence_missing(stage: dict, files: list[StageAttachment]) -> list[str]:
+    """The required kinds of file not yet attached to this stage."""
+    have = {a.kind for a in files}
+    return [k for k in stage.get("evidence_required", []) if k not in have]
+
+
+def evidence_reason(missing: list[str]) -> str | None:
+    if not missing:
+        return None
+    return "Add at least one " + " and one ".join(KIND_NAMES[k] for k in missing) + " before completing this stage"
+
+
 def construction_started(db: Session, project: Project) -> bool:
     """The v2 site-visit loop runs in phase 7 onward: Site line-out has started (or is done)."""
     row = stage_rows(db, project).get(sc.CONSTRUCTION_START)
@@ -231,8 +285,12 @@ def visit_approved(db: Session, project: Project, actor: User) -> None:
 def complete(db: Session, project: Project, key: str, actor: User | None, note: str | None) -> list[str]:
     """Mark a stage completed, audit it and release its successors. The caller has checked the rules."""
     row = stage_rows(db, project)[key]
-    row.status, row.completed_at = StageStatus.completed, datetime.now(UTC)
+    now = datetime.now(UTC)
+    row.status, row.completed_at = StageStatus.completed, now
     row.completed_by_id, row.completion_note = (actor.id if actor else None), note
+    files = pending_attachments(db, project, key)
+    for a in files:
+        a.completed_at = now
     audit.record(
         db,
         actor,
@@ -240,7 +298,7 @@ def complete(db: Session, project: Project, key: str, actor: User | None, note: 
         project_id=project.id,
         entity_type="project_stage",
         entity_id=row.id,
-        detail={"stage": sc.BY_KEY[key]["label"], "key": key, "note": note},
+        detail={"stage": sc.BY_KEY[key]["label"], "key": key, "note": note, "files": [a.filename for a in files]},
     )
     db.flush()
     events.publish(db, "stage.completed", project=project, stage=sc.BY_KEY[key], actor=actor)

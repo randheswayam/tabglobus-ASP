@@ -629,3 +629,24 @@ def _block_stage_exception_changes(session, _ctx, _instances):
     for obj in session.dirty:
         if isinstance(obj, StageException) and session.is_modified(obj):
             raise StageImmutableError("A recorded stage exception can't be changed")
+
+
+_COMPLETION_FIELDS = ("completion_note", "completed_by_id", "completed_at")
+
+
+@event.listens_for(Session, "before_flush")
+def _block_completed_stage_changes(session, _ctx, _instances):
+    """A completed stage's note and files are the record of what was done: they never change afterwards."""
+    for obj in list(session.dirty) + list(session.deleted):
+        if isinstance(obj, StageAttachment):
+            history = inspect(obj).attrs.completed_at.history
+            was_completed = (history.deleted[0] if history.deleted else obj.completed_at) is not None
+            if was_completed and (obj in session.deleted or session.is_modified(obj)):
+                raise StageImmutableError("Files of a completed stage can't change")
+        if isinstance(obj, ProjectStage) and obj in session.dirty:
+            status = inspect(obj).attrs.status.history
+            was = status.deleted[0] if status.deleted else obj.status
+            if was == StageStatus.completed and any(
+                inspect(obj).attrs[f].history.has_changes() for f in _COMPLETION_FIELDS
+            ):
+                raise StageImmutableError("A completed stage's note can't change")

@@ -129,3 +129,97 @@ def test_attachments_on_another_stage_or_project_are_404(client, auth_headers, s
     assert (
         client.get(f"/projects/{other}/stages/predesign_site_visit/attachments/{aid}", headers=eng).status_code == 404
     )
+
+
+# ---------- completing with files (Task 24) ----------
+
+
+def _view_stage(client, headers, pid, key):
+    view = client.get(f"/projects/{pid}/stages", headers=headers).json()
+    return next(s for p in view["phases"] for s in p["stages"] if s["key"] == key)
+
+
+def test_completion_links_the_pending_files_and_the_tracker_lists_them(client, auth_headers, site_stage, db):
+    eng = auth_headers("civil_engineer")
+    a1 = _up(client, eng, site_stage, "predesign_site_visit", "front.jpg", JPEG, "image/jpeg").json()["id"]
+    a2 = _up(client, eng, site_stage, "predesign_site_visit", "grid.dwg", DWG).json()["id"]
+    before = _view_stage(client, eng, site_stage, "predesign_site_visit")
+    assert [a["filename"] for a in before["attachments"]] == ["front.jpg", "grid.dwg"]
+    r = client.post(
+        f"/projects/{site_stage}/stages/predesign_site_visit/complete",
+        json={"note": "Well found near the gate"},
+        headers=eng,
+    )
+    assert r.status_code == 200
+    s = _view_stage(client, eng, site_stage, "predesign_site_visit")
+    assert s["completion_note"] == "Well found near the gate"
+    assert all(a["completed_at"] for a in s["attachments"])
+    assert db.get(StageAttachment, a1).completed_at and db.get(StageAttachment, a2).completed_at
+    ev = db.query(AuditEvent).filter_by(action="stage.completed").order_by(AuditEvent.id.desc()).first()
+    assert ev.detail["files"] == ["front.jpg", "grid.dwg"]
+
+
+def test_a_note_is_still_required(client, auth_headers, site_stage):
+    eng = auth_headers("civil_engineer")
+    _up(client, eng, site_stage, "predesign_site_visit", "front.jpg", JPEG, "image/jpeg")
+    r = client.post(f"/projects/{site_stage}/stages/predesign_site_visit/complete", json={"note": " "}, headers=eng)
+    assert r.status_code == 422 and r.json()["detail"]["missing"] == ["note"]
+
+
+def test_a_stage_can_require_a_file_of_a_kind(client, auth_headers, site_stage, monkeypatch):
+    from app import stage_config as sc
+
+    monkeypatch.setitem(sc.BY_KEY["predesign_site_visit"], "evidence_required", ["photo"])
+    eng = auth_headers("civil_engineer")
+    s = _view_stage(client, eng, site_stage, "predesign_site_visit")
+    assert s["evidence_required"] == ["photo"] and s["evidence_missing"] == ["photo"]
+    assert s["evidence_reason"] == "Add at least one photo before completing this stage"
+    _up(client, eng, site_stage, "predesign_site_visit", "grid.dwg", DWG)  # a drawing is not a photo
+    r = client.post(
+        f"/projects/{site_stage}/stages/predesign_site_visit/complete", json={"note": "Visited"}, headers=eng
+    )
+    assert r.status_code == 422
+    assert r.json()["detail"]["missing"] == ["attachments"]
+    assert r.json()["detail"]["message"] == "Add at least one photo before completing this stage"
+    _up(client, eng, site_stage, "predesign_site_visit", "front.jpg", JPEG, "image/jpeg")
+    assert _view_stage(client, eng, site_stage, "predesign_site_visit")["evidence_missing"] == []
+    ok = client.post(
+        f"/projects/{site_stage}/stages/predesign_site_visit/complete", json={"note": "Visited"}, headers=eng
+    )
+    assert ok.status_code == 200
+
+
+def test_no_stage_requires_files_by_default():
+    from app import stage_config as sc
+
+    assert all(s["evidence_required"] == [] for s in sc.STAGES)
+
+
+def test_completed_files_and_note_are_immutable(client, auth_headers, site_stage, db):
+    from app.models import ProjectStage, StageImmutableError
+
+    eng = auth_headers("civil_engineer")
+    aid = _up(client, eng, site_stage, "predesign_site_visit", "front.jpg", JPEG, "image/jpeg").json()["id"]
+    client.post(f"/projects/{site_stage}/stages/predesign_site_visit/complete", json={"note": "Visited"}, headers=eng)
+    a = db.get(StageAttachment, aid)
+    a.filename = "renamed.jpg"
+    with pytest.raises(StageImmutableError):
+        db.flush()
+    db.rollback()
+    with pytest.raises(StageImmutableError):
+        db.delete(db.get(StageAttachment, aid))
+        db.flush()
+    db.rollback()
+    row = db.query(ProjectStage).filter_by(project_id=site_stage, key="predesign_site_visit").one()
+    row.completion_note = "rewritten later"
+    with pytest.raises(StageImmutableError):
+        db.flush()
+    db.rollback()
+
+
+def test_client_signoff_stages_still_complete_only_by_approval(client, auth_headers, new_project):
+    pid = new_project(start_stage="requirements_signoff", historical_confirmed_by="Parvez")["id"]
+    r = client.post(
+        f"/projects/{pid}/stages/requirements_signoff/complete", json={"note": "x"}, headers=auth_headers("architect")
+    )
+    assert r.status_code == 409

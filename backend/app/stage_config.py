@@ -39,6 +39,8 @@ def _stage(key, number, label, phase, workstream, owner, predecessors, gates=(),
         "owner_role": owner,
         "predecessors": predecessors,
         "gates": list(gates),
+        # TBD_PARVEZ: kinds of file (photo, video, document, cad) a stage needs before it can be completed.
+        "evidence_required": [],
         "detail": detail,
     }
 

@@ -295,7 +295,7 @@ Applies to every workflow activity in the v3 tracker: staff mark a stage complet
   - Files: backend/app/models.py, backend/migrations/versions/0016_stage_attachments.py, backend/app/services/filecheck.py, backend/app/workflow_config.py, backend/app/modules/workflow/attachments.py, backend/app/main.py, backend/tests/test_stage_attachments.py
   - Completed: 2026-09-28. StageAttachment (migration 0015), with completed_at in place of the planned completed_with. modules/workflow/attachments.py: POST, DELETE and GET /projects/{id}/stages/{key}/attachments. Upload is open to the stage owner, Architect or Team Lead, on open or historical stages; not on client sign-off stages (409). Files are typed by extension, then checked by their bytes in filecheck: JPEG, PNG, WEBP, MP4, WEBM, PDF, DWG (AC10 header) and DXF (0/SECTION); anything else or a mismatch gets 415. Size limits per kind are MAX_STAGE_ATTACHMENT_MB (TBD_PARVEZ; the AutoCAD limit is a placeholder); over gets 413. Files are stored under random keys with sha256. Only the uploader removes, and only before the stage is completed. Staff download always as attachment with nosniff. Upload and removal are audited. Tests: test_stage_attachments.py (18); 633 pass on SQLite and PostgreSQL.
 
-- [ ] Task 24: Mark complete with a note and files (P0)
+- [x] Task 24: Mark complete with a note and files (P0)
   - Acceptance:
     - `POST /projects/{id}/stages/{key}/complete` still requires the text note (422 without it). Every pending attachment of that stage is linked to the completion (`completed_with`).
     - A new `evidence_required` setting per stage in `stage_config` (default: none required, marked `TBD_PARVEZ`) can require at least one file of a kind. When it isn't met, the completion gets 422 with `missing: ["attachments"]` and a plain-language reason, and the stage detail shows the same reason before submitting.
@@ -304,6 +304,7 @@ Applies to every workflow activity in the v3 tracker: staff mark a stage complet
     - Client sign-off stages are unchanged: they still complete only by client approval.
     - Tests cover completion with files, a missing required file, and the immutability guard.
   - Files: backend/app/routers/stages.py, backend/app/services/stages.py, backend/app/stage_config.py, backend/app/models.py, backend/tests/test_stage_completion.py, backend/tests/test_stage_attachments.py
+  - Completed: 2026-09-28. stages.complete links every pending attachment of the stage (completed_at) and lists the file names in the stage.completed audit. Every stage has evidence_required (default [], TBD_PARVEZ). The complete route refuses with 422, missing ['attachments'] and a plain reason ('Add at least one photo before completing this stage') when a required kind is missing; the note is still required. The tracker returns attachments, evidence_required, evidence_missing and evidence_reason. A flush guard makes completed stage files and a completed stage's note, completer and time immutable (StageImmutableError). Client sign-off stages are unchanged. attachment_out moved to services/stages to avoid a circular import. Tests: 6 new.
 
 - [ ] Task 25: Stage detail: attach files and mark complete (P0)
   - Acceptance:

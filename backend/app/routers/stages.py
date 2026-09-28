@@ -54,6 +54,12 @@ def complete_stage(
             view["state"], "This stage cannot be completed yet"
         )
         raise HTTPException(status.HTTP_409_CONFLICT, {"message": message, "reasons": view["reasons"]})
+    missing = stages.evidence_missing(stage, stages.pending_attachments(db, project, key))
+    if missing:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            {"message": stages.evidence_reason(missing), "missing": ["attachments"], "kinds": missing},
+        )
     note = (body.note or "").strip()
     if not note:
         raise HTTPException(

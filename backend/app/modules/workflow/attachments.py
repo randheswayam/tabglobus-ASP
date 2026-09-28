@@ -15,26 +15,13 @@ from app import workflow_config as wc
 from app.db import get_db
 from app.deps import get_current_user, get_visible_project, require_staff
 from app.models import Project, StageAttachment, StageStatus, User
-from app.schemas import iso_utc, user_brief
 from app.services import audit, stages
 from app.services.filecheck import EXTENSIONS, STAGE_FILE_TYPES, read_checked
+from app.services.stages import attachment_out
 from app.services.storage import get_storage
 
 router = APIRouter(tags=["stages"], dependencies=[Depends(require_staff)])
 KIND_LABEL = {"photo": "photo", "video": "video", "document": "document", "cad": "AutoCAD drawing"}
-
-
-def attachment_out(a: StageAttachment) -> dict:
-    return {
-        "id": a.id,
-        "kind": a.kind,
-        "filename": a.filename,
-        "content_type": a.content_type,
-        "size": a.size,
-        "uploaded_by": user_brief(a.uploaded_by),
-        "uploaded_at": iso_utc(a.uploaded_at),
-        "completed_at": iso_utc(a.completed_at),
-    }
 
 
 def _display_name(name: str | None) -> str:
