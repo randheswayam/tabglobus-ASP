@@ -174,3 +174,108 @@ def test_batches_are_listed_for_admins(client, auth_headers, users):
     (b,) = r.json()
     assert b["filename"] == "projects.csv" and b["imported"] == 1 and b["by"]["name"] == users["admin"].name
     assert client.get("/admin/import/batches", headers=auth_headers("architect")).status_code == 403
+
+
+# ---------- XLSX (sprint v4 Task 41): the same cases, read from the first sheet ----------
+
+
+def _xlsx(*rows: str, sheet_first=None) -> bytes:
+    import csv
+    import io
+
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    if sheet_first is not None:  # a decoy sheet placed after the real one must be ignored
+        wb.create_sheet("Notes").append(sheet_first)
+    for line in csv.reader(io.StringIO("\n".join([HEADER, *rows]))):
+        ws.append([v if v != "" else None for v in line])
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def test_an_xlsx_previews_like_the_csv(client, auth_headers):
+    admin = auth_headers("admin")
+    x = _preview(client, admin, _xlsx(GOOD, NEW, sheet_first=["ignore me"]), name="projects.xlsx", content_type=XLSX)
+    c = _preview(client, admin, _csv(GOOD, NEW))
+    assert x.status_code == 200, x.text
+    assert x.json() == c.json()
+
+
+@pytest.mark.parametrize(
+    "row,error",
+    [
+        ("Villa,Pune,,,,roofing,engineer@siteflow.local,Parvez,", "current_stage 'roofing' is not a stage"),
+        (",Pune,,,,,engineer@siteflow.local,,", "project_name is required"),
+        ("Villa,Pune,,,,,engineer@siteflow.local,,31-12-2026", "legal_expected_date must be YYYY-MM-DD"),
+        ("=HYPERLINK(1),Pune,,,,,engineer@siteflow.local,,", "project_name starts with = + - or @"),
+    ],
+)
+def test_xlsx_row_errors(client, auth_headers, row, error):
+    body = _preview(client, auth_headers("admin"), _xlsx(row), name="p.xlsx", content_type=XLSX).json()
+    assert any(error in e for e in body["rows"][0]["errors"]), body
+
+
+def test_an_excel_date_cell_reads_as_iso(client, auth_headers):
+    import datetime
+    import io
+
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    wb.active.append(HEADER.split(","))
+    wb.active.append(
+        [
+            "Kale Villa",
+            "Baner Pune",
+            None,
+            None,
+            None,
+            None,
+            "engineer@siteflow.local",
+            None,
+            datetime.datetime(2026, 12, 1),
+        ]
+    )
+    buf = io.BytesIO()
+    wb.save(buf)
+    body = _preview(client, auth_headers("admin"), buf.getvalue(), name="d.xlsx", content_type=XLSX).json()
+    assert body["rows"][0]["ok"] is True and body["rows"][0]["values"]["legal_expected_date"] == "2026-12-01"
+
+
+def test_an_xlsx_commits_through_normal_onboarding(client, auth_headers, users, db):
+    from app.models import ImportBatch
+
+    r = _commit(
+        client, auth_headers("admin"), _xlsx(GOOD, NEW), "all_or_nothing", users["architect"].id, name="projects.xlsx"
+    )
+    assert r.status_code == 201, r.text
+    assert db.query(Project).count() == 2 and db.query(ImportBatch).one().filename == "projects.xlsx"
+
+
+def test_the_committed_xlsx_fixture_previews(client, auth_headers):
+    from pathlib import Path
+
+    data = (Path(__file__).parent / "fixtures" / "import.xlsx").read_bytes()
+    body = _preview(client, auth_headers("admin"), data, name="import.xlsx", content_type=XLSX).json()
+    assert body["counts"] == {"rows": 3, "ok": 2, "errors": 1}  # the fixture keeps one bad row, like the CSV
+
+
+def test_the_file_type_is_checked_by_signature(client, auth_headers):
+    admin = auth_headers("admin")
+    # a CSV renamed to .xlsx, and a zip that isn't a workbook
+    assert _preview(client, admin, _csv(NEW), name="p.xlsx", content_type=XLSX).status_code == 415
+    import io
+    import zipfile
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("hello.txt", "not a workbook")
+    assert _preview(client, admin, buf.getvalue(), name="p.xlsx", content_type=XLSX).status_code == 422
+    # a workbook renamed to .csv is refused as a CSV
+    assert _preview(client, admin, _xlsx(NEW), name="p.csv").status_code == 415

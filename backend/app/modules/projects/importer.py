@@ -6,7 +6,7 @@ import hashlib
 import io
 import re
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, time
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from sqlalchemy import func, select
@@ -61,19 +61,67 @@ class RowResult:
 
 
 async def read_csv(file: UploadFile) -> str:
-    """The file as text, or an error: 415 if it isn't a CSV, 413 past 1 MB, 422 if it isn't UTF-8."""
+    """The file as CSV text, or an error: 415 if it isn't a CSV or XLSX, 413 past 1 MB, 422 if it can't be read."""
     return (await read_upload(file))[0]
+
+
+ZIP_SIGNATURE = b"PK"  # an .xlsx is a zip package
+
+
+def _cell(v) -> str:
+    if v is None:
+        return ""
+    if isinstance(v, datetime):
+        return v.date().isoformat() if v.time() == time() else v.isoformat()
+    if isinstance(v, date):
+        return v.isoformat()
+    if isinstance(v, float) and v.is_integer():
+        return str(int(v))
+    return str(v)
+
+
+def xlsx_to_csv(data: bytes) -> str:
+    """The first sheet as CSV text, so the one parser checks both formats. Reads at most MAX_ROWS + 2 rows and the
+    template's columns plus a margin, so a huge sheet can't exhaust memory. A formula reads as its text (=...),
+    which the row checks refuse, as they do in a CSV."""
+    from openpyxl import load_workbook  # loads defusedxml when it is installed, against XML entity attacks
+
+    try:
+        wb = load_workbook(io.BytesIO(data), read_only=True, data_only=False)
+        ws = wb.worksheets[0]
+        out = io.StringIO()
+        writer = csv.writer(out)
+        for row in ws.iter_rows(max_row=MAX_ROWS + 2, max_col=len(COLUMNS) + 10, values_only=True):
+            cells = [_cell(v) for v in row]
+            while cells and cells[-1] == "":
+                cells.pop()
+            if cells:
+                writer.writerow(cells)
+        wb.close()
+    except Exception:  # openpyxl raises many types for a damaged or foreign package
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "The file isn't a readable Excel workbook. Save it as .xlsx or CSV."
+        ) from None
+    return out.getvalue()
 
 
 async def read_upload(file: UploadFile) -> tuple[str, bytes]:
     name = (file.filename or "").lower()
-    if not name.endswith(".csv"):
-        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Upload the list as a .csv file")
+    if not name.endswith((".csv", ".xlsx")):
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Upload the list as a .csv or .xlsx file")
     data = bytearray()
     while chunk := await file.read(_CHUNK):
         data += chunk
         if len(data) > MAX_BYTES:
             raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "The file can be at most 1 MB")
+    # The signature decides, not only the name: a workbook named .csv or a CSV named .xlsx is refused.
+    is_zip = bytes(data[:4]) == ZIP_SIGNATURE
+    if name.endswith(".xlsx") != is_zip:
+        raise HTTPException(
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "The file's contents don't match its .csv or .xlsx name"
+        )
+    if is_zip:
+        return xlsx_to_csv(bytes(data)), bytes(data)
     try:
         return bytes(data).decode("utf-8-sig"), bytes(data)  # utf-8-sig drops the byte-order mark Excel writes
     except UnicodeDecodeError:

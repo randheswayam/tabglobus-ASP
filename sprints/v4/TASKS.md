@@ -577,12 +577,13 @@ A small image of each project's 3D model sits beside the project name, so each p
   - Files: backend/app/stage_config.py, backend/tests/test_stage_config.py, docs/V4_EXECUTION_PLAN.md, web-src/app.js
   - Completed: 2026-09-28. stage_config.PRD_STAGE and prd_stage on every stage; every PRD stage 0 to 15 covered; tracker returns prd_stage (from the config for flows pinned before the map); PRD stage label in the stage detail; mapping table in V4_EXECUTION_PLAN, R-09 closed; new projects pin flow version 2
 
-- [ ] Task 41: XLSX import (P1)
+- [x] Task 41: XLSX import (P1)
   - Acceptance:
     - The preview and commit also accept `.xlsx` (the first sheet, same columns) through `openpyxl`, which is added to requirements and passes pip-audit.
     - The file type is checked by its signature (a zip header), not only the extension.
     - Tests reuse the CSV cases with an XLSX fixture.
   - Files: backend/requirements.txt, backend/app/modules/projects/importer.py, backend/tests/test_import.py, backend/tests/fixtures/import.xlsx
+  - Completed: 2026-09-28. Preview and commit accept .xlsx (first sheet) via openpyxl in read-only mode with row and column limits; defusedxml added against XML entity attacks; the zip signature must match the name (a CSV named .xlsx or a workbook named .csv gets 415); formulas read as text and are refused by the row checks; Excel dates read as ISO; CSV cases reused; fixture tests/fixtures/import.xlsx; Import screen accepts .xlsx
 
 - [ ] Task 42: Update the client demo with the sprint v4 enhancements (P1)
   - Acceptance:

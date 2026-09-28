@@ -1935,8 +1935,8 @@ V.import = {
       <button class="btn" data-act="import-template" data-testid="import-template">${ico('doc')}Download the template</button></div>
       ${errBox()}
       <section class="panel"><div class="panel-h"><h3>1. Choose the file</h3></div><div class="panel-b stack" style="gap:10px">
-        <p class="small muted">Fill in the template in Excel or Google Sheets and save it as CSV (UTF-8). Leave current_stage blank for a new project; for a project already under way, give the stage key and who confirms the earlier stages.</p>
-        <div class="row"><input type="file" accept=".csv,text/csv" id="im-file" data-testid="import-file" aria-label="CSV file">
+        <p class="small muted">Fill in the template in Excel or Google Sheets and upload it as .xlsx (first sheet) or CSV (UTF-8). Leave current_stage blank for a new project; for a project already under way, give the stage key and who confirms the earlier stages.</p>
+        <div class="row"><input type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" id="im-file" data-testid="import-file" aria-label="CSV or Excel file">
           <button class="btn primary sm" data-act="import-preview" data-testid="import-preview">Check the file</button>
           ${ui.data.importFile ? `<span class="small muted" data-testid="import-checked-file">Checked: ${esc(ui.data.importFile.name)}</span>` : ''}</div>
       </div></section>
@@ -2964,7 +2964,7 @@ document.addEventListener('click', async e => {
     }
     case 'import-preview': {
       const f = $('#im-file') && $('#im-file').files[0];
-      if (!f){ toast('Choose the CSV file first.'); break; }
+      if (!f){ toast('Choose the file first.'); break; }
       ui.data.importFile = f; ui.data.result = null;
       try { ui.data.preview = await API.importPreview(f); ui.error = null; }
       catch (err){ ui.data.preview = null; setError(err); }
