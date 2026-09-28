@@ -69,12 +69,12 @@ def demo_template():
 
 
 # App: api.js (API client) is bundled ahead of app.js, which uses it.
-page = html.replace('/*__APP_JS__*/', read('api.js') + '\n' + read('app.js'))
+page = html.replace('/*__APP_JS__*/', read('api.js') + '\n' + read('icons.js') + '\n' + read('app.js'))
 write(os.path.join(here, 'siteflow.html'), page)
 write(os.path.join(root, 'www', 'index.html'), full_document(page))
 
 # Demo: same app, in-browser API with sample data.
-demo_js = f'const DEMO_TEMPLATE = {json.dumps(demo_template(), ensure_ascii=False)};\n' + read('demo-api.js') + '\n' + read('app.js')
+demo_js = f'const DEMO_TEMPLATE = {json.dumps(demo_template(), ensure_ascii=False)};\n' + read('demo-api.js') + '\n' + read('icons.js') + '\n' + read('app.js')
 demo = html.replace('<title>SiteFlow</title>', '<title>SiteFlow Demo</title>', 1).replace('/*__APP_JS__*/', demo_js)
 write(os.path.join(root, 'demo', 'siteflow-demo-page.html'), demo)
 write(os.path.join(root, 'demo', 'SiteFlow-Demo.html'), full_document(demo))

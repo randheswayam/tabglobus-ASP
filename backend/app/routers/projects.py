@@ -7,6 +7,7 @@ from app.deps import get_current_user, get_visible_project, require_role, requir
 from app.models import Project, Role, User
 from app.modules.identity.fields import visible_fields
 from app.modules.projects import service as project_service
+from app.modules.workflow.health import project_health
 from app.schemas import ProjectIn, project_detail, project_summary, visit_history_row
 
 router = APIRouter(tags=["projects"], dependencies=[Depends(require_staff)])
@@ -39,7 +40,10 @@ def create_project(
 
 @router.get("/projects")
 def list_projects(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> list[dict]:
-    return [visible_fields(user, project_summary(p)) for p in db.scalars(visible_projects(user))]
+    return [
+        visible_fields(user, {**project_summary(p), "workflow": project_health(db, p)})
+        for p in db.scalars(visible_projects(user))
+    ]
 
 
 @router.get("/projects/{project_id}")

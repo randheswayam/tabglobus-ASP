@@ -123,7 +123,7 @@ def test_dashboard_rows_carry_the_workflow(client, auth_headers, new_project):
     assert stages["design_freeze_signoff"]["health"] == "waiting"
     assert stages["design_freeze_signoff"]["reason"] == "Sign-off package not sent to the client yet"
     assert wf["counts"]["done"] == 15 and wf["counts"]["waiting"] == 1
-    assert set(stages["setup"]) == {"key", "number", "label", "health", "reason"}
+    assert set(stages["setup"]) == {"key", "number", "label", "icon", "health", "reason"}
 
 
 def test_dashboard_marks_a_critical_problem_red(client, auth_headers, ready_project, evidence):
@@ -138,3 +138,39 @@ def test_dashboard_marks_a_critical_problem_red(client, auth_headers, ready_proj
     stages = {s["key"]: s for p in next(r for r in rows if r["id"] == pid)["workflow"]["phases"] for s in p["stages"]}
     assert stages["construction"]["health"] == "delayed"
     assert stages["construction"]["reason"] in {"Critical issue", "Overdue fix"}
+
+
+@pytest.mark.parametrize(
+    "states,expected",
+    [
+        (
+            {
+                "setup": "completed",
+                "discovery": "completed",
+                "baseline": "historical",
+                "requirements_signoff": "completed",
+            },
+            "done",
+        ),
+        ({"setup": "completed", "discovery": "active"}, "waiting"),
+        ({"setup": "completed"}, "waiting"),  # partly done, nothing open: still in progress
+        ({}, "upcoming"),
+    ],
+)
+def test_phase_health_is_the_worst_of_its_stages(states, expected):
+    view = _view(**{k: (v, []) for k, v in states.items()})
+    phase1 = stage_health(view, started={}, flags=[], signoff_stages={}, now=NOW)["phases"][0]
+    assert phase1["health"] == expected and phase1["icon"] == "folder"
+
+
+def test_a_delayed_stage_makes_its_phase_delayed():
+    view = _view(line_out=("active", []))
+    phases = stage_health(view, started={}, flags=[("legal_delay", "project")], signoff_stages={}, now=NOW)["phases"]
+    assert next(p for p in phases if p["number"] == 7)["health"] == "delayed"
+
+
+def test_project_list_carries_the_workflow_for_the_icons(client, auth_headers, new_project):
+    pid = new_project(start_stage="design_freeze_signoff", historical_confirmed_by="Parvez")["id"]
+    row = next(p for p in client.get("/projects", headers=auth_headers("architect")).json() if p["id"] == pid)
+    healths = [p["health"] for p in row["workflow"]["phases"]]
+    assert healths[:4] == ["done"] * 4 and healths[4] == "waiting" and healths[5:] == ["upcoming"] * 5

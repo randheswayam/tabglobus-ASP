@@ -12,6 +12,7 @@ from tests.test_signoffs import PDF
 ALLOWED_KEYS = {
     # project card and detail
     "id",
+    "icon",  # phase and stage icons (v4 Task 28), not sensitive
     "name",
     "location",
     "phase",

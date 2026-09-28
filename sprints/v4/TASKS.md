@@ -353,7 +353,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
   - Files: backend/app/modules/workflow/health.py, backend/app/workflow_config.py, backend/app/routers/dashboard.py, backend/tests/test_workflow_health.py
   - Completed: 2026-09-28. modules/workflow/health.py: pure stage_health(view, started, flags, signoff_stages, now), plus project_health(db, project). Each stage is done, waiting, delayed or upcoming, with a reason (the engine's first reason, the flag label, 'Completed before SiteFlow', or 'Open for N days (limit M)'). Flags map to stages: Legal delay to Site line-out; Critical issue, Overdue fix, Review overdue, Repeated rework and No recent visit to Construction quality stages; Client decision overdue to the sign-off stage it names. A finished stage is never marked red. STAGE_DELAYED_AFTER_DAYS is in workflow_config, empty by default (rule off), TBD_PARVEZ. Dashboard rows carry workflow {phases, counts}; staff only. Tests: test_workflow_health.py (16).
 
-- [ ] Task 28: Phase and stage icons replace the progress dashes (P0)
+- [x] Task 28: Phase and stage icons replace the progress dashes (P0)
   - Acceptance:
     - Each phase and stage in `stage_config` gains an `icon` key, following the workflow diagram (`docs/reference/workflow-diagram.jpeg`), for example:
       - project setup: folder;
@@ -388,6 +388,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
     - The client app's timeline uses the same icons, with the client-safe states only.
     - E2E: the Projects card for a project onboarded at the design freeze shows four green phase icons and a yellow phase-5 icon. Screenshots are saved.
   - Files: backend/app/stage_config.py, backend/tests/test_stage_config.py, web-src/icons.js, web-src/build.py, web-src/app.js, web-src/app.html, tests/e2e/v4-phase-icons.spec.js
+  - Completed: 2026-09-28. Every phase and stage in stage_config has an icon (following the workflow diagram: folder, people, document, check badge, hard hat, magnifier, pencil, drafting, ruler, people with check, gear, house, frame, pipes, building, card, sheet, surveyor, clipboard, city, sofa, key); tests check the set and that icons.js draws each. web-src/icons.js is inline SVG, bundled by build.py into the web, Android and demo builds. Health gains phase-level health (worst stage wins; partly done counts as waiting) and stage icons; the project list carries workflow. Projects cards and the dashboard Stage column show 10 phase icons coloured by health, each with an aria-label and a tooltip of its stages and reasons (hover, focus, or tap to toggle; Esc closes). The card is now role=button with Enter and Space. Phone tabs gained test ids. The client timeline shows the phase icons (icon added to the client allow-list). The frozen demo has no workflow, so it keeps the dashes. E2E v4-phase-icons.spec.js (3).
 
 - [ ] Task 29: Workflow callout drawn like the workflow diagram (P0)
   - Acceptance:

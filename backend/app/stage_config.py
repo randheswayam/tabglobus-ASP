@@ -16,16 +16,16 @@ can also complete any ordinary stage (services/stages.py STAFF_COMPLETERS).
 """
 
 PHASES = [
-    {"number": 1, "name": "Initiation and requirements"},
-    {"number": 2, "name": "Parallel pre-design"},
-    {"number": 3, "name": "Structural design"},
-    {"number": 4, "name": "Design development and coordination"},
-    {"number": 5, "name": "Client approval and commercial gate"},
-    {"number": 6, "name": "Detailed drawings"},
-    {"number": 7, "name": "Construction execution"},
-    {"number": 8, "name": "Civil completion"},
-    {"number": 9, "name": "Interiors"},
-    {"number": 10, "name": "Handover"},
+    {"number": 1, "name": "Initiation and requirements", "icon": "folder"},
+    {"number": 2, "name": "Parallel pre-design", "icon": "hard_hat"},
+    {"number": 3, "name": "Structural design", "icon": "gear"},
+    {"number": 4, "name": "Design development and coordination", "icon": "house"},
+    {"number": 5, "name": "Client approval and commercial gate", "icon": "check_badge"},
+    {"number": 6, "name": "Detailed drawings", "icon": "sheet"},
+    {"number": 7, "name": "Construction execution", "icon": "surveyor"},
+    {"number": 8, "name": "Civil completion", "icon": "city"},
+    {"number": 9, "name": "Interiors", "icon": "sofa"},
+    {"number": 10, "name": "Handover", "icon": "key"},
 ]
 
 
@@ -44,6 +44,33 @@ def _stage(key, number, label, phase, workstream, owner, predecessors, gates=(),
         "detail": detail,
     }
 
+
+# Icons follow the workflow diagram; web-src/icons.js draws them.
+STAGE_ICONS = {
+    "setup": "folder",
+    "discovery": "people",
+    "baseline": "document",
+    "requirements_signoff": "check_badge",
+    "predesign_site_visit": "hard_hat",
+    "investigations": "magnifier",
+    "concept": "pencil",
+    "tentative_elevations": "drafting",
+    "grid": "ruler",
+    "grid_freeze": "people_check",
+    "structural_design": "gear",
+    "architectural_package": "house",
+    "structural_package": "frame",
+    "mep": "pipes",
+    "elevations_package": "building",
+    "design_freeze_signoff": "check_badge",
+    "payment_gate": "card",
+    "detailed_drawings": "sheet",
+    "line_out": "surveyor",
+    "construction": "clipboard",
+    "civil_completion": "city",
+    "interiors_signoff": "sofa",
+    "handover_signoff": "key",
+}
 
 STAGES = [
     _stage(
@@ -288,6 +315,9 @@ STAGES = [
         detail="Final inspection, snag list and handover documents.",
     ),
 ]
+
+for _s in STAGES:
+    _s["icon"] = STAGE_ICONS[_s["key"]]
 
 SIGNOFF_STAGES = [s["key"] for s in STAGES if "client_signoff" in s["gates"]]
 

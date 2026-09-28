@@ -31,6 +31,20 @@ FLAG_STAGE = {
 }
 
 
+def phase_health(items: list[dict]) -> str:
+    """The worst of the phase's stages; a phase partly done with nothing open is still in progress."""
+    kinds = {i["health"] for i in items}
+    if "delayed" in kinds:
+        return "delayed"
+    if "waiting" in kinds:
+        return "waiting"
+    if kinds == {"done"}:
+        return "done"
+    if kinds == {"upcoming"}:
+        return "upcoming"
+    return "waiting"
+
+
 def _aware(t: datetime) -> datetime:
     return t.replace(tzinfo=UTC) if t.tzinfo is None else t
 
@@ -71,12 +85,27 @@ def stage_health(
         else:
             health, reason = "upcoming", None
         counts[health] += 1
-        return {"key": key, "number": s["number"], "label": s["label"], "health": health, "reason": reason}
+        return {
+            "key": key,
+            "number": s["number"],
+            "label": s["label"],
+            "icon": s["icon"],
+            "health": health,
+            "reason": reason,
+        }
 
-    phases = [
-        {"number": p["number"], "name": p["name"], "stages": [one(s) for s in sc.STAGES if s["phase"] == p["number"]]}
-        for p in sc.PHASES
-    ]
+    phases = []
+    for p in sc.PHASES:
+        items = [one(s) for s in sc.STAGES if s["phase"] == p["number"]]
+        phases.append(
+            {
+                "number": p["number"],
+                "name": p["name"],
+                "icon": p["icon"],
+                "health": phase_health(items),
+                "stages": items,
+            }
+        )
     return {"phases": phases, "counts": counts}
 
 

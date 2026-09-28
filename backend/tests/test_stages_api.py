@@ -25,7 +25,7 @@ def test_new_project_starts_at_project_setup(client, auth_headers, new_project):
     assert stages["discovery"]["state"] == "locked" and stages["discovery"]["reasons"] == ["Waiting for: Project setup"]
     assert view["current_stages"] == ["Project setup"]
     assert view["stage_progress"] == {"done": 0, "total": len(sc.STAGES)}
-    assert p["phase"] == {"number": 1, "name": "Initiation and requirements"}
+    assert p["phase"] == {"number": 1, "name": "Initiation and requirements", "icon": "folder"}
     assert p["current_stages"] == ["Project setup"]
     audit = [e["action"] for e in p["audit"]]
     assert "stage.activated" in audit

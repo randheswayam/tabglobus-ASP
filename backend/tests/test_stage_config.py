@@ -157,3 +157,44 @@ def test_signoff_stages_are_derived_from_the_gates():
         "interiors_signoff",
         "handover_signoff",
     ]
+
+
+ICONS = {
+    "folder",
+    "people",
+    "document",
+    "check_badge",
+    "hard_hat",
+    "magnifier",
+    "pencil",
+    "drafting",
+    "ruler",
+    "people_check",
+    "gear",
+    "house",
+    "frame",
+    "pipes",
+    "building",
+    "card",
+    "sheet",
+    "surveyor",
+    "clipboard",
+    "city",
+    "sofa",
+    "key",
+}
+
+
+def test_every_phase_and_stage_has_a_known_icon():
+    assert all(p["icon"] in ICONS for p in sc.PHASES)
+    assert all(s["icon"] in ICONS for s in sc.STAGES), [s["key"] for s in sc.STAGES if s.get("icon") not in ICONS]
+    by = {s["key"]: s["icon"] for s in sc.STAGES}
+    assert by["setup"] == "folder" and by["handover_signoff"] == "key" and by["line_out"] == "surveyor"
+
+
+def test_the_web_icon_set_draws_every_icon():
+    from pathlib import Path
+
+    js = (Path(__file__).resolve().parents[2] / "web-src" / "icons.js").read_text(encoding="utf-8")
+    for name in ICONS:
+        assert f"{name}:" in js, name

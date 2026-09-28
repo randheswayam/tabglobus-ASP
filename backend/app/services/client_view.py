@@ -52,6 +52,7 @@ def project_detail(db: Session, project: Project, user: User, signoff_out) -> di
             "key": s["key"],
             "number": s["number"],
             "label": s["label"],
+            "icon": s["icon"],
             "detail": s["detail"],
             "workstream": s["workstream"],
             "state": _STATE[r.status],
@@ -70,6 +71,7 @@ def project_detail(db: Session, project: Project, user: User, signoff_out) -> di
             {
                 "number": p["number"],
                 "name": p["name"],
+                "icon": p["icon"],
                 "stages": [stage(s) for s in sc.STAGES if s["phase"] == p["number"]],
             }
             for p in sc.PHASES

@@ -1,4 +1,4 @@
-/* global SiteFlowAPI */
+/* global SiteFlowAPI, wfIcon */
 (function(){
 'use strict';
 /* ---------- helpers ---------- */
@@ -113,7 +113,7 @@ function shell(){
       ${API.demo ? `<button class="btn ghost sm" data-act="reset-demo" data-testid="reset-demo">Reset demo data</button>` : ''}
       <div class="credit">${API.demo ? 'Demo with sample data · ' : ''}SiteFlow by TAN GLOBUS AI</div>
     </div>`;
-  $('#tabs').innerHTML = nav.map(([r, i, l]) => `<button data-go="${r}" class="${cur === r ? 'on' : ''}">${ico(i)}${l}${count(r)}</button>`).join('');
+  $('#tabs').innerHTML = nav.map(([r, i, l]) => `<button data-go="${r}" data-testid="tab-${r}" class="${cur === r ? 'on' : ''}">${ico(i)}${l}${count(r)}</button>`).join('');
   return `<div class="mtop"><div class="brand"><span class="brand-mark">${ico('logo')}</span><b>SiteFlow</b></div><div class="row small">${who}<button class="btn ghost sm" data-act="sign-out" data-testid="sign-out">Sign out</button></div></div>
     ${navigator.onLine === false ? `<div class="offline">${ico('cloud')}Offline. Drafts stay on this device; submit when you are back in coverage.</div>` : ''}`;
 }
@@ -126,17 +126,32 @@ function setError(e, labels){
   const items = e instanceof API.ApiError ? [...e.missing.map(k => `Missing: ${lab(k)}`), ...e.invalid.map(k => `Invalid: ${lab(k)}`)] : [];
   ui.error = {message: e.message, items};
 }
-function projectCard(p){
+/* The 10 phases as icons, each coloured by its health (worst stage wins), with a tooltip of its stages.
+   Hover or focus shows the tooltip; a tap toggles it. Colour is never the only signal: aria-label and tooltip text. */
+const HEALTH_LABEL = {done: 'completed', waiting: 'waiting', delayed: 'delayed', upcoming: 'upcoming'};
+const HEALTH_MARK = {done: 'check', waiting: 'cal', delayed: 'alert', upcoming: ''};
+function phaseStrip(p){
+  const wf = p.workflow;
+  if (!wf || typeof wfIcon !== 'function') return legacySteps(p);
+  return `<div class="pstrip" data-testid="phase-strip-${p.id}">${wf.phases.map(ph => `<span class="picon h-${ph.health}" role="img" tabindex="0" data-act="phase-tip"
+      data-testid="phase-icon-${p.id}-${ph.number}" aria-label="Phase ${ph.number}, ${esc(ph.name)}: ${HEALTH_LABEL[ph.health]}">${wfIcon(ph.icon)}
+      <span class="ptip" role="tooltip"><b>Phase ${ph.number} · ${esc(ph.name)}</b>${ph.stages.map(s => `<span class="pt-row h-${s.health}">${HEALTH_MARK[s.health] ? ico(HEALTH_MARK[s.health]) : '<i class="pt-dot"></i>'}<span>${s.number ? esc(s.number) + '. ' : ''}${esc(s.label)}<br><span class="small">${esc(HEALTH_LABEL[s.health])}${s.reason && s.health !== 'done' ? ' · ' + esc(s.reason) : ''}</span></span></span>`).join('')}</span></span>`).join('')}</div>`;
+}
+function legacySteps(p){
   const at = p.phase ? p.phase.number : 0;
   const cls = n => !p.phase ? '' : n < at ? 'done' : n === at ? 'active' : '';
+  return `<div class="ministep" aria-label="Phase ${at} of 10">${Array.from({length: 10}, (_, i) => `<i class="${cls(i + 1)}"></i>`).join('')}</div>`;
+}
+function projectCard(p){
+  const at = p.phase ? p.phase.number : 0;
   const now = (p.current_stages || []).join(' + ');
-  return `<button class="pcard" data-act="open-project" data-pid="${p.id}" data-testid="project-card-${p.id}">
+  return `<div class="pcard" role="button" tabindex="0" data-act="open-project" data-pid="${p.id}" data-testid="project-card-${p.id}" aria-label="Open ${esc(p.name)}, phase ${at} of 10">
     <div><h3>${esc(p.name)}</h3><div class="loc">${esc(p.location)}</div></div>
-    <div class="ministep" aria-label="Phase ${at} of 10">${Array.from({length: 10}, (_, i) => `<i class="${cls(i + 1)}"></i>`).join('')}</div>
+    ${phaseStrip(p)}
     <div class="now"><span>${now ? `<span class="muted">Now:</span> <b>${esc(now)}</b>` : '<b>All stages complete</b>'}</span><span class="mono muted">${pct(p.official_progress)}</span></div>
     ${p.phase ? `<div class="small muted">Phase ${p.phase.number} · ${esc(p.phase.name)}</div>` : ''}
     <div class="row small muted">${p.civil_engineer ? `<span>${esc(p.civil_engineer.name)}</span>` : ''}${p.latest_visit_status ? pill(VISIT_PILL[p.latest_visit_status], VISIT_LABEL[p.latest_visit_status]) : ''}</div>
-  </button>`;
+  </div>`;
 }
 function auditText(e){
   const d = e.detail || {};
@@ -251,7 +266,7 @@ V.dashboard = {
           ${d.all_projects.length ? `<div class="tbl-wrap"><table class="ftable dash-table"><thead><tr><th>Project</th><th>Stage</th><th>Client</th><th>Progress</th><th>Open problems</th><th>Last visit</th><th>Flags</th></tr></thead><tbody>
             ${d.all_projects.map(p => `<tr data-act="open-project" data-pid="${p.id}" data-testid="dash-row-${p.id}" class="clickable">
               <td><b>${esc(p.name)}</b><div class="small muted">${esc(p.location)}</div></td>
-              <td>${p.phase ? `<span class="small muted">Phase ${p.phase.number}</span><div>${esc((p.current_stages || []).join(' + ') || 'Complete')}</div>` : esc(p.current_step || 'Complete')}</td>
+              <td>${p.phase ? `<span class="small muted">Phase ${p.phase.number}</span><div>${esc((p.current_stages || []).join(' + ') || 'Complete')}</div>${p.workflow ? phaseStrip(p) : ''}` : esc(p.current_step || 'Complete')}</td>
               <td>${p.client ? esc(p.client) : '<span class="muted small">Not invited</span>'}${p.waiting_for_client ? `<div>${pill('submitted', 'Waiting for client')}</div>` : ''}</td>
               <td class="mono">${pct(p.official_progress)}</td>
               <td class="mono">${p.open_problems}</td><td class="small">${p.last_visit_at ? fmtStamp(p.last_visit_at) : '<span class="muted">None yet</span>'}</td>
@@ -500,7 +515,7 @@ V['client-project'] = {
           // Finished phases fold to one line so the current work stays near the top on a phone.
           const folded = done && !(ui.p.unfold || []).includes(ph.number);
           return `<div class="phase ${done ? 'phase-done' : cur ? 'phase-cur' : ''}" data-testid="client-phase-${ph.number}">
-            <div class="phase-h"><span class="phase-n">${ph.number}</span><b>${esc(ph.name)}</b>
+            <div class="phase-h">${ph.icon && typeof wfIcon === 'function' ? `<span class="picon ${done ? 'h-done' : cur ? 'h-waiting' : 'h-upcoming'}" aria-hidden="true">${wfIcon(ph.icon)}</span>` : `<span class="phase-n">${ph.number}</span>`}<b>${esc(ph.name)}</b>
               ${done ? `<button class="btn ghost sm" data-act="client-unfold" data-n="${ph.number}" data-testid="client-unfold-${ph.number}">${folded ? `Completed · show ${ph.stages.length} stage${ph.stages.length === 1 ? '' : 's'}` : 'Hide'}</button>` : ''}</div>
             ${folded ? '' : ph.stages.map(s => { const [cls, label] = CLIENT_STATE[s.state];
               return `<div class="cstage" data-testid="client-stage-${s.key}"><div><b>${s.number ? esc(s.number) + '. ' : ''}${esc(s.label)}</b>
@@ -1252,11 +1267,22 @@ function syncLegalSave(){
 }
 
 /* ---------- events ---------- */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape'){ document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open')); return; }
+  const el = e.target;
+  if ((e.key === 'Enter' || e.key === ' ') && el.matches && el.matches('[role="button"][data-act]')){ e.preventDefault(); el.click(); }
+});
+
 document.addEventListener('click', async e => {
   const g = e.target.closest('[data-go]'); if (g){ go(g.dataset.go); return; }
   const a = e.target.closest('[data-act]'); if (!a) return;
   switch (a.dataset.act){
     case 'open-project': go('project', {pid: +a.dataset.pid}); break;
+    case 'phase-tip': {
+      const open = a.classList.contains('open');
+      document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open'));
+      if (!open) a.classList.add('open');
+      break; }
     case 'sign-out': await API.logout(); showLogin(); break;
     case 'import-template': {
       try { const url = await API.importTemplateUrl(); const link = document.createElement('a');

@@ -238,7 +238,7 @@ def waiting(client, auth_headers, new_project, client_user, db):
 def test_rows_show_phase_stage_and_client(client, auth_headers, portfolio, waiting):
     rows = {r["name"]: r for r in _dash(client, auth_headers("architect"))["all_projects"]}
     s = rows["Shinde Bungalow"]
-    assert s["phase"] == {"number": 1, "name": "Initiation and requirements"}
+    assert s["phase"] == {"number": 1, "name": "Initiation and requirements", "icon": "folder"}
     assert s["current_stages"] == ["Client sign-off: preliminary requirements"]
     assert s["stage_progress"]["done"] == 3 and s["client"] == "Mr. Gokhale"
     assert s["waiting_for_client"]["stage"] == "Client sign-off: preliminary requirements"
