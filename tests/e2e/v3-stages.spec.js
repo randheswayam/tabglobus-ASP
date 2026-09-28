@@ -90,3 +90,21 @@ test('architect onboards an in-progress project at detailed drawings from the Ne
   await expect(page.getByTestId('audit-list')).toContainText('onboarded mid-way (earlier stages confirmed by Parvez)');
   await shot(page, 'v3-22-02-onboarded');
 });
+
+test('architect records the client and site on a new project', async ({ page }) => {
+  await signIn(page, 'architect');
+  await page.getByTestId('nav-projects').click();
+  await page.getByTestId('new-project-btn').click();
+  await page.getByTestId('np-name').fill('Deo Residence');
+  await page.getByTestId('np-location').fill('Aundh, Pune');
+  await page.getByTestId('np-client').fill('Deo family');
+  await page.getByTestId('np-client-phone').fill('+91 98220 33333');
+  await page.getByTestId('np-site').fill('Plot 7, ITI Road');
+  await page.getByTestId('np-city').fill('Pune');
+  await shot(page, 'task17-01-client-and-site');
+  await page.getByTestId('np-submit').click();
+  await expect(page.getByTestId('project-client')).toContainText('Deo family');
+  await expect(page.getByTestId('project-client')).toContainText('+91 98220 33333');
+  await expect(page.getByTestId('project-site')).toContainText('Plot 7, ITI Road, Pune');
+  await shot(page, 'task17-02-project-shows-client');
+});

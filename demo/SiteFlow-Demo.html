@@ -1882,6 +1882,12 @@ V['new-project'] = {
       <div class="field"><label for="np-loc">Location <span class="req">Required</span></label><input id="np-loc" data-testid="np-location" value="${esc(f.location)}" placeholder="Plot, road, area, city"></div>
       <div class="field"><label for="np-eng">Civil Engineer <span class="req">Required</span></label><select id="np-eng" data-testid="np-engineer">${eng.map(u => `<option value="${u.id}" ${String(u.id) === String(f.civil_engineer_id) ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></div>
       <div class="field"><label for="np-date">Legal Approval expected by</label><input id="np-date" data-testid="np-legal-date" type="date" value="${esc(f.legal_expected_date)}"></div>
+      <div class="field full subh">Client and site <span class="small muted">optional; the client's contacts are staff-only</span></div>
+      <div class="field"><label for="np-client">Client name</label><input id="np-client" data-testid="np-client" value="${esc(f.client_name)}" placeholder="Family, person or company"></div>
+      <div class="field"><label for="np-client-phone">Signatory phone</label><input id="np-client-phone" data-testid="np-client-phone" type="tel" value="${esc(f.client_phone)}" placeholder="+91"></div>
+      <div class="field"><label for="np-client-email">Signatory email</label><input id="np-client-email" data-testid="np-client-email" type="email" value="${esc(f.client_email)}"></div>
+      <div class="field"><label for="np-site">Site address</label><input id="np-site" data-testid="np-site" value="${esc(f.site_address)}" placeholder="Plot and road"></div>
+      <div class="field"><label for="np-city">City</label><input id="np-city" data-testid="np-city" value="${esc(f.site_city)}" placeholder="Pune"></div>
       ${flow.length ? `<details class="field full onboard" ${f.start_stage ? 'open' : ''}><summary data-testid="np-in-progress"><b>Already in progress?</b> <span class="small muted">Start the project at its current stage.</span></summary>
         <div class="fgrid" style="margin-top:10px">
           <div class="field"><label for="np-start">Current stage</label><select id="np-start" data-testid="np-start"><option value="">A new project (start at Project setup)</option>
@@ -1921,6 +1927,8 @@ V.project = {
       <div class="stack">
         <section class="panel"><div class="panel-h"><h3>Project</h3></div><div class="panel-b"><dl class="kv">
           <dt>Location</dt><dd>${esc(p.location)}</dd>
+          ${p.client ? `<dt>Client</dt><dd data-testid="project-client">${esc(p.client.name)}${p.client.contacts.filter(c => c.is_signatory).map(c => `<div class="small muted">${esc(c.name)}${c.phone ? ` · ${esc(c.phone)}` : ''}${c.email ? ` · ${esc(c.email)}` : ''}</div>`).join('')}</dd>` : ''}
+          ${p.site ? `<dt>Site</dt><dd data-testid="project-site">${esc(p.site.address)}${p.site.city ? `, ${esc(p.site.city)}` : ''}</dd>` : ''}
           <dt>Civil Engineer</dt><dd>${esc(p.civil_engineer ? p.civil_engineer.name : '—')}</dd>
           <dt>Template</dt><dd>Residential v${p.template.version}</dd></dl></div></section>
         ${ui.data.clients ? clientPanel(ui.data.clients) : ''}
@@ -2740,11 +2748,17 @@ document.addEventListener('submit', async e => {
       }
       case 'new-project': {
         const start = $('#np-start') ? $('#np-start').value : '', confirmer = $('#np-confirmer') ? $('#np-confirmer').value.trim() : '';
+        const val = id => ($(id) ? $(id).value.trim() : '');
+        const cl = {client_name: val('#np-client'), client_phone: val('#np-client-phone'), client_email: val('#np-client-email'),
+          site_address: val('#np-site'), site_city: val('#np-city')};
         const body = {name: $('#np-name').value.trim(), location: $('#np-loc').value.trim(),
           civil_engineer_id: +$('#np-eng').value || null, legal_expected_date: $('#np-date').value || null,
-          ...(start ? {start_stage: start, historical_confirmed_by: confirmer} : {})};
+          ...(start ? {start_stage: start, historical_confirmed_by: confirmer} : {}),
+          ...(cl.client_name ? {client: {name: cl.client_name,
+            contacts: cl.client_phone || cl.client_email ? [{name: cl.client_name, phone: cl.client_phone || null, email: cl.client_email || null, is_signatory: true}] : []}} : {}),
+          ...(cl.site_address ? {site: {address: cl.site_address, city: cl.site_city || null}} : {})};
         const miss = [!body.name && 'Project name', !body.location && 'Location', !body.civil_engineer_id && 'Civil Engineer'].filter(Boolean);
-        ui.p.form = {...body, start_stage: start, historical_confirmed_by: confirmer};
+        ui.p.form = {...body, start_stage: start, historical_confirmed_by: confirmer, ...cl};
         if (miss.length){ ui.error = {message: `${miss.join(', ')} ${miss.length === 1 ? 'is' : 'are'} required.`, items: []}; render(); return; }
         if (start && !confirmer){ ui.error = {message: 'Who confirmed the earlier stages? Add a name to onboard a project mid-way.', items: []}; render(); return; }
         try { const p = await API.createProject(body); toast(`${p.name} created. ${(p.current_stages || []).join(' + ') || 'The first stage'} is open.`); await go('project', {pid: p.id}); }

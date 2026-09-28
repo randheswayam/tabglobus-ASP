@@ -100,6 +100,48 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class Client(Base):
+    """The practice's client (a family, person or company), with contacts. Not a login: client app users are
+    Users with the client role (decision 0002)."""
+
+    __tablename__ = "clients"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    type: Mapped[str | None] = mapped_column(String(40))
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    contacts: Mapped[list["ClientContact"]] = relationship(
+        back_populates="client", order_by="ClientContact.id", cascade="all, delete-orphan"
+    )
+
+
+class ClientContact(Base):
+    __tablename__ = "client_contacts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    email: Mapped[str | None] = mapped_column(String(254))
+    phone: Mapped[str | None] = mapped_column(String(40))
+    is_signatory: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    client: Mapped[Client] = relationship(back_populates="contacts")
+
+
+class Site(Base):
+    __tablename__ = "sites"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    address: Mapped[str] = mapped_column(String(300))
+    city: Mapped[str | None] = mapped_column(String(100))
+    lat: Mapped[float | None] = mapped_column(Float)
+    lng: Mapped[float | None] = mapped_column(Float)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class Project(Base):
     __tablename__ = "projects"
 
@@ -111,7 +153,11 @@ class Project(Base):
     created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     official_progress: Mapped[float] = mapped_column(Float, default=0.0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    client_id: Mapped[int | None] = mapped_column(ForeignKey("clients.id"), index=True)
+    site_id: Mapped[int | None] = mapped_column(ForeignKey("sites.id"))
 
+    client: Mapped[Client | None] = relationship()
+    site: Mapped[Site | None] = relationship()
     members: Mapped[list["ProjectMember"]] = relationship(back_populates="project", cascade="all, delete-orphan")
     steps: Mapped[list["WorkflowStep"]] = relationship(
         back_populates="project", order_by="WorkflowStep.order", cascade="all, delete-orphan"

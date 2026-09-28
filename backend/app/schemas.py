@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import stage_config as sc
 from app.models import AuditEvent, Project, Role, SiteVisit, StepStatus, User
+from app.modules.projects.clients import ClientIn, SiteIn, client_out, site_out
 
 
 def _not_blank(v: str) -> str:
@@ -23,6 +24,8 @@ class ProjectIn(BaseModel):
     # Onboarding a project that is already in progress (PRD 7.19): earlier stages become historical.
     start_stage: str | None = None
     historical_confirmed_by: str | None = None
+    client: ClientIn | None = None
+    site: SiteIn | None = None
 
     _strip = field_validator("name", "location")(_not_blank)
 
@@ -196,6 +199,8 @@ def project_detail(db: Session, project: Project) -> dict:
     return {
         **project_summary(project),
         "template": {"id": project.template_id, "version": project.template_version},
+        "client": client_out(project.client),
+        "site": site_out(project.site),
         "steps": [{"order": s.order, "name": s.name, "status": s.status.value} for s in project.steps],
         "legal_approval": legal_out(project),
         "latest_visit": visit_brief(latest_visit(project)),

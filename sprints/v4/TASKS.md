@@ -204,7 +204,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
 
 ### S04 — Project records and onboarding
 
-- [ ] Task 17: Client, contacts and Site records (P0)
+- [x] Task 17: Client, contacts and Site records (P0)
   - Acceptance:
     - New models, with a migration and a nullable `client_id` and `site_id` on `projects`:
       - `Client` (name, type, notes);
@@ -216,6 +216,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - The New project form gains client and site fields.
     - Tests: `test_clients_sites.py`.
   - Files: backend/app/modules/projects/__init__.py, backend/app/modules/projects/clients.py, backend/app/models.py, backend/migrations/versions/0013_clients_sites.py, backend/app/routers/projects.py, web-src/app.js, web-src/api.js, backend/tests/test_clients_sites.py
+  - Completed: 2026-09-28. New Client, ClientContact and Site models, and nullable projects.client_id and site_id (migration 0012, with named foreign keys; downgrade checked). modules/projects/clients.py: GET /clients (staff) and POST /clients (Architect or Admin). POST /projects accepts client and site as {id} or inline; the project detail returns them; creation is audited. The client view is unchanged and a test proves no contact phone numbers or notes reach it. The New project form gains client name, signatory phone and email, site address and city, and the project panel shows them. Tests: test_clients_sites.py (14) and one E2E case. 544 pass on SQLite and PostgreSQL.
 
 - [ ] Task 18: Project fee plan fields (P0)
   - Acceptance:

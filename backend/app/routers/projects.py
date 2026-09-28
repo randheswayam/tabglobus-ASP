@@ -8,6 +8,7 @@ from app import template_config as tc
 from app.db import get_db
 from app.deps import get_current_user, get_visible_project, require_role, require_staff, visible_projects
 from app.models import LegalApproval, Project, ProjectMember, Role, StepStatus, User, WorkflowStep
+from app.modules.projects.clients import resolve_client, resolve_site
 from app.schemas import ProjectIn, project_detail, project_summary, visit_history_row
 from app.services import audit, stages
 
@@ -22,7 +23,13 @@ def create_project(
     if engineer is None or engineer.role != Role.civil_engineer or not engineer.is_active:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "civil_engineer_id must be an active Civil Engineer")
 
-    project = Project(name=body.name, location=body.location, created_by_id=user.id)
+    project = Project(
+        name=body.name,
+        location=body.location,
+        created_by_id=user.id,
+        client=resolve_client(db, body.client, user),
+        site=resolve_site(db, body.site),
+    )
     db.add(project)
     db.flush()
 
