@@ -449,7 +449,7 @@ On the dashboard and the Projects cards, the progress dashes become phase icons 
 
 A small image of each project's 3D model sits beside the project name, so each project is easy to recognise. Only the main (principal) architect sees an overview of overall completion, client fees due and received, major milestones, and major issues with how each is being resolved.
 
-- [ ] Task 31: Project image (3D model render) beside the name (P0)
+- [x] Task 31: Project image (3D model render) beside the name (P0)
   - Acceptance:
     - The Architect or Admin can upload one project image, a render or screenshot of the 3D model, as JPEG, PNG or WEBP:
       - `PUT /projects/{id}/image` stores it through `filecheck` and the storage interface under a random key, and records its sha256;
@@ -469,6 +469,7 @@ A small image of each project's 3D model sits beside the project name, so each p
     - The client app doesn't show the image yet; this is recorded as an open question in `docs/PROGRESS.md`.
     - Tests cover upload, the type and signature checks, size, thumbnail dimensions, visibility, and replace or remove. An E2E test uploads an image and sees it on the card and the dashboard row. Screenshots are saved.
   - Files: backend/app/models.py, backend/migrations/versions/0021_project_image.py, backend/app/modules/projects/image.py, backend/requirements.txt, backend/app/workflow_config.py, web-src/app.js, web-src/api.js, web-src/app.html, backend/tests/test_project_image.py, tests/e2e/v4-project-image.spec.js
+  - Completed: 2026-09-28. modules/projects/image.py: PUT, DELETE and GET /projects/{id}/image. Set and remove are for the Architect or Admin. The image is JPEG, PNG or WEBP, checked by type, signature and Pillow decoding (broken files get 415), and limited by MAX_PROJECT_IMAGE_MB (TBD_PARVEZ, placeholder = photo limit). The original and a 96x96 centre-cropped JPEG thumbnail are stored under random keys with sha256; old files are removed on replace; both actions are audited. GET (size=full|thumb) serves inline with nosniff to anyone who can see the project. Project list, detail and dashboard rows carry image {thumb_url, updated_at}. Web: the thumbnail beside the name on dashboard All Projects and Needs Attention rows, Projects cards and the project header (larger, full image), with alt '<name> — 3D view'; a phase-icon tile when there is none; Add, Replace and Remove on the project page. Fixed along the way: CORS did not allow PUT, now tested. Pillow is added to requirements (pip-audit clean). Migration 0017. The client app doesn't show the image yet (open question in PROGRESS). Tests: test_project_image.py (12) and v4-project-image.spec.js; 683 pass on SQLite and PostgreSQL.
 
 - [ ] Task 32: Principal architect designation (P0)
   - Acceptance:

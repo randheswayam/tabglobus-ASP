@@ -162,6 +162,12 @@ class Project(Base):
     currency: Mapped[str] = mapped_column(String(3), default="INR", server_default="INR")
     fee_basis: Mapped[str | None] = mapped_column(String(200))
     fee_notes: Mapped[str | None] = mapped_column(Text)
+    # Project image (a render of the 3D model) and its thumbnail, in storage under random keys.
+    image_key: Mapped[str | None] = mapped_column(String(300))
+    image_thumb_key: Mapped[str | None] = mapped_column(String(300))
+    image_content_type: Mapped[str | None] = mapped_column(String(40))
+    image_sha256: Mapped[str | None] = mapped_column(String(64))
+    image_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     client: Mapped[Client | None] = relationship()
     site: Mapped[Site | None] = relationship()

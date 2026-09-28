@@ -8,6 +8,7 @@ from app.db import create_all, migrate
 from app.modules.identity import admin as identity_admin
 from app.modules.projects import clients as project_clients
 from app.modules.projects import fee_plan as project_fee_plan
+from app.modules.projects import image as project_image
 from app.modules.projects import importer as project_importer
 from app.modules.workflow import attachments as workflow_attachments
 from app.modules.workflow import exceptions as workflow_exceptions
@@ -46,7 +47,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
@@ -63,6 +64,7 @@ app.include_router(workflow_attachments.router)
 app.include_router(project_clients.router)
 app.include_router(project_fee_plan.router)
 app.include_router(project_importer.router)
+app.include_router(project_image.router)
 app.include_router(project_importer.batches_router)
 app.include_router(legal.router)
 app.include_router(site_visits.router)

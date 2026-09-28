@@ -9,6 +9,7 @@ from app.models import AuditEvent, Project, Role, SiteVisit, StepStatus, User
 from app.modules.identity.fields import redact_audit, visible_fields
 from app.modules.projects.clients import ClientIn, SiteIn, client_out, site_out
 from app.modules.projects.fee_plan import fee_plan_out
+from app.modules.projects.image import image_out
 
 
 def _not_blank(v: str) -> str:
@@ -177,6 +178,7 @@ def project_summary(project: Project) -> dict:
         "civil_engineer": user_brief(civil_engineer_of(project)),
         **stage_summary(project),
         "fee_plan": fee_plan_out(project),  # removed by visible_fields for roles without access
+        "image": image_out(project),
     }
 
 

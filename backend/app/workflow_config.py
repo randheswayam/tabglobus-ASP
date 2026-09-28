@@ -81,3 +81,6 @@ STAGE_DELAYED_AFTER_DAYS: dict[str, int] = {}
 # TBD_PARVEZ (D-05): the basis of these percentages (total fee, stage fee or another basis) is still open.
 UPFRONT_FEE_PERCENT = 50  # before detailed drawings (stage 12)
 FINISHING_FEE_PERCENT = 80  # before the finishing package (tile and material selection)
+
+# TBD_PARVEZ: size limit for the project image (a render or screenshot of the 3D model). Placeholder: the photo limit.
+MAX_PROJECT_IMAGE_MB = MAX_PHOTO_MB

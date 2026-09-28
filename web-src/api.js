@@ -249,6 +249,20 @@ const SiteFlowAPI = (() => {
       if (!r.ok) throw new ApiError(r.status, 'Could not load the file');
       return (mediaUrls[k] = URL.createObjectURL(await r.blob()));
     },
+    setProjectImage(pid, file){ const fd = new FormData(); fd.append('file', file);
+      return authFetch(`${base()}/projects/${pid}/image`, {method: 'PUT', body: fd}).then(async r => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok) throw new ApiError(r.status, messageOf(data, r.status), data && data.detail);
+        Object.keys(mediaUrls).filter(k => k.startsWith(`pi${pid}-`)).forEach(k => delete mediaUrls[k]);
+        return data; }); },
+    removeProjectImage: pid => request('DELETE', `/projects/${pid}/image`),
+    async projectImageUrl(pid, size, stamp){
+      const k = `pi${pid}-${size}-${stamp || ''}`;
+      if (mediaUrls[k]) return mediaUrls[k];
+      const r = await authFetch(`${base()}/projects/${pid}/image?size=${size}`);
+      if (!r.ok) throw new ApiError(r.status, 'Could not load the project image');
+      return (mediaUrls[k] = URL.createObjectURL(await r.blob()));
+    },
     // Files need the Bearer token, which an <img src> can't send, so fetch them as blobs.
     async mediaUrl(id){
       if (mediaUrls[id]) return mediaUrls[id];

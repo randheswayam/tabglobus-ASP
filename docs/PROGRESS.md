@@ -56,3 +56,4 @@
 ## Sprint v4 notes (in progress)
 - **Client demo (published v3 Artifact): not updated, as requested on 28 September 2026.** It doesn't show v4 features: stage files, exceptions, the Team and Import screens, the fee plan, or the dashboard icons and callout. A later demo update is possible if asked. `web-src/build.py` still gives the demo its v3 stage shape, so the demo build and its E2E test keep passing.
 - **Found, not fixed (the demo is frozen):** `demo-api.js` `uploadSignoffAttachment` strips only `/` from file names, not `\` as intended.
+- **Open question:** should the client app show the project image (the 3D view) on the client's own project? It doesn't yet (Task 31).

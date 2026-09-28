@@ -10,3 +10,4 @@ PyJWT>=2.9
 alembic>=1.13
 python-multipart>=0.0.9
 tzdata>=2024.1
+pillow>=11.0

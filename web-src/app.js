@@ -203,6 +203,14 @@ function phaseStrip(p){
       data-testid="phase-icon-${p.id}-${ph.number}" aria-label="Phase ${ph.number}, ${esc(ph.name)}: ${HEALTH_LABEL[ph.health]}">${wfIcon(ph.icon)}
       <span class="ptip" role="tooltip"><b>Phase ${ph.number} · ${esc(ph.name)}</b>${ph.stages.map(s => `<span class="pt-row h-${s.health}">${HEALTH_MARK[s.health] ? ico(HEALTH_MARK[s.health]) : '<i class="pt-dot"></i>'}<span>${s.number ? esc(s.number) + '. ' : ''}${esc(s.label)}<br><span class="small">${esc(HEALTH_LABEL[s.health])}${s.reason && s.health !== 'done' ? ' · ' + esc(s.reason) : ''}</span></span></span>`).join('')}</span></span>`).join('')}</div>`;
 }
+/* The project image (a render of the 3D model) as a thumbnail; the current phase's icon when there is none. */
+function projectThumb(p, size = 'sm'){
+  const alt = `${esc(p.name)} — 3D view`;
+  if (p.image && API.projectImageUrl) return `<span class="pthumb ${size}" data-testid="project-thumb-${p.id}"><img data-pimg="${p.id}" data-pstamp="${esc(p.image.updated_at || '')}" alt="${alt}"></span>`;
+  const ph = p.workflow && p.workflow.phases.find(x => x.health === 'waiting' || x.health === 'delayed');
+  const icon = ph ? ph.icon : (p.workflow ? 'key' : 'folder');
+  return `<span class="pthumb ${size} none" data-testid="project-thumb-${p.id}" aria-hidden="true">${typeof wfIcon === 'function' ? wfIcon(icon) : ''}</span>`;
+}
 function legacySteps(p){
   const at = p.phase ? p.phase.number : 0;
   const cls = n => !p.phase ? '' : n < at ? 'done' : n === at ? 'active' : '';
@@ -212,7 +220,7 @@ function projectCard(p){
   const at = p.phase ? p.phase.number : 0;
   const now = (p.current_stages || []).join(' + ');
   return `<div class="pcard" role="button" tabindex="0" data-act="open-project" data-pid="${p.id}" data-testid="project-card-${p.id}" aria-label="Open ${esc(p.name)}, phase ${at} of 10" ${wfTrigger(p)}>
-    <div><h3>${esc(p.name)}</h3><div class="loc">${esc(p.location)}</div></div>
+    <div class="pcard-h">${projectThumb(p, 'md')}<div><h3>${esc(p.name)}</h3><div class="loc">${esc(p.location)}</div></div></div>
     ${phaseStrip(p)}
     <div class="now"><span>${now ? `<span class="muted">Now:</span> <b>${esc(now)}</b>` : '<b>All stages complete</b>'}</span><span class="mono muted">${pct(p.official_progress)}</span></div>
     ${p.phase ? `<div class="small muted">Phase ${p.phase.number} · ${esc(p.phase.name)}</div>` : ''}
@@ -331,7 +339,7 @@ V.dashboard = {
         <section class="panel" data-testid="panel-projects"><div class="panel-h"><h2>All Projects</h2></div>
           ${d.all_projects.length ? `<div class="tbl-wrap"><table class="ftable dash-table"><thead><tr><th>Project</th><th>Stage</th><th>Client</th><th>Progress</th><th>Open problems</th><th>Last visit</th><th>Flags</th></tr></thead><tbody>
             ${d.all_projects.map(p => `<tr data-act="open-project" data-pid="${p.id}" data-testid="dash-row-${p.id}" class="clickable" ${wfTrigger(p)}>
-              <td><b>${esc(p.name)}</b><div class="small muted">${esc(p.location)}</div></td>
+              <td><div class="row" style="gap:8px;align-items:flex-start">${projectThumb(p)}<div><b>${esc(p.name)}</b><div class="small muted">${esc(p.location)}</div></div></div></td>
               <td>${p.phase ? `<span class="small muted">Phase ${p.phase.number}</span><div>${esc((p.current_stages || []).join(' + ') || 'Complete')}</div>${p.workflow ? phaseStrip(p) : ''}` : esc(p.current_step || 'Complete')}</td>
               <td>${p.client ? esc(p.client) : '<span class="muted small">Not invited</span>'}${p.waiting_for_client ? `<div>${pill('submitted', 'Waiting for client')}</div>` : ''}</td>
               <td class="mono">${pct(p.official_progress)}</td>
@@ -360,7 +368,7 @@ const waitedText = m => m < 60 ? `${m} min` : m < 1440 ? `${Math.floor(m / 60)} 
 function attentionRow(p){
   return `<div class="task attn-row" data-testid="attention-${p.id}" ${wfTrigger(p)}>
     <span class="ti" style="background:var(--bad-soft);color:var(--bad)">${ico('flag')}</span>
-    <span><b><button class="linkish" data-act="open-project" data-pid="${p.id}">${esc(p.name)}</button></b><span class="small muted">${esc(p.location)} · ${esc(p.current_step || 'Complete')}</span>
+    <span><b class="row" style="gap:8px">${projectThumb(p)}<button class="linkish" data-act="open-project" data-pid="${p.id}">${esc(p.name)}</button></b><span class="small muted">${esc(p.location)} · ${esc(p.current_step || 'Complete')}</span>
       <span class="flag-list">${p.flags.map(f => flagChip(f)).join('')}</span></span>
     <span class="meta mono small">${pct(p.official_progress)}</span></div>`;
 }
@@ -658,7 +666,9 @@ V.project = {
     const p = ui.data.project;
     const cur = p.steps.find(s => s.status === 'active');
     return `<div class="crumbs"><button data-go="projects">Projects</button>/<span>${esc(p.name)}</span></div>
-    <div class="head"><div><h1 data-testid="project-title">${esc(p.name)}</h1><div class="sub">${esc(p.location)}</div></div>
+    <div class="head"><div class="row" style="gap:12px">${projectThumb(p, 'lg')}<div><h1 data-testid="project-title">${esc(p.name)}</h1><div class="sub">${esc(p.location)}</div>
+      ${can.create() || can.admin() ? `<div class="row small" style="gap:6px;margin-top:4px"><button class="btn ghost sm" data-act="project-image" data-testid="project-image-upload">${ico('camera')}${p.image ? 'Replace project image' : 'Add project image'}</button>
+        ${p.image ? '<button class="btn ghost sm" data-act="project-image-remove" data-testid="project-image-remove">Remove</button>' : ''}</div>` : ''}</div></div>
       <div class="row">${p.phase ? `<span class="pill active" data-testid="project-phase">Phase ${p.phase.number} · ${esc(p.phase.name)}</span>` : ''}${p.visit_number ? `<span class="pill" data-testid="visit-number">Visit ${p.visit_number}</span>` : ''}<span class="pill">Residential v${p.template.version}</span><span class="pill ${cur ? 'active' : 'done'}" data-testid="official-progress">Official progress ${pct(p.official_progress)}</span></div></div>
     ${ui.data.stages ? stageTracker(ui.data.stages) : ''}
     <h2 class="section-h">Construction: Legal Approval, site visits and review</h2>
@@ -1308,6 +1318,10 @@ function render(){
 
 /* Thumbnails are fetched with the sign-in token after each render. */
 function hydrateMedia(){
+  if (API.projectImageUrl && !isClient()) document.querySelectorAll('img[data-pimg]:not([src])').forEach(async img => {
+    const big = img.closest('.pthumb.lg');
+    try { img.src = await API.projectImageUrl(+img.dataset.pimg, big ? 'full' : 'thumb', img.dataset.pstamp); } catch (_) { img.alt = 'Project image could not be loaded'; }
+  });
   if (API.stageFileUrl && ui.data.project) document.querySelectorAll('img[data-sfid]:not([src])').forEach(async img => {
     try { img.src = await API.stageFileUrl(ui.data.project.id, img.dataset.sfkey, +img.dataset.sfid); } catch (_) { img.alt = 'Photo could not be loaded'; }
   });
@@ -1522,6 +1536,20 @@ document.addEventListener('click', async e => {
         fee_basis: $('#fp-basis').value, fee_notes: $('#fp-notes').value};
       try { await API.updateFeePlan(ui.data.project.id, body); toast('Fee plan saved.'); await V.project.load(); ui.error = null; }
       catch (err){ setError(err); }
+      rerenderKeepScroll(); break; }
+    case 'project-image': {
+      const inp = document.createElement('input');
+      inp.type = 'file'; inp.hidden = true; inp.accept = 'image/jpeg,image/png,image/webp';
+      inp.addEventListener('change', async () => {
+        const f = inp.files[0]; inp.remove(); if (!f) return;
+        try { await API.setProjectImage(ui.data.project.id, f); await V.project.load(); toast('Project image saved.'); }
+        catch (err){ toast(err.message); }
+        rerenderKeepScroll();
+      });
+      document.body.appendChild(inp); inp.click(); break; }
+    case 'project-image-remove': {
+      try { await API.removeProjectImage(ui.data.project.id); await V.project.load(); toast('Project image removed.'); }
+      catch (err){ toast(err.message); }
       rerenderKeepScroll(); break; }
     case 'stage-attach': pickStageFile(a.dataset.key, a.dataset.kind); break;
     case 'stage-file-remove': {
