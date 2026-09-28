@@ -217,3 +217,24 @@ def test_finishing_package_and_its_80_percent_fee_gate():
     assert sc.BY_KEY["payment_gate"]["label"] == f"{wc.UPFRONT_FEE_PERCENT}% upfront gate" == "50% upfront gate"
     keys = [s["key"] for s in sc.STAGES]
     assert keys.index("civil_completion") < keys.index("finishing_fee_gate") < keys.index("interiors_signoff")
+
+
+def test_every_stage_maps_to_a_prd_stage_and_every_prd_stage_is_covered():
+    """PRD v3.2 numbers the flow Stage 0 to 15; the diagram numbers it 1 to 18 (R-09)."""
+    assert all(isinstance(s["prd_stage"], int) and 0 <= s["prd_stage"] <= 15 for s in sc.STAGES)
+    assert {s["prd_stage"] for s in sc.STAGES} == set(range(16))
+    assert set(sc.PRD_STAGE) == set(sc.BY_KEY)
+    by = {s["key"]: s["prd_stage"] for s in sc.STAGES}
+    assert (by["setup"], by["requirements_signoff"], by["line_out"], by["handover_signoff"]) == (0, 2, 11, 15)
+
+
+def test_prd_stages_follow_the_flow_order():
+    numbers = [s["prd_stage"] for s in sc.STAGES]
+    assert numbers == sorted(numbers)
+
+
+def test_the_tracker_shows_the_prd_stage(client, auth_headers, new_project):
+    pid = new_project()["id"]
+    body = client.get(f"/projects/{pid}/stages", headers=auth_headers("architect")).json()
+    got = {s["key"]: s["prd_stage"] for p in body["phases"] for s in p["stages"]}
+    assert got["line_out"] == 11 and got["setup"] == 0

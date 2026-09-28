@@ -569,12 +569,13 @@ A small image of each project's 3D model sits beside the project name, so each p
   - Files: backend/app/models.py, backend/migrations/versions/0019_flow_versions.py, backend/app/modules/workflow/versions.py, backend/app/services/stages.py, backend/tests/test_flow_versions.py
   - Completed: 2026-09-28. FlowVersion (migration 0022, version 1 backfilled from a frozen copy, all projects pinned); modules/workflow/versions.py flow_for and current_version; new projects pin the current version; the stage engine, stage routes, attachments, exceptions, health, stage summary, client view and principal overview read the pinned snapshot; test_flow_versions.py shows a config edit changes only new projects
 
-- [ ] Task 40: Map the diagram stages to PRD Stage 0 to 15 (P1)
+- [x] Task 40: Map the diagram stages to PRD Stage 0 to 15 (P1)
   - Acceptance:
     - Each stage in `stage_config` gains `prd_stage` (for example setup → 0, `requirements_signoff` → 2, `line_out` → 11).
     - A test asserts that every PRD stage 0 to 15 is covered at least once.
     - The mapping table is added to `docs/V4_EXECUTION_PLAN.md` (closes R-09) and shown as a small label in the stage detail.
   - Files: backend/app/stage_config.py, backend/tests/test_stage_config.py, docs/V4_EXECUTION_PLAN.md, web-src/app.js
+  - Completed: 2026-09-28. stage_config.PRD_STAGE and prd_stage on every stage; every PRD stage 0 to 15 covered; tracker returns prd_stage (from the config for flows pinned before the map); PRD stage label in the stage detail; mapping table in V4_EXECUTION_PLAN, R-09 closed; new projects pin flow version 2
 
 - [ ] Task 41: XLSX import (P1)
   - Acceptance:

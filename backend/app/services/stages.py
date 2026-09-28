@@ -172,6 +172,8 @@ def project_view(db: Session, project: Project, user: User) -> dict:
             "number": s["number"],
             "label": s["label"],
             "detail": s["detail"],
+            # traceability, not flow behaviour: flows pinned before the map existed read it from the config
+            "prd_stage": s.get("prd_stage", sc.PRD_STAGE.get(s["key"])),
             "workstream": s["workstream"],
             "owner_role": s["owner_role"],
             "gates": s["gates"],

@@ -330,8 +330,38 @@ STAGES = [
     ),
 ]
 
+# PRD v3.2 numbers the flow Stage 0 to 15; the diagram numbers it 1 to 18 with 8A, 8B and unnumbered activities
+# (R-09). Templates (V06) and fee triggers (V12) refer to the PRD stage through this map.
+PRD_STAGE = {
+    "setup": 0,
+    "discovery": 1,
+    "baseline": 2,
+    "requirements_signoff": 2,
+    "predesign_site_visit": 3,
+    "investigations": 3,
+    "concept": 4,
+    "tentative_elevations": 4,
+    "grid": 5,
+    "grid_freeze": 5,
+    "structural_design": 6,
+    "architectural_package": 7,
+    "structural_package": 7,
+    "mep": 7,
+    "elevations_package": 8,
+    "design_freeze_signoff": 8,
+    "payment_gate": 9,
+    "detailed_drawings": 10,
+    "line_out": 11,
+    "construction": 12,
+    "civil_completion": 13,
+    "finishing_fee_gate": 14,
+    "interiors_signoff": 14,
+    "handover_signoff": 15,
+}
+
 for _s in STAGES:
     _s["icon"] = STAGE_ICONS[_s["key"]]
+    _s["prd_stage"] = PRD_STAGE[_s["key"]]
 
 SIGNOFF_STAGES = [s["key"] for s in STAGES if "client_signoff" in s["gates"]]
 

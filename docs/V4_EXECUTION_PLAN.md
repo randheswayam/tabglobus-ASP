@@ -199,7 +199,7 @@ These core decisions from PRD v3.2 are also still open and hold back the missing
 | R-06 | **Client authentication.** Clients now activate with an invite code and a password. V4 4.3 asks for OTP or magic link, optional password and step-up. | V01 must extend the current flow without locking out activated clients. | V01 keeps invite activation as the first OTP and adds OTP and magic-link sign-in. |
 | R-07 | **Sign-off semantics.** Plan S05 has staff record a client's sign-off; v3 has the client sign in the app; V4 section 12 adds Reject and Ask Question actions, deep links and a version hash. The current `fingerprint` exists but is not exposed as a version hash, and only Approve and Request Changes exist. | Three definitions of one service. | Generalise in S05; extend to the V4 service in V11; keep the existing immutability guard. |
 | R-08 | **Three progress numbers.** The construction checklist `official_progress` (equal weights, TBD_PARVEZ), the stage count `stage_progress` (done of 23), and V4 7.4 weighted Studio and Site completion. | Clients and Parvez could see conflicting percentages. | V04 defines one approved completion model under V4-D13; the others are shown only as drill-down. |
-| R-09 | **Stage numbering.** The code uses the workflow diagram's 18 stages (with 8A and 8B). PRD v3.2 uses Stage 0 to 15. | Templates (V06) and fee triggers (V12) could reference the wrong stage. | The S03 completion step publishes a mapping table in `stage_config.py` and in the PRD traceability section. |
+| R-09 | **Stage numbering.** The code uses the workflow diagram's 18 stages (with 8A and 8B). PRD v3.2 uses Stage 0 to 15. | Templates (V06) and fee triggers (V12) could reference the wrong stage. | **Closed in sprint v4 Task 40:** `stage_config.PRD_STAGE` maps each stage to its PRD stage; see the table in the notes below. |
 | R-10 | **Legal approval gate.** The code gates Site line-out on Legal Approval (D-01 assumption); PRD v3.2 7.1 has no explicit legal gate. | Could block real projects wrongly. | Keep it as `TBD_PARVEZ` D-01 until Parvez confirms. |
 | R-11 | **Payment and freeze gates are manual.** Stages 12 and 6 complete with a note. V12 "keeps the core 50% gate", which assumes S10 exists. | V12 has nothing to integrate with until S10 ships. | S10 before V12 (kept in the order above). |
 | R-12 | **Red flags vs traffic lights.** Existing red-flag rules (`workflow_config.RED_FLAG_RULES`) overlap V4 6.2 Red and Amber. | Duplicate or contradictory signals. | V04 derives traffic-light reasons from the red-flag rules rather than adding a second rule set. |
@@ -223,3 +223,31 @@ Read CLAUDE.md, docs/IMPLEMENTATION_PLAN.md step S00, docs/V4_EXECUTION_PLAN.md 
 - **Interim fee ledger (sprint v4 Task 33).** `fee_entries` records client fees due and received by hand, for Accounts and the principal architect. It is not the V12 fee module: no milestones, payment requests, reminders or verification. **V12 must migrate these entries** into its fee agreements and payment records and then retire the ledger.
 - **Principal overview (sprint v4 Task 34).** `GET /principal/overview` seeds three values as `TBD_PARVEZ` in `workflow_config`: `OVERALL_COMPLETION_WEIGHTS` (V4-D03; empty, so every stage weighs 1), `MAJOR_MILESTONES` (the four client sign-offs, the 50% and 80% fee gates, Site line-out and civil completion) and `RESOLVED_ISSUES_DAYS` (30). V04 traffic lights and V12 fees should feed this view instead of replacing it.
 - **Flow versions (sprint v4 Task 39).** Each project is pinned to a `flow_versions` snapshot, and migration 0022 backfilled version 1 from a frozen copy. An edit to `stage_config.py` now applies to new projects only. To move running projects onto a new flow, write a data migration that re-pins them and adds or retires their stage rows. Two projects created at the same moment after a config edit could both try to create the next version number; the unique constraint refuses the second, which then fails and must be retried.
+- **Diagram stages mapped to PRD Stage 0 to 15 (sprint v4 Task 40, closes R-09).** Every PRD stage is covered at least once (`test_every_stage_maps_to_a_prd_stage_and_every_prd_stage_is_covered`). The label also shows in the stage detail. Adding `prd_stage` changed the config snapshot, so the next new project pins flow version 2. Running projects stay on version 1 and read the label from the config.
+
+| Diagram no. | Stage key | Stage | PRD stage |
+|---|---|---|---|
+| 1 | `setup` | Project setup | 0 |
+| 2 | `discovery` | Client discovery meetings | 1 |
+| 3 | `baseline` | Preliminary requirement baseline | 2 |
+| 4 | `requirements_signoff` | Client sign-off: preliminary requirements | 2 |
+| — | `predesign_site_visit` | Pre-design site visit | 3 |
+| — | `investigations` | Investigations | 3 |
+| — | `concept` | Preliminary concept | 4 |
+| — | `tentative_elevations` | Tentative elevations | 4 |
+| 5 | `grid` | Centerline, grid, foundation basis and column positions | 5 |
+| 6 | `grid_freeze` | Architect and structural consultant freeze | 5 |
+| 7 | `structural_design` | Structural design package | 6 |
+| 8A | `architectural_package` | Architectural package | 7 |
+| 8B | `structural_package` | Structural package | 7 |
+| 9 | `mep` | MEP and coordination | 7 |
+| 10 | `elevations_package` | All elevations package | 8 |
+| 11 | `design_freeze_signoff` | Client sign-off: design freeze | 8 |
+| 12 | `payment_gate` | 50% upfront gate | 9 |
+| 13 | `detailed_drawings` | Detailed drawings and controlled issue | 10 |
+| 14 | `line_out` | Site line-out | 11 |
+| 15 | `construction` | Construction quality stages | 12 |
+| 16 | `civil_completion` | Civil completion | 13 |
+| — | `finishing_fee_gate` | 80% fee gate | 14 |
+| 17 | `interiors_signoff` | Client sign-off: finishing package (tile and material selection) | 14 |
+| 18 | `handover_signoff` | Client sign-off: handover and closeout | 15 |

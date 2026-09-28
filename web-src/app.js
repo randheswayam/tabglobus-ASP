@@ -935,7 +935,7 @@ function stageChip(s){
 }
 function stageDetail(s){
   return `<div class="stage-detail" data-testid="stage-detail-${s.key}">
-    <p class="small">${esc(s.detail)}</p>
+    <p class="small">${esc(s.detail)}${s.prd_stage != null ? ` <span class="pill" data-testid="stage-prd-${s.key}" title="Stage number in the SiteFlow PRD">PRD stage ${s.prd_stage}</span>` : ''}</p>
     ${s.reasons.length ? `<ul class="reasons">${s.reasons.map(r => `<li>${ico('alert')}<span>${esc(r)}</span></li>`).join('')}</ul>` : ''}
     ${s.historical ? `<div class="banner info">${ico('flag')}<span><b>${esc(s.historical.label)}</b>. Confirmed by ${esc(s.historical.confirmed_by || 'not recorded')}. ${esc(s.historical.note || '')}</span></div>` : ''}
     ${s.state === 'completed' ? `<div class="small"><b>Completed</b> ${fmtStamp(s.completed_at)}${s.completed_by ? ` by ${esc(s.completed_by.name)}` : ''}${s.completion_note ? `: ${esc(s.completion_note)}` : ''}</div>` : ''}

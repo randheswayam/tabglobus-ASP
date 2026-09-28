@@ -27,6 +27,7 @@ test('engineer attaches a photo, a DWG and a PDF, removes one, and completes the
   await openProject(page, 'Files Villa');
   const files = page.getByTestId('stage-files-predesign_site_visit');
   await shot(page, 'task25-01-empty');
+  await expect(page.getByTestId('stage-prd-predesign_site_visit')).toHaveText('PRD stage 3');  // Task 40
 
   await attach(page, 'stage-attach-photo-predesign_site_visit', { name: 'well-near-gate.png', mimeType: 'image/png', buffer: makePng() });
   await expect(files).toContainText('well-near-gate.png');
