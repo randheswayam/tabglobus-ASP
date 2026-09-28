@@ -438,6 +438,23 @@ class ClientInvite(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class StageException(Base):
+    """An authorized, recorded decision to pass one gate on one stage of a project. Never edited or removed."""
+
+    __tablename__ = "stage_exceptions"
+    __table_args__ = (UniqueConstraint("project_id", "stage_key", "gate"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    stage_key: Mapped[str] = mapped_column(String(40))
+    gate: Mapped[str] = mapped_column(String(40))
+    reason: Mapped[str] = mapped_column(Text)
+    by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    by: Mapped[User] = relationship()
+
+
 class UserSession(Base):
     """One signed-in device. Only a hash of the refresh token is kept; revoking the session ends its access tokens."""
 
@@ -475,6 +492,10 @@ class SignoffImmutableError(Exception):
     """Raised when code tries to change a sign-off version the client has already answered."""
 
 
+class StageImmutableError(Exception):
+    """Raised when code tries to change or remove a recorded stage exception."""
+
+
 class AuditImmutableError(Exception):
     """Raised when code tries to change or remove a recorded audit event."""
 
@@ -504,3 +525,13 @@ def _block_audit_changes(session, _ctx, _instances):
     for obj in session.dirty:
         if isinstance(obj, AuditEvent) and session.is_modified(obj):
             raise AuditImmutableError("Audit events are append-only")
+
+
+@event.listens_for(Session, "before_flush")
+def _block_stage_exception_changes(session, _ctx, _instances):
+    for obj in session.deleted:
+        if isinstance(obj, StageException):
+            raise StageImmutableError("A recorded stage exception can't be removed")
+    for obj in session.dirty:
+        if isinstance(obj, StageException) and session.is_modified(obj):
+            raise StageImmutableError("A recorded stage exception can't be changed")

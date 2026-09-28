@@ -107,14 +107,18 @@ def test_parallel_branches_match_the_diagram():
 
 
 def test_gates_sit_on_the_right_stages():
-    gates = {s["number"]: s["gates"][0] for s in sc.STAGES if s["gates"]}
+    gates = {s["number"]: s["gates"] for s in sc.STAGES if s["gates"]}
     assert gates == {
-        "4": "client_signoff",
-        "11": "client_signoff",
-        "14": "legal_approval",
-        "16": "no_open_major_problems",
-        "17": "client_signoff",
-        "18": "client_signoff",
+        "4": ["client_signoff"],
+        "6": ["finding_disposition"],
+        "9": ["issue_closure"],
+        "11": ["client_signoff"],
+        "12": ["payment"],
+        "13": ["document_status"],
+        "14": ["legal_approval"],
+        "16": ["no_open_major_problems", "checklist"],
+        "17": ["client_signoff"],
+        "18": ["client_signoff"],
     }
     assert sc.SIGNOFF_STAGES == [
         "requirements_signoff",

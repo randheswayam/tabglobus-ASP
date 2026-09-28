@@ -36,6 +36,9 @@ VIDEO_TYPES = ["video/mp4", "video/webm"]
 
 # ---------- client sign-off and the customer app (sprint v3) ----------
 
+# TBD_PARVEZ: who may record an exception that passes a placeholder gate (payment, findings, drawings...).
+EXCEPTION_ROLES = ["admin", "team_lead"]
+
 # TBD_PARVEZ: a sent sign-off request older than this raises "Client decision overdue".
 CLIENT_SIGNOFF_SLA_DAYS = 7
 

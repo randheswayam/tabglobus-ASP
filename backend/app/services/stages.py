@@ -12,7 +12,17 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app import stage_config as sc
-from app.models import LegalStatus, Problem, ProblemStatus, Project, ProjectStage, StageStatus, User
+from app import workflow_config as wc
+from app.models import (
+    LegalStatus,
+    Problem,
+    ProblemStatus,
+    Project,
+    ProjectStage,
+    StageException,
+    StageStatus,
+    User,
+)
 from app.modules.workflow import events, gates
 from app.schemas import iso_utc, user_brief
 
@@ -29,6 +39,8 @@ class GateFacts:
     open_major_problems: int
     # stage key -> the latest sign-off request for it: {"status", "version", "sent_at"}
     signoffs: dict = field(default_factory=dict)
+    # (stage key, gate) pairs passed by a recorded exception
+    exceptions: set = field(default_factory=set)
 
 
 def to_release(statuses: dict[str, str], config=sc.STAGES) -> list[str]:
@@ -99,10 +111,14 @@ def facts(db: Session, project: Project, signoffs: dict | None = None) -> GateFa
             Problem.severity.in_(("High", "Critical")),
         )
     )
+    passed = db.execute(
+        select(StageException.stage_key, StageException.gate).where(StageException.project_id == project.id)
+    ).all()
     return GateFacts(
         legal_status=la.status.value if la else LegalStatus.not_started.value,
         open_major_problems=major or 0,
         signoffs=signoffs or {},
+        exceptions={(k, g) for k, g in passed},
     )
 
 
@@ -126,7 +142,13 @@ def project_view(db: Session, project: Project, user: User) -> dict:
     """The tracker: phases with their stages, each with state, reasons and what the caller may do."""
     rows = stage_rows(db, project)
     signoffs = signoff_facts(db, project)
-    view = evaluate({k: r.status.value for k, r in rows.items()}, facts(db, project, signoffs))
+    gate_facts = facts(db, project, signoffs)
+    view = evaluate({k: r.status.value for k, r in rows.items()}, gate_facts)
+    recorded = {}
+    for ex in db.scalars(select(StageException).where(StageException.project_id == project.id)):
+        recorded.setdefault(ex.stage_key, []).append(
+            {"gate": ex.gate, "reason": ex.reason, "by": user_brief(ex.by), "at": iso_utc(ex.created_at)}
+        )
 
     def stage_out(s):
         r, v = rows[s["key"]], view[s["key"]]
@@ -154,6 +176,14 @@ def project_view(db: Session, project: Project, user: User) -> dict:
             if r.status == StageStatus.historical
             else None,
             "signed_by_client": bool(req and req["status"] == "approved" and r.status == StageStatus.completed),
+            "exceptions": recorded.get(s["key"], []),
+            # placeholder gates still waiting for an exception, while the stage is open
+            "open_exceptions": [
+                g for g in s["gates"] if g in gates.PLACEHOLDER_GATES and (s["key"], g) not in gate_facts.exceptions
+            ]
+            if v["state"] in ("active", "blocked")
+            else [],
+            "can_record_exception": user.role.value in wc.EXCEPTION_ROLES,
         }
 
     done = sum(1 for v in view.values() if v["state"] in DONE)

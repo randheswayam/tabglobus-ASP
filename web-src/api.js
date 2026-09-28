@@ -166,6 +166,7 @@ const SiteFlowAPI = (() => {
     projectMembers: pid => request('GET', `/projects/${pid}/members`),
     addMember: (pid, uid) => request('POST', `/projects/${pid}/members/${uid}`),
     removeMember: (pid, uid) => request('DELETE', `/projects/${pid}/members/${uid}`),
+    recordException: (pid, key, gate, reason) => request('POST', `/projects/${pid}/stages/${key}/exceptions`, {gate, reason}),
     completeStage: (pid, key, note) => request('POST', `/projects/${pid}/stages/${key}/complete`, {note}),
     visits: pid => request('GET', `/projects/${pid}/visits`),
     dashboard: filters => request('GET', '/dashboard' + (Object.keys(filters || {}).length ? '?' + new URLSearchParams(filters) : '')),

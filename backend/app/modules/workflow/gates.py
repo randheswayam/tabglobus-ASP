@@ -63,3 +63,28 @@ def _client_signoff(stage: dict, facts) -> list[str]:
     if req["status"] == "changes_requested":
         return [f"The client asked for changes on version {req['version']}; prepare version {req['version'] + 1}"]
     return []
+
+
+# Checks SiteFlow doesn't have yet. Each blocks until an exception is recorded for that stage and gate.
+PLACEHOLDER_GATES = {
+    "payment": "The payment check",
+    "finding_disposition": "The site findings check",
+    "issue_closure": "The coordination issues check",
+    "document_status": "The drawing status check",
+    "checklist": "The civil completion checklist",
+}
+
+
+def _placeholder(gate_type: str) -> Evaluator:
+    name = PLACEHOLDER_GATES[gate_type]
+
+    def evaluate(stage: dict, facts) -> list[str]:
+        if (stage["key"], gate_type) in facts.exceptions:
+            return []
+        return [f"{name} is not built in SiteFlow yet. An Admin or Team Lead can record an exception with a reason."]
+
+    return evaluate
+
+
+for _gate in PLACEHOLDER_GATES:
+    register(_gate)(_placeholder(_gate))

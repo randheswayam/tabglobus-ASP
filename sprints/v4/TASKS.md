@@ -185,7 +185,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
   - Files: backend/app/modules/workflow/events.py, backend/app/services/stages.py, backend/app/services/notify.py, backend/tests/test_events.py
   - Completed: 2026-09-28. modules/workflow/events.py: subscribe, unsubscribe, subscribers and publish; synchronous, inside the caller's transaction, handlers in registration order. stages.complete publishes stage.completed and release publishes stage.activated. The stage_ready notification is now the notify.on_stage_activated subscriber, with no direct call. Tests: test_events.py (5): order, completed-then-activated, a failing handler rolling back the change, and the subscriber wiring.
 
-- [ ] Task 16: Placeholder gates with a recorded exception (P0)
+- [x] Task 16: Placeholder gates with a recorded exception (P0)
   - Acceptance:
     - Register placeholder evaluators and add them to stages:
       - `payment` on `payment_gate`;
@@ -200,6 +200,7 @@ Scope: execution-plan steps 1 to 5 (core S00 to S04). See `sprints/v4/PRD.md` an
     - Tests and fixtures that pass these stages are updated.
     - An E2E test records an exception on the 50% upfront gate and completes the stage, with screenshots.
   - Files: backend/app/modules/workflow/gates.py, backend/app/modules/workflow/exceptions.py, backend/app/models.py, backend/migrations/versions/0012_stage_exceptions.py, backend/app/stage_config.py, backend/app/workflow_config.py, web-src/app.js, web-src/api.js, backend/tests/test_stage_exceptions.py, tests/e2e/v4-exceptions.spec.js
+  - Completed: 2026-09-28. Placeholder gates are registered: payment on payment_gate, finding_disposition on grid_freeze, issue_closure on mep, document_status on detailed_drawings, and checklist on civil_completion alongside no_open_major_problems. Each blocks with '<check> is not built in SiteFlow yet. An Admin or Team Lead can record an exception with a reason.' StageException (migration 0011) is unique per project, stage and gate, with a flush guard that makes it immutable. POST /projects/{id}/stages/{key}/exceptions (EXCEPTION_ROLES, TBD_PARVEZ, default admin and team_lead) requires a reason, applies only to the stage's placeholder gates and only while the stage is open, and is audited and published as stage.exception_recorded. The tracker returns exceptions, open_exceptions and can_record_exception; the stage detail shows each exception and a Record exception form. The audit trail shows exceptions and member changes. Tests updated where a stage now waits on a placeholder (civil completion, payment gate, detailed drawings in v3-stages). Tests: test_stage_exceptions.py (14) and v4-exceptions.spec.js (2); 526 pass on SQLite and PostgreSQL.
 
 ### S04 — Project records and onboarding
 

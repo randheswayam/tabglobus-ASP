@@ -83,7 +83,8 @@ test('architect onboards an in-progress project at detailed drawings from the Ne
   await shot(page, 'v3-22-01-onboarding-form');
   await page.getByTestId('np-submit').click();
   await expect(page.getByTestId('project-title')).toHaveText('Ranade Villa');
-  await expect(page.getByTestId('stage-detailed_drawings')).toContainText('In progress');
+  // Open, and waiting on its drawing status placeholder (v4 Task 16) until an exception is recorded.
+  await expect(page.getByTestId('stage-detailed_drawings')).toContainText('Blocked');
   await expect(page.getByTestId('stage-design_freeze_signoff')).toContainText('Historical');
   await expect(page.getByTestId('stage-design_freeze_signoff')).not.toContainText('signed by the client');
   await expect(page.getByTestId('audit-list')).toContainText('onboarded mid-way (earlier stages confirmed by Parvez)');

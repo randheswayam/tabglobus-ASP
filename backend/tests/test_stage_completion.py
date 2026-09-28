@@ -69,6 +69,13 @@ def test_civil_completion_is_blocked_by_open_major_problems(client, auth_headers
         rows[key].status = m.StageStatus.completed
     rows["civil_completion"].status = m.StageStatus.active
     db.commit()
+    # The checklist placeholder (S12) is passed by an exception, so only the major-problems gate is left.
+    ex = client.post(
+        f"/projects/{pid}/stages/civil_completion/exceptions",
+        json={"gate": "checklist", "reason": "Civil checklist signed on paper"},
+        headers=lead,
+    )
+    assert ex.status_code == 201
     r = _complete(client, lead, pid, "civil_completion")
     assert r.status_code == 409 and r.json()["detail"]["reasons"] == ["1 open High or Critical problem"]
     problem = client.get(f"/projects/{pid}/problems", headers=lead).json()[0]
@@ -128,9 +135,17 @@ def test_accounts_member_completes_the_payment_gate(client, auth_headers, new_pr
     acc = auth_headers("accounts")
     pid = new_project(start_stage="payment_gate", historical_confirmed_by="Parvez")["id"]
     _add_member(db, pid, users["accounts"])
+    assert _state(client, acc, pid, "payment_gate")["state"] == "blocked"  # the payment placeholder (S10)
+    ex = client.post(
+        f"/projects/{pid}/stages/payment_gate/exceptions",
+        json={"gate": "payment", "reason": "50% received, bank reference 4471"},
+        headers=auth_headers("admin"),
+    )
+    assert ex.status_code == 201
     assert _state(client, acc, pid, "payment_gate")["can_complete"] is True
     assert _complete(client, acc, pid, "payment_gate").status_code == 200
-    assert _state(client, acc, pid, "detailed_drawings")["state"] == "active"
+    # Detailed drawings opens, and waits on its own placeholder (the drawing status check, S06).
+    assert _state(client, acc, pid, "detailed_drawings")["state"] == "blocked"
 
 
 def test_stage_ready_reaches_the_member_with_the_owner_role(client, auth_headers, new_project, users, db):

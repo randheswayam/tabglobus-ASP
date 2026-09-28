@@ -93,13 +93,15 @@ def test_line_out_needs_legal_approval():
 
 def test_civil_completion_needs_no_open_major_problems():
     s = statuses(historical_until="civil_completion", active=["civil_completion"])
-    assert evaluate(s, GateFacts("Approved", 2, {}))["civil_completion"]["reasons"] == [
+    checked = {("civil_completion", "checklist")}  # the placeholder checklist gate passed by an exception
+    assert evaluate(s, GateFacts("Approved", 2, {}, exceptions=checked))["civil_completion"]["reasons"] == [
         "2 open High or Critical problems"
     ]
-    assert evaluate(s, GateFacts("Approved", 1, {}))["civil_completion"]["reasons"] == [
+    assert evaluate(s, GateFacts("Approved", 1, {}, exceptions=checked))["civil_completion"]["reasons"] == [
         "1 open High or Critical problem"
     ]
-    assert evaluate(s, FACTS)["civil_completion"]["state"] == "active"
+    passed = GateFacts("Approved", 0, {}, exceptions={("civil_completion", "checklist")})
+    assert evaluate(s, passed)["civil_completion"]["state"] == "active"
 
 
 def test_completed_and_historical_are_reported_as_such():

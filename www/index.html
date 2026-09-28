@@ -603,6 +603,7 @@ const SiteFlowAPI = (() => {
     projectMembers: pid => request('GET', `/projects/${pid}/members`),
     addMember: (pid, uid) => request('POST', `/projects/${pid}/members/${uid}`),
     removeMember: (pid, uid) => request('DELETE', `/projects/${pid}/members/${uid}`),
+    recordException: (pid, key, gate, reason) => request('POST', `/projects/${pid}/stages/${key}/exceptions`, {gate, reason}),
     completeStage: (pid, key, note) => request('POST', `/projects/${pid}/stages/${key}/complete`, {note}),
     visits: pid => request('GET', `/projects/${pid}/visits`),
     dashboard: filters => request('GET', '/dashboard' + (Object.keys(filters || {}).length ? '?' + new URLSearchParams(filters) : '')),
@@ -798,6 +799,9 @@ function auditText(e){
   switch (e.action){
     case 'project.created': return d.start_stage ? `Project created, onboarded mid-way (earlier stages confirmed by ${d.historical_confirmed_by})` : 'Project created';
     case 'stage.completed': return `Stage completed: ${d.stage}${d.note ? `. ${d.note}` : ''}`;
+    case 'stage.exception_recorded': return `Exception recorded on ${d.stage}: ${d.reason}`;
+    case 'member.added': return `Added to the project: ${d.user}`;
+    case 'member.removed': return `Removed from the project: ${d.user}`;
     case 'stage.activated': return `Stage opened: ${d.stage}`;
     case 'client.invited': return `Client invited: ${d.client}`;
     case 'client.activated': return 'Client activated their account';
@@ -1340,10 +1344,24 @@ function stageDetail(s){
     ${s.reasons.length ? `<ul class="reasons">${s.reasons.map(r => `<li>${ico('alert')}<span>${esc(r)}</span></li>`).join('')}</ul>` : ''}
     ${s.historical ? `<div class="banner info">${ico('flag')}<span><b>${esc(s.historical.label)}</b>. Confirmed by ${esc(s.historical.confirmed_by || 'not recorded')}. ${esc(s.historical.note || '')}</span></div>` : ''}
     ${s.state === 'completed' ? `<div class="small"><b>Completed</b> ${fmtStamp(s.completed_at)}${s.completed_by ? ` by ${esc(s.completed_by.name)}` : ''}${s.completion_note ? `: ${esc(s.completion_note)}` : ''}</div>` : ''}
+    ${(s.exceptions || []).map(x => `<div class="banner info" data-testid="stage-exception-note-${s.key}-${x.gate}">${ico('flag')}<span><b>Exception recorded</b> by ${esc(x.by ? x.by.name : 'someone')} ${fmtStamp(x.at)}: ${esc(x.reason)}</span></div>`).join('')}
     ${(s.gates || []).includes('client_signoff') && s.state !== 'historical' ? signoffComposer(s) : ''}
+    ${s.can_record_exception && (s.open_exceptions || []).length ? exceptionForm(s) : ''}
     ${s.can_complete ? `<div class="flag-clear-form"><input class="inp" id="st-note-${s.key}" data-testid="stage-note-${s.key}" placeholder="What was completed? (required)" aria-label="Completion note">
       <button class="btn sm primary" data-act="stage-complete" data-key="${s.key}" data-testid="stage-complete-${s.key}">${ico('check')}Mark complete</button></div>` : ''}
   </div>`;
+}
+
+/* A placeholder gate (a check SiteFlow doesn't have yet) passes only with a recorded, reasoned exception. */
+const GATE_NAME = {payment: 'Payment check', finding_disposition: 'Site findings check', issue_closure: 'Coordination issues check',
+  document_status: 'Drawing status check', checklist: 'Civil completion checklist'};
+function exceptionForm(s){
+  const open = s.open_exceptions;
+  return `<div class="flag-clear-form" data-testid="stage-exception-form-${s.key}">
+    ${open.length > 1 ? `<select id="ex-gate-${s.key}" data-testid="stage-exception-gate-${s.key}" aria-label="Check to pass">${open.map(g => `<option value="${g}">${esc(GATE_NAME[g] || g)}</option>`).join('')}</select>`
+      : `<input type="hidden" id="ex-gate-${s.key}" value="${open[0]}"><span class="small muted">${esc(GATE_NAME[open[0]] || open[0])}</span>`}
+    <input class="inp" id="ex-reason-${s.key}" data-testid="stage-exception-reason-${s.key}" placeholder="Reason for the exception (required)" aria-label="Reason for the exception">
+    <button class="btn sm" data-act="stage-exception" data-key="${s.key}" data-testid="stage-exception-${s.key}">${ico('flag')}Record exception</button></div>`;
 }
 
 function visitHistory(visits){
@@ -1898,6 +1916,13 @@ document.addEventListener('click', async e => {
       catch (err){ setError(err); }
       rerenderKeepScroll(); break;
     case 'open-stage': ui.p.openStage = ui.p.openStage === a.dataset.key ? null : a.dataset.key; rerenderKeepScroll(); break;
+    case 'stage-exception': {
+      const key = a.dataset.key, gate = $('#ex-gate-' + key).value, reason = (($('#ex-reason-' + key) || {}).value || '').trim();
+      if (!reason){ toast('Give a reason for the exception.'); break; }
+      a.disabled = true;
+      try { await API.recordException(ui.data.project.id, key, gate, reason); toast('Exception recorded.'); await V.project.load(); ui.error = null; }
+      catch (err){ setError(err); }
+      rerenderKeepScroll(); break; }
     case 'stage-complete': {
       const key = a.dataset.key, note = (($('#st-note-' + key) || {}).value || '').trim();
       if (!note){ toast('Add a note on what was completed.'); break; }

@@ -7,6 +7,9 @@ Gates add a condition on top:
   client_signoff          completes only when the client approves the exact sign-off package version
   legal_approval          Legal Approval must be Approved (D-01: assumed to gate Site line-out; TBD_PARVEZ)
   no_open_major_problems  no open High or Critical problems (PRD 7.15: open critical issues equal zero)
+  payment, finding_disposition, issue_closure, document_status, checklist
+                          placeholders for checks later steps build (S10, S07, S08, S06, S12): they block until an
+                          Admin or Team Lead records an exception with a reason (modules/workflow/exceptions.py)
 
 Owner roles follow PRD v3.2 section 5 (TBD_PARVEZ: stage owners, to confirm with Parvez). The Architect and Team Lead
 can also complete any ordinary stage (services/stages.py STAFF_COMPLETERS).
@@ -140,6 +143,7 @@ STAGES = [
         "Studio",
         "team_lead",
         ["grid"],
+        gates=["finding_disposition"],
         detail="Centerline, foundation and column positions reviewed and signed off.",
     ),
     _stage(
@@ -180,6 +184,7 @@ STAGES = [
         "Studio",
         "mep_consultant",
         ["architectural_package", "structural_package"],
+        gates=["issue_closure"],
         detail="Electrical, plumbing and HVAC drawings; clash check across disciplines.",
     ),
     _stage(
@@ -212,6 +217,7 @@ STAGES = [
         "Both",
         "accounts",
         ["design_freeze_signoff"],
+        gates=["payment"],
         detail="Payment milestone cleared before detailed drawings.",
     ),
     _stage(
@@ -222,6 +228,7 @@ STAGES = [
         "Studio",
         "architect",
         ["payment_gate"],
+        gates=["document_status"],
         detail="Detailed architectural, structural and MEP drawings, issued with version control.",
     ),
     _stage(
@@ -253,7 +260,7 @@ STAGES = [
         "Site",
         "team_lead",
         ["construction"],
-        gates=["no_open_major_problems"],
+        gates=["no_open_major_problems", "checklist"],
         detail="Civil completion checklist and quality sign-off; ready for interiors.",
     ),
     _stage(
