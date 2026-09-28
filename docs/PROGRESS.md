@@ -58,3 +58,4 @@
 - **Found, not fixed (the demo is frozen):** `demo-api.js` `uploadSignoffAttachment` strips only `/` from file names, not `\` as intended.
 - **Open question:** should the client app show the project image (the 3D view) on the client's own project? It doesn't yet (Task 31).
 - **Open question:** may more than one person be the principal architect? The build allows one or more; the seed marks only Parvez (Task 32).
+- **Follow-up for S05 (from Task 38):** wire `modules/workflow/states.py` into ProjectStage. Store the activity state, drive the stage engine through `transition()` and migrate the stored statuses with `from_stored()`. Today it is a pure module with tests only.

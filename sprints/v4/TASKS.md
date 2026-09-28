@@ -548,7 +548,7 @@ A small image of each project's 3D model sits beside the project name, so each p
   - Files: backend/app/models.py, backend/migrations/versions/0018_delegations.py, backend/app/modules/identity/delegation.py, backend/app/routers/reviews.py, backend/tests/test_delegation.py
   - Completed: 2026-09-28. ApprovalDelegation (migration 0021); modules/identity/delegation.py: POST and GET /delegations, AUTHORITY map (site_visit_review held by Team Lead), inclusive business-date range, DELEGATION_MAX_DAYS (TBD_PARVEZ); review and review queue use require_reviewer, so a delegate acts only while active and the delegator still holds the role; review audit carries on_behalf_of and delegation_id. The web review queue still shows only for Team Leads
 
-- [ ] Task 38: Activity state machine (pure) (P1)
+- [x] Task 38: Activity state machine (pure) (P1)
   - Acceptance:
     - `backend/app/modules/workflow/states.py` defines the PRD 6.3 states:
       - Not Started, Ready, In Progress, Submitted, Under Review, Approved, Rework, Rejected, Completed;
@@ -558,6 +558,7 @@ A small image of each project's 3D model sits beside the project name, so each p
     - Unit tests cover every legal transition and a sample of illegal ones.
     - Nothing is wired into ProjectStage yet: that's a follow-up task in S05, recorded in `docs/PROGRESS.md`.
   - Files: backend/app/modules/workflow/states.py, backend/tests/test_states.py
+  - Completed: 2026-09-28. modules/workflow/states.py: PRD 6.3 states and actions, TRANSITIONS table, transition() raising IllegalTransition or CommentRequired (rework, reject), allowed(), from_stored() with the documented mapping; pure, not wired into ProjectStage (S05 follow-up in PROGRESS)
 
 - [ ] Task 39: Pin each project to a flow version (P1)
   - Acceptance:
