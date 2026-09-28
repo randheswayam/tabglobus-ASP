@@ -497,7 +497,7 @@ A small image of each project's 3D model sits beside the project name, so each p
   - Files: backend/app/models.py, backend/migrations/versions/0023_fee_entries.py, backend/app/modules/fees/__init__.py, backend/app/modules/fees/ledger.py, backend/app/main.py, backend/tests/test_fees_ledger.py, docs/V4_EXECUTION_PLAN.md
   - Completed: 2026-09-28. fee_entries (migration 0019), append-only with a guard; modules/fees/ledger.py GET and POST /projects/{id}/fees for Accounts and the principal only; totals due, received, outstanding; corrections are negative entries with a reason; V12 migration note in V4_EXECUTION_PLAN
 
-- [ ] Task 34: Principal overview API (P0)
+- [x] Task 34: Principal overview API (P0)
   - Acceptance:
     - `GET /principal/overview` (principal only) returns, for each project the principal can see:
       - **Overall completion %:** stages completed or historical out of all stages. The construction progress % is shown next to it, not mixed in. `OVERALL_COMPLETION_WEIGHTS` in `workflow_config` is empty by default (equal weights) and marked `TBD_PARVEZ` under V4-D03.
@@ -507,6 +507,7 @@ A small image of each project's 3D model sits beside the project name, so each p
     - Portfolio totals: projects, average completion, total due, received and outstanding, open major issues, and milestones waiting.
     - Tests: `test_principal_overview.py` covers the completion calculation, the fee totals, the milestone states, open and resolved issues, and 403 for every non-principal.
   - Files: backend/app/modules/principal/__init__.py, backend/app/modules/principal/overview.py, backend/app/workflow_config.py, backend/app/main.py, backend/tests/test_principal_overview.py
+  - Completed: 2026-09-28. modules/principal/overview.py: GET /principal/overview (require_staff + require_principal) with weighted completion beside construction progress, fee totals, MAJOR_MILESTONES with health, date and who, open and recently resolved High and Critical issues with the visit's recommended action; portfolio totals per currency; OVERALL_COMPLETION_WEIGHTS, MAJOR_MILESTONES, RESOLVED_ISSUES_DAYS marked TBD_PARVEZ
 
 - [ ] Task 35: Principal overview on the dashboard (P0)
   - Acceptance:

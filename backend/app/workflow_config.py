@@ -84,3 +84,22 @@ FINISHING_FEE_PERCENT = 80  # before the finishing package (tile and material se
 
 # TBD_PARVEZ: size limit for the project image (a render or screenshot of the 3D model). Placeholder: the photo limit.
 MAX_PROJECT_IMAGE_MB = MAX_PHOTO_MB
+
+# Principal overview (sprint v4 Task 34).
+# TBD_PARVEZ (V4-D03): weight of each stage in the overall completion %. Empty means every stage weighs 1;
+# a stage missing from a non-empty map also weighs 1.
+OVERALL_COMPLETION_WEIGHTS: dict[str, float] = {}
+# TBD_PARVEZ: the stages the principal tracks as major milestones: the four client sign-offs, the 50% and 80%
+# fee gates, Site line-out and civil completion. Shown in flow order.
+MAJOR_MILESTONES = [
+    "requirements_signoff",
+    "design_freeze_signoff",
+    "payment_gate",
+    "line_out",
+    "civil_completion",
+    "finishing_fee_gate",
+    "interiors_signoff",
+    "handover_signoff",
+]
+# TBD_PARVEZ: how many days a resolved major issue stays on the overview with its resolution note.
+RESOLVED_ISSUES_DAYS = 30

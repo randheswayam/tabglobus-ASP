@@ -221,3 +221,4 @@ Read CLAUDE.md, docs/IMPLEMENTATION_PLAN.md step S00, docs/V4_EXECUTION_PLAN.md 
 ## Notes added during sprint v4
 
 - **Interim fee ledger (sprint v4 Task 33).** `fee_entries` records client fees due and received by hand, for Accounts and the principal architect. It is not the V12 fee module: no milestones, payment requests, reminders or verification. **V12 must migrate these entries** into its fee agreements and payment records and then retire the ledger.
+- **Principal overview (sprint v4 Task 34).** `GET /principal/overview` seeds three values as `TBD_PARVEZ` in `workflow_config`: `OVERALL_COMPLETION_WEIGHTS` (V4-D03; empty, so every stage weighs 1), `MAJOR_MILESTONES` (the four client sign-offs, the 50% and 80% fee gates, Site line-out and civil completion) and `RESOLVED_ISSUES_DAYS` (30). V04 traffic lights and V12 fees should feed this view instead of replacing it.
