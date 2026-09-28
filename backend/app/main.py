@@ -9,6 +9,7 @@ from app.modules.identity import admin as identity_admin
 from app.modules.projects import clients as project_clients
 from app.modules.projects import fee_plan as project_fee_plan
 from app.modules.projects import importer as project_importer
+from app.modules.workflow import attachments as workflow_attachments
 from app.modules.workflow import exceptions as workflow_exceptions
 from app.routers import (
     auth,
@@ -58,6 +59,7 @@ app.include_router(client.router)
 app.include_router(updates.router)
 app.include_router(identity_admin.router)
 app.include_router(workflow_exceptions.router)
+app.include_router(workflow_attachments.router)
 app.include_router(project_clients.router)
 app.include_router(project_fee_plan.router)
 app.include_router(project_importer.router)

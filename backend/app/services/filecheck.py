@@ -12,7 +12,29 @@ EXTENSIONS = {
     "video/mp4": ".mp4",
     "video/webm": ".webm",
     "application/pdf": ".pdf",
+    "image/vnd.dwg": ".dwg",
+    "image/vnd.dxf": ".dxf",
 }
+
+# Stage attachments are typed by their file extension (browsers label DWG and DXF inconsistently), then checked
+# by their bytes: extension -> (stored content type, kind).
+STAGE_FILE_TYPES = {
+    ".jpg": ("image/jpeg", "photo"),
+    ".jpeg": ("image/jpeg", "photo"),
+    ".png": ("image/png", "photo"),
+    ".webp": ("image/webp", "photo"),
+    ".mp4": ("video/mp4", "video"),
+    ".webm": ("video/webm", "video"),
+    ".pdf": ("application/pdf", "document"),
+    ".dwg": ("image/vnd.dwg", "cad"),
+    ".dxf": ("image/vnd.dxf", "cad"),
+}
+
+
+def _is_dxf(head: bytes) -> bool:
+    """ASCII DXF starts with a group code 0 and SECTION on the next line."""
+    lines = [ln.strip() for ln in head.decode("latin-1").splitlines() if ln.strip()]
+    return lines[:2] == ["0", "SECTION"]
 
 
 def signature_matches(content_type: str, head: bytes) -> bool:
@@ -23,6 +45,8 @@ def signature_matches(content_type: str, head: bytes) -> bool:
         "video/mp4": head[4:8] == b"ftyp",
         "video/webm": head[:4] == b"\x1a\x45\xdf\xa3",
         "application/pdf": head[:5] == b"%PDF-",
+        "image/vnd.dwg": head[:4] == b"AC10",  # AutoCAD drawing version header, e.g. AC1032
+        "image/vnd.dxf": _is_dxf(head),
     }.get(content_type, False)
 
 
@@ -38,6 +62,6 @@ async def read_checked(file: UploadFile, content_type: str, limit_mb: int, what:
         data += chunk
         if len(data) > limit:
             raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, f"A {what} can be at most {limit_mb} MB")
-    if not signature_matches(content_type, bytes(data[:16])):
+    if not signature_matches(content_type, bytes(data[:512])):
         raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, f"The file is not a valid {content_type}")
     return bytes(data)

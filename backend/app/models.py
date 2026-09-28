@@ -491,6 +491,28 @@ class ClientInvite(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class StageAttachment(Base):
+    """A file attached to a stage (photo, video, PDF or AutoCAD drawing). completed_at is set when the stage is
+    completed with it; from then on it can't change."""
+
+    __tablename__ = "stage_attachments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    stage_key: Mapped[str] = mapped_column(String(40))
+    kind: Mapped[str] = mapped_column(String(20))
+    filename: Mapped[str] = mapped_column(String(200))
+    content_type: Mapped[str] = mapped_column(String(100))
+    size: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64))
+    storage_key: Mapped[str] = mapped_column(String(300))
+    uploaded_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    uploaded_by: Mapped[User] = relationship()
+
+
 class ImportBatch(Base):
     """One bulk import of projects: who, which file (by hash), which mode, and what happened to each row."""
 

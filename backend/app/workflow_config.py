@@ -63,3 +63,12 @@ MAX_SIGNOFF_ATTACHMENT_MB = 20
 SIGNOFF_CONFIRMATION_TEXT = (
     "I have reviewed every document in this package and I approve this version on behalf of the client."
 )
+
+# TBD_PARVEZ: size limit per kind of file attached when completing a stage. Photo, video and document reuse
+# the photo, video and sign-off limits; the AutoCAD limit is a placeholder until Parvez sets it.
+MAX_STAGE_ATTACHMENT_MB = {
+    "photo": MAX_PHOTO_MB,
+    "video": MAX_VIDEO_MB,
+    "document": MAX_SIGNOFF_ATTACHMENT_MB,
+    "cad": 50,
+}
