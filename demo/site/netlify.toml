@@ -1,0 +1,3 @@
+# Publish this folder as it is; there is no build step on Netlify.
+[build]
+  publish = "."

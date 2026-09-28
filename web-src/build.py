@@ -78,5 +78,7 @@ demo_js = f'const DEMO_TEMPLATE = {json.dumps(demo_template(), ensure_ascii=Fals
 demo = html.replace('<title>SiteFlow</title>', '<title>SiteFlow Demo</title>', 1).replace('/*__APP_JS__*/', demo_js)
 write(os.path.join(root, 'demo', 'siteflow-demo-page.html'), demo)
 write(os.path.join(root, 'demo', 'SiteFlow-Demo.html'), full_document(demo))
+# Static site for hosting the demo at its own address (Netlify, Vercel, Cloudflare Pages or GitHub Pages).
+write(os.path.join(root, 'demo', 'site', 'index.html'), full_document(demo))
 
 print('Built www/index.html, web-src/siteflow.html and demo/SiteFlow-Demo.html')
