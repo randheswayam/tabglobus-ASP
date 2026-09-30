@@ -1,11 +1,12 @@
-"""Run the real SiteFlow v1 locally: FastAPI backend on port 8000 and the web app on port 8080.
+"""Run APS locally: FastAPI backend on port 8000 and the web app on port 8080.
 
     backend/.venv/Scripts/python run_local.py        (Windows)
     backend/.venv/bin/python run_local.py            (macOS, Linux)
 
 Data is kept in backend/local.db (SQLite) unless DATABASE_URL is set, e.g. to the docker-compose
-PostgreSQL. Set API_HOST=0.0.0.0 to reach the API from a phone on the same network. On first run the users are created with one shared password: SEED_PASSWORD if set,
-otherwise a random one that is printed once. Delete backend/local.db to start over. Stop with Ctrl+C.
+PostgreSQL. Set API_HOST=0.0.0.0 to reach the API from a phone on the same network. On first run
+the users are created with one shared password: SEED_PASSWORD if set, otherwise a random one that is
+printed once. Delete backend/local.db to start over. Stop with Ctrl+C.
 """
 import functools
 import json
@@ -60,7 +61,7 @@ def main() -> None:
     web = http.server.ThreadingHTTPServer(("127.0.0.1", WEB_PORT), handler)
     threading.Thread(target=web.serve_forever, daemon=True).start()
 
-    print("\nSiteFlow is running")
+    print("\nAPS is running")
     api_param = "" if API_PORT == 8000 else f"?api=http://localhost:{API_PORT}"
     print(f"  App:  http://localhost:{WEB_PORT}/index.html{api_param}")
     print(f"  API:  http://localhost:{API_PORT}/docs")
