@@ -75,7 +75,7 @@ write(os.path.join(root, 'www', 'index.html'), full_document(page))
 
 # Demo: same app, in-browser API with sample data.
 demo_js = f'const DEMO_TEMPLATE = {json.dumps(demo_template(), ensure_ascii=False)};\n' + read('demo-api.js') + '\n' + read('icons.js') + '\n' + read('app.js')
-demo = html.replace('<title>SiteFlow</title>', '<title>SiteFlow Demo</title>', 1).replace('/*__APP_JS__*/', demo_js)
+demo = html.replace('<title>APS</title>', '<title>APS Demo</title>', 1).replace('/*__APP_JS__*/', demo_js)
 write(os.path.join(root, 'demo', 'siteflow-demo-page.html'), demo)
 write(os.path.join(root, 'demo', 'SiteFlow-Demo.html'), full_document(demo))
 # Static site for hosting the demo at its own address (Netlify, Vercel, Cloudflare Pages or GitHub Pages).

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">SiteFlow</string>
-    <string name="title_activity_main">SiteFlow</string>
+    <string name="app_name">APS</string>
+    <string name="title_activity_main">APS</string>
     <string name="package_name">ai.tanglobus.siteflow</string>
     <string name="custom_url_scheme">ai.tanglobus.siteflow</string>
 </resources>

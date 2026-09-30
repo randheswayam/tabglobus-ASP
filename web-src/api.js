@@ -75,7 +75,7 @@ const SiteFlowAPI = (() => {
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     let r;
     try { r = await authFetch(base() + path, {method, headers, body: body === undefined ? undefined : JSON.stringify(body)}); }
-    catch (_) { throw new ApiError(0, `Cannot reach the SiteFlow server at ${base()}. Check your connection.`); }
+    catch (_) { throw new ApiError(0, `Cannot reach the APS server at ${base()}. Check your connection.`); }
     const data = await r.json().catch(() => null);
     if (!r.ok) throw new ApiError(r.status, messageOf(data, r.status), data && data.detail);
     return data;
@@ -84,7 +84,7 @@ const SiteFlowAPI = (() => {
   async function requestForm(path, form){
     let r;
     try { r = await authFetch(base() + path, {method: 'POST', body: form}); }
-    catch (_) { throw new ApiError(0, `Cannot reach the SiteFlow server at ${base()}. Check your connection.`); }
+    catch (_) { throw new ApiError(0, `Cannot reach the APS server at ${base()}. Check your connection.`); }
     const data = await r.json().catch(() => null);
     if (!r.ok) throw new ApiError(r.status, messageOf(data, r.status), data && data.detail);
     return data;
@@ -201,7 +201,7 @@ const SiteFlowAPI = (() => {
         xhr.open('POST', `${base()}/site-visits/${visitId}/media`);
         if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t);
         xhr.upload.onprogress = e => { if (onProgress && e.lengthComputable) onProgress(e.loaded / e.total); };
-        xhr.onerror = () => reject(new ApiError(0, `Cannot reach the SiteFlow server at ${base()}. Check your connection.`));
+        xhr.onerror = () => reject(new ApiError(0, `Cannot reach the APS server at ${base()}. Check your connection.`));
         xhr.onload = () => {
           let data = null; try { data = JSON.parse(xhr.responseText); } catch (_) {}
           if (xhr.status === 401 && t){
@@ -230,7 +230,7 @@ const SiteFlowAPI = (() => {
         xhr.open('POST', `${base()}/projects/${pid}/stages/${key}/attachments`);
         if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t);
         xhr.upload.onprogress = e => { if (onProgress && e.lengthComputable) onProgress(e.loaded / e.total); };
-        xhr.onerror = () => reject(new ApiError(0, `Cannot reach the SiteFlow server at ${base()}. Check your connection.`));
+        xhr.onerror = () => reject(new ApiError(0, `Cannot reach the APS server at ${base()}. Check your connection.`));
         xhr.onload = () => {
           let data = null; try { data = JSON.parse(xhr.responseText); } catch (_) {}
           if (xhr.status === 401 && t && !retried){

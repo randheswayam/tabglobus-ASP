@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0E6B6F">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>SiteFlow Demo</title>
+<title>APS Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -62,8 +62,8 @@ svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100%}
 .side{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:18px;padding:20px 14px;background:var(--surface);border-right:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;padding:0 6px}
-.brand-mark{width:30px;height:30px;border-radius:7px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}
-.brand-mark svg{width:18px;height:18px}
+.brand-mark{width:32px;height:32px;flex:none;color:var(--ink);display:grid;place-items:center}
+.brand-mark svg{width:32px;height:32px;display:block}
 .brand b{font-family:var(--f-display);font-size:17px;font-weight:800;letter-spacing:-.02em}
 .brand small{display:block;font-size:10.5px;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
 .nav{display:flex;flex-direction:column;gap:2px}
@@ -1942,12 +1942,14 @@ const I = {
   back: '<path d="M15 18l-6-6 6-6"/>', trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
   cloud: '<path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/>',
-  logo: '<path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6"/><path d="M4 20h16"/>',
   cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   rupee: '<path d="M7 5h10M7 9h10M7 5c6 0 6 8 0 8l7 7"/>',
   users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>'
 };
 const ico = (n, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
+/* The Architect Parveez Sayed monogram: a square spiral around a P over an S, drawn on a 13-unit grid. */
+const LOGO = '<svg class="logo" viewBox="0 0 13 13" role="img" aria-label="APS logo" fill="none" stroke="currentColor" stroke-width=".94" stroke-linecap="square" stroke-linejoin="miter"><path d="M10.5 12.5H.5V.5h12v12M2.5 10.5v-8h8v2h-6M10.5 6.5h-6v2h6v2h-6"/></svg>';
+const BRAND = `<div class="brand" data-testid="brand"><span class="brand-mark">${LOGO}</span><div><b>APS</b><small>Architect Parveez Sayed</small></div></div>`;
 
 /* ---------- reference data ---------- */
 const API = SiteFlowAPI;
@@ -2017,17 +2019,17 @@ function shell(){
     : r === 'alerts' && ui.unread ? `<span class="count" data-testid="unread-count">${ui.unread}</span>` : '';
   const who = `<span data-testid="signed-in-as"><b>${esc(u.name)}</b> <span class="muted small">· ${ROLES[u.role]}</span></span>`;
   $('#side').innerHTML = `
-    <div class="brand"><span class="brand-mark">${ico('logo')}</span><div><b>SiteFlow</b><small>Residential · MVP</small></div></div>
+    ${BRAND}
     <div class="nav">${nav.map(([r, i, l]) => `<button data-go="${r}" data-testid="nav-${r}" class="${cur === r ? 'on' : ''}">${ico(i)}${l}${count(r)}</button>`).join('')}</div>
     <div class="side-foot">
       <div class="whois"><span class="eyebrow">Signed in</span>${who}</div>
       <button class="btn ghost sm" data-act="sign-out" data-testid="sign-out">Sign out</button>
       ${API.demo ? '' : `<button class="btn ghost sm" data-act="sign-out-all" data-testid="signout-all">Sign out on all devices</button>`}
       ${API.demo ? `<button class="btn ghost sm" data-act="reset-demo" data-testid="reset-demo">${ui.resetArmed ? 'Tap again to reset' : 'Reset demo data'}</button>` : ''}
-      <div class="credit">${API.demo ? 'Demo with sample data · ' : ''}SiteFlow by TAN GLOBUS AI</div>
+      <div class="credit">${API.demo ? 'Demo with sample data · ' : ''}Built by TAN GLOBUS AI</div>
     </div>`;
   $('#tabs').innerHTML = nav.map(([r, i, l]) => `<button data-go="${r}" data-testid="tab-${r}" class="${cur === r ? 'on' : ''}">${ico(i)}${l}${count(r)}</button>`).join('');
-  return `<div class="mtop"><div class="brand"><span class="brand-mark">${ico('logo')}</span><b>SiteFlow</b></div><div class="row small">${who}<button class="btn ghost sm" data-act="sign-out" data-testid="sign-out">Sign out</button></div></div>
+  return `<div class="mtop"><div class="brand"><span class="brand-mark">${LOGO}</span><b>APS</b></div><div class="row small">${who}<button class="btn ghost sm" data-act="sign-out" data-testid="sign-out">Sign out</button></div></div>
     ${navigator.onLine === false ? `<div class="offline">${ico('cloud')}Offline. Drafts stay on this device; submit when you are back in coverage.</div>` : ''}`;
 }
 
@@ -2179,7 +2181,7 @@ const V = {};
 
 V.login = {html: () => `<div class="login panel" data-testid="login-view">
     <div class="panel-b form">
-      <div class="brand"><span class="brand-mark">${ico('logo')}</span><div><b>SiteFlow</b><small>Residential · MVP</small></div></div>
+      ${BRAND}
       <h1>Sign in</h1>
       ${ui.error ? `<div class="errbox" data-testid="login-error">${esc(ui.error)}</div>` : ''}
       ${ui.activating ? `<form class="form" data-form="activate">
@@ -2196,10 +2198,10 @@ V.login = {html: () => `<div class="login panel" data-testid="login-view">
         ${API.demo ? '' : `<button class="btn ghost sm" type="button" data-act="show-activate" data-testid="show-activate">I have an invite code</button>`}
       </form>`}
       ${API.demo ? demoPanel() : `<details class="small muted"><summary>Server</summary>
-        <div class="field" style="margin-top:8px"><label for="li-api">SiteFlow server address</label><input id="li-api" data-testid="login-server" value="${esc(API.base())}"></div>
+        <div class="field" style="margin-top:8px"><label for="li-api">APS server address</label><input id="li-api" data-testid="login-server" value="${esc(API.base())}"></div>
         <button class="btn sm" data-act="set-server" style="margin-top:8px">Use this server</button>
       </details>`}
-      <div class="credit">SiteFlow by TAN GLOBUS AI</div>
+      <div class="credit">Built by TAN GLOBUS AI</div>
     </div></div>`};
 
 /* Demo build only: one-tap accounts and the order to try them in. */

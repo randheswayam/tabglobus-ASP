@@ -103,3 +103,8 @@
 
 **Next sprint.** Execution-plan step 6 onwards, starting with S05: meetings, requirements, the baseline and sign-off. It includes wiring the activity state machine into ProjectStage.
 
+
+## 30 September 2026 — APS branding
+- The app shows as **APS** (Architect Parveez Sayed) with the practice's monogram, in place of the SiteFlow name and house icon: sign-in, sidebar, mobile top bar, page titles and the demo. The monogram is redrawn as a vector (`LOGO` in `web-src/app.js`) from the practice's logo image.
+- Android: app name APS; launcher icons (square, round, adaptive) and splash screens redrawn with the white monogram on `#1B2428`. The app id stays `ai.tanglobus.siteflow` so installed copies update in place.
+- Unchanged on purpose: server messages and stage text that say "SiteFlow" (for example "Completed before SiteFlow"), storage keys, the package name and the demo file names that CI uses.
