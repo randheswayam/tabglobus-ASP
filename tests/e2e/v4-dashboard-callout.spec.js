@@ -61,6 +61,24 @@ test('keyboard focus opens the callout on a project card', async ({ page, reques
   await expect(page.getByTestId(`wf-callout-${p.id}`)).toBeHidden();
 });
 
+test('the hover callout stays open when the pointer moves into it, and its button works', async ({ page, request }) => {
+  const p = await atDesignFreeze(request, 'Callout Reach Villa');
+  await signIn(page, 'architect');
+  await page.getByTestId('nav-projects').click();
+  await page.getByTestId(`project-card-${p.id}`).locator('h3').hover();
+  const box = page.getByTestId(`wf-callout-${p.id}`);
+  await expect(box).toBeVisible();
+  // Cross from the card to the callout in small steps, through the gap between them.
+  const b = await box.boundingBox();
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
+  await page.waitForTimeout(500);  // longer than the close grace period
+  await expect(box).toBeVisible();
+  await page.mouse.wheel(0, 200);  // scrolling the flow keeps it open
+  await expect(box).toBeVisible();
+  await box.getByTestId(`wfc-open-${p.id}`).click();
+  await expect(page.getByTestId('project-title')).toHaveText('Callout Reach Villa');
+});
+
 test('on a phone the first tap opens the callout and its button opens the project', async ({ browser, request }) => {
   const p = await atDesignFreeze(request, 'Callout Phone Villa');
   const context = await browser.newContext({ ...devices['Pixel 7'] });

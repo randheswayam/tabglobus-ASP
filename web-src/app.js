@@ -173,11 +173,12 @@ function wfCalloutHtml(p){
     <div class="wfc-legend" data-testid="wfc-counts">${WF_COUNT_LABEL.map(([k, l]) => `<span class="wfc-box h-${k}" style="display:inline-flex;padding:1px 6px">${HEALTH_MARK[k] ? ico(HEALTH_MARK[k]) : ''}${c[k]} ${l}</span>`).join('')}</div>
     ${wf.phases.map(ph => `<div class="wfc-ph" data-testid="wfc-phase-${ph.number}"><div class="wfc-ph-name">${ph.number}. ${esc(ph.name)}</div><div class="wfc-flow">${wfFlow(ph)}</div></div>`).join('')}`;
 }
-let wfOpenFor = null, wfHoverT = null;
+let wfOpenFor = null, wfHoverT = null, wfHideT = null;
 function showCallout(el, pinned){
   const p = WF[el.dataset.wfPid]; if (!p) return;
   const box = $('#wf-callout');
-  // A hover callout is a tooltip clicks pass through; a tapped one stays clickable for its Open project button.
+  clearTimeout(wfHideT);
+  // A tapped callout is pinned (a second tap closes it); a hovered one stays open while the pointer is on it.
   box.classList.toggle('pinned', !!pinned);
   if (wfOpenFor !== String(p.id)){ box.innerHTML = wfCalloutHtml(p); box.setAttribute('data-testid', `wf-callout-${p.id}`); }
   box.hidden = false; box.style.maxHeight = ''; wfOpenFor = String(p.id);
@@ -196,7 +197,7 @@ function showCallout(el, pinned){
   }
   box.style.left = `${left}px`; box.style.top = `${Math.max(8, top)}px`;
 }
-function hideCallout(){ clearTimeout(wfHoverT); const box = $('#wf-callout'); if (box){ box.hidden = true; } wfOpenFor = null; }
+function hideCallout(){ clearTimeout(wfHoverT); clearTimeout(wfHideT); const box = $('#wf-callout'); if (box){ box.hidden = true; } wfOpenFor = null; }
 
 /* The 10 phases as icons, each coloured by its health (worst stage wins), with a tooltip of its stages.
    Hover or focus shows the tooltip; a tap toggles it. Colour is never the only signal: aria-label and tooltip text. */
@@ -1446,11 +1447,15 @@ function syncLegalSave(){
 }
 
 /* ---------- events ---------- */
-let lastPointer = 'mouse';
-document.addEventListener('pointerdown', e => { lastPointer = e.pointerType || 'mouse'; }, true);
+let lastPointer = 'mouse', pressing = false;
+document.addEventListener('pointerdown', e => { lastPointer = e.pointerType || 'mouse'; pressing = true; }, true);
+document.addEventListener('pointerup', () => { pressing = false; }, true);
+document.addEventListener('pointercancel', () => { pressing = false; }, true);
 document.addEventListener('mouseover', e => {
   if (lastPointer === 'touch') return;
   const el = e.target.closest('[data-wf-pid]');
+  // Back on the open callout or the row that opened it: keep it open.
+  if (wfOpenFor && (e.target.closest('#wf-callout') || (el && el.dataset.wfPid === wfOpenFor))) clearTimeout(wfHideT);
   clearTimeout(wfHoverT);
   if (!el || e.target.closest('.pstrip')) return;
   if (wfOpenFor === el.dataset.wfPid) return;
@@ -1460,11 +1465,22 @@ document.addEventListener('mouseout', e => {
   if (lastPointer === 'touch' || !wfOpenFor) return;
   const to = e.relatedTarget;
   if (to && (to.closest('#wf-callout') || (to.closest('[data-wf-pid]') || {}).dataset?.wfPid === wfOpenFor)) return;
-  if (e.target.closest('#wf-callout') || e.target.closest('[data-wf-pid]')) hideCallout();
+  // A short grace period lets the pointer cross the gap between the row and the callout.
+  if (e.target.closest('#wf-callout') || e.target.closest('[data-wf-pid]')){ clearTimeout(wfHideT); wfHideT = setTimeout(hideCallout, 300); }
 });
-// Keyboard focus opens the callout; a tap's focus doesn't (the tap itself toggles it).
-document.addEventListener('focusin', e => { if (lastPointer === 'touch') return; const el = e.target.closest && e.target.closest('[data-wf-pid]'); if (el && e.target === el) showCallout(el); });
-document.addEventListener('focusout', e => { if (e.target.closest && e.target.closest('[data-wf-pid]') && !(e.relatedTarget && e.relatedTarget.closest('#wf-callout'))) hideCallout(); });
+// Keyboard focus opens the callout. A click's or tap's focus doesn't: hover or the tap itself handles those, and a
+// callout opened on mousedown would land under the pointer and swallow the click.
+document.addEventListener('focusin', e => {
+  if (lastPointer === 'touch' || pressing) return;
+  const el = e.target.closest && e.target.closest('[data-wf-pid]');
+  if (el && e.target === el) showCallout(el);
+});
+document.addEventListener('focusout', e => {
+  if (!(e.target.closest && e.target.closest('[data-wf-pid]'))) return;
+  if (e.relatedTarget && e.relatedTarget.closest('#wf-callout')) return;
+  if ($('#wf-callout').matches(':hover')) return;  // a click inside the callout moved focus; the pointer still holds it open
+  hideCallout();
+});
 
 document.addEventListener('change', e => { if (e.target.id === 'fe-project') go('fees', {pid: +e.target.value}); });
 
