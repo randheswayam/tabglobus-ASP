@@ -315,7 +315,30 @@ button.ph{padding:0;cursor:zoom-in}
 .ptip .pt-row .i{width:14px;height:14px;flex:none;margin-top:1px}
 .pt-row.h-done .i{color:var(--ok)}.pt-row.h-waiting .i{color:var(--warn)}.pt-row.h-delayed .i{color:var(--bad,#B3261E)}
 .pt-dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;margin:4px 3px 0}
-@media (max-width:600px){.picon{width:22px;height:22px}.picon .wi{width:14px;height:14px}.ptip{position:fixed;left:12px;right:12px;top:auto;bottom:80px;max-width:none}}
+@media (max-width:600px){.picon{width:22px;height:22px}.picon .wi{width:14px;height:14px}.ptip{display:none!important}}
+/* Phone sheets: a tapped phase icon or project fills the screen, with a close button and a way into the project. */
+.sheet-x{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);display:grid;place-items:center;padding:0}
+.sheet-x .i{width:18px;height:18px}
+.wfc .sheet-x{display:none}
+html.sheet-open,html.sheet-open body{overflow:hidden}
+.sheet{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;background:var(--surface);color:var(--ink);padding-top:env(safe-area-inset-top,0px)}
+.sheet[hidden]{display:none}
+.sheet-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px;border-bottom:1px solid var(--line)}
+.sheet-h b{display:block;font-family:var(--f-display);font-size:18px;line-height:1.25;margin-top:2px}
+.sheet-b{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:15px}
+.sheet-b .pt-row{display:flex;gap:10px;align-items:flex-start;line-height:1.35;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.sheet-b .pt-row .i{width:18px;height:18px;flex:none;margin-top:1px}
+.sheet-b .pt-row .small{font-size:13px;color:var(--ink-2)}
+.sheet-f{padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+.sheet-f .btn{width:100%;padding:13px;font-size:15px}
+@media (max-width:600px){
+  .wfc.pinned{inset:0!important;width:auto;max-width:none;max-height:none!important;border:0;border-radius:0;box-shadow:none;z-index:80;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px));font-size:13px}
+  .wfc.pinned .sheet-x{display:grid}
+  .wfc.pinned .wfc-h{position:sticky;top:calc(-14px - env(safe-area-inset-top,0px));background:var(--surface);margin:-14px -16px 10px;padding:14px 16px 10px;border-bottom:1px solid var(--line);z-index:1}
+  .wfc.pinned .wfc-h b{font-size:17px}
+  .wfc.pinned .wfc-h>div:first-child{min-width:0}
+  .wfc.pinned .wfc-h .row{flex-wrap:nowrap;flex:none}
+}
 .stage-files{display:flex;flex-direction:column;gap:8px;margin:8px 0}
 .sf-list{display:flex;flex-direction:column;gap:6px}
 .sf{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)}
@@ -494,6 +517,7 @@ body.anon .side,body.anon .tabs{display:none}
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="wf-callout" class="wfc" role="tooltip" hidden></div>
+<div id="phase-sheet" class="sheet" role="dialog" aria-modal="true" hidden></div>
 
 <script>
 const DEMO_TEMPLATE = {"id": "residential", "version": 1, "steps": ["Legal Approval", "Site Visit", "Team Lead Review"], "stages": [{"name": "Foundation", "weight": 12.5, "checklist": [{"id": "fdn-excavation", "label": "Excavation to drawing depth"}, {"id": "fdn-pcc", "label": "PCC bed laid"}, {"id": "fdn-footing-rebar", "label": "Footing reinforcement checked"}, {"id": "fdn-footing-concrete", "label": "Footing concrete poured"}]}, {"name": "Plinth", "weight": 12.5, "checklist": [{"id": "pln-beam", "label": "Plinth beam cast"}, {"id": "pln-filling", "label": "Plinth filling and compaction"}, {"id": "pln-dpc", "label": "Damp proof course laid"}]}, {"name": "Superstructure", "weight": 12.5, "checklist": [{"id": "sup-columns", "label": "Columns cast"}, {"id": "sup-beams", "label": "Beams cast"}, {"id": "sup-slab", "label": "Slab cast"}, {"id": "sup-curing", "label": "Curing completed"}]}, {"name": "Masonry", "weight": 12.5, "checklist": [{"id": "msn-walls", "label": "External walls built"}, {"id": "msn-partitions", "label": "Internal partitions built"}, {"id": "msn-lintels", "label": "Lintels and sills cast"}]}, {"name": "Plastering", "weight": 12.5, "checklist": [{"id": "pls-internal", "label": "Internal plaster"}, {"id": "pls-external", "label": "External plaster"}]}, {"name": "Services", "weight": 12.5, "checklist": [{"id": "svc-plumbing", "label": "Plumbing lines laid"}, {"id": "svc-electrical", "label": "Electrical conduits and wiring"}, {"id": "svc-testing", "label": "Pressure and circuit tests"}]}, {"name": "Finishes", "weight": 12.5, "checklist": [{"id": "fin-flooring", "label": "Flooring and tiling"}, {"id": "fin-doors-windows", "label": "Doors and windows fixed"}, {"id": "fin-painting", "label": "Painting"}, {"id": "fin-fixtures", "label": "Fixtures installed"}]}, {"name": "Handover", "weight": 12.5, "checklist": [{"id": "hnd-snag", "label": "Snag list closed"}, {"id": "hnd-cleaning", "label": "Site cleaned"}, {"id": "hnd-documents", "label": "Handover documents ready"}]}], "checklist_states": ["Done", "In progress", "Not started"], "problems": {"Structural": ["Crack in beam, column or slab", "Honeycombing in concrete", "Rebar spacing or cover not per drawing", "Formwork misalignment"], "Quality": ["Poor curing", "Plaster hollowness", "Level or plumb deviation", "Brickwork joint issues"], "Water": ["Seepage or dampness", "Waterproofing defect", "Drainage slope issue"], "Site": ["Material shortage", "Labour shortage", "Equipment breakdown", "Deviation from approved drawing"], "Safety": ["Missing barricading", "No safety gear in use", "Unsafe scaffolding"], "Other": []}, "severities": ["Low", "Medium", "High", "Critical"], "min_photos": 5, "max_photo_mb": 10, "max_video_mb": 100, "photo_types": ["image/jpeg", "image/png", "image/webp"], "video_types": ["video/mp4", "video/webm"], "red_flag_rules": {"critical_issue": {"label": "Critical issue", "rank": 5}, "overdue_fix": {"label": "Overdue fix", "rank": 4}, "review_overdue": {"label": "Review overdue", "rank": 3}, "repeated_rework": {"label": "Repeated rework", "rank": 3}, "legal_delay": {"label": "Legal delay", "rank": 2}, "no_recent_visit": {"label": "No recent visit", "rank": 1}, "client_decision_overdue": {"label": "Client decision overdue", "rank": 4}}, "workflow": {"review_sla_hours": 48, "visit_interval_days": 14, "rework_limit": 2}, "phases": [{"number": 1, "name": "Initiation and requirements", "icon": "folder"}, {"number": 2, "name": "Parallel pre-design", "icon": "hard_hat"}, {"number": 3, "name": "Structural design", "icon": "gear"}, {"number": 4, "name": "Design development and coordination", "icon": "house"}, {"number": 5, "name": "Client approval and commercial gate", "icon": "check_badge"}, {"number": 6, "name": "Detailed drawings", "icon": "sheet"}, {"number": 7, "name": "Construction execution", "icon": "surveyor"}, {"number": 8, "name": "Civil completion", "icon": "city"}, {"number": 9, "name": "Finishing", "icon": "sofa"}, {"number": 10, "name": "Handover", "icon": "key"}], "flow": [{"key": "setup", "number": "1", "label": "Project setup", "phase": 1}, {"key": "discovery", "number": "2", "label": "Client discovery meetings", "phase": 1}, {"key": "baseline", "number": "3", "label": "Preliminary requirement baseline", "phase": 1}, {"key": "requirements_signoff", "number": "4", "label": "Client sign-off: preliminary requirements", "phase": 1}, {"key": "predesign_site_visit", "number": null, "label": "Pre-design site visit", "phase": 2}, {"key": "investigations", "number": null, "label": "Investigations", "phase": 2}, {"key": "concept", "number": null, "label": "Preliminary concept", "phase": 2}, {"key": "tentative_elevations", "number": null, "label": "Tentative elevations", "phase": 2}, {"key": "grid", "number": "5", "label": "Centerline, grid, foundation basis and column positions", "phase": 3}, {"key": "grid_freeze", "number": "6", "label": "Architect and structural consultant freeze", "phase": 3}, {"key": "structural_design", "number": "7", "label": "Structural design package", "phase": 3}, {"key": "architectural_package", "number": "8A", "label": "Architectural package", "phase": 4}, {"key": "structural_package", "number": "8B", "label": "Structural package", "phase": 4}, {"key": "mep", "number": "9", "label": "MEP and coordination", "phase": 4}, {"key": "elevations_package", "number": "10", "label": "All elevations package", "phase": 4}, {"key": "design_freeze_signoff", "number": "11", "label": "Client sign-off: design freeze", "phase": 5}, {"key": "payment_gate", "number": "12", "label": "50% upfront gate", "phase": 5}, {"key": "detailed_drawings", "number": "13", "label": "Detailed drawings and controlled issue", "phase": 6}, {"key": "line_out", "number": "14", "label": "Site line-out", "phase": 7}, {"key": "construction", "number": "15", "label": "Construction quality stages", "phase": 7}, {"key": "civil_completion", "number": "16", "label": "Civil completion", "phase": 8}, {"key": "finishing_fee_gate", "number": null, "label": "80% fee gate", "phase": 9}, {"key": "interiors_signoff", "number": "17", "label": "Client sign-off: finishing package (tile and material selection)", "phase": 9}, {"key": "handover_signoff", "number": "18", "label": "Client sign-off: handover and closeout", "phase": 10}], "stage_flow": [{"key": "setup", "number": "1", "label": "Project setup", "phase": 1, "workstream": "Both", "owner_role": "architect", "predecessors": [], "gates": [], "evidence_required": [], "detail": "Project details, team assignment, initial timeline and budget.", "icon": "folder", "prd_stage": 0}, {"key": "discovery", "number": "2", "label": "Client discovery meetings", "phase": 1, "workstream": "Studio", "owner_role": "architect", "predecessors": ["setup"], "gates": [], "evidence_required": [], "detail": "Repeatable meetings: requirements, notes, photos and documents.", "icon": "people", "prd_stage": 1}, {"key": "baseline", "number": "3", "label": "Preliminary requirement baseline", "phase": 1, "workstream": "Studio", "owner_role": "architect", "predecessors": ["discovery"], "gates": [], "evidence_required": [], "detail": "Requirements document: scope, constraints and priorities.", "icon": "document", "prd_stage": 2}, {"key": "requirements_signoff", "number": "4", "label": "Client sign-off: preliminary requirements", "phase": 1, "workstream": "Studio", "owner_role": "client", "predecessors": ["baseline"], "gates": ["client_signoff"], "evidence_required": [], "detail": "Approval to proceed to design. Triggers the parallel workstreams.", "icon": "check_badge", "prd_stage": 2}, {"key": "predesign_site_visit", "number": null, "label": "Pre-design site visit", "phase": 2, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["requirements_signoff"], "gates": [], "evidence_required": [], "detail": "Site conditions, photos and videos.", "icon": "hard_hat", "prd_stage": 3}, {"key": "investigations", "number": null, "label": "Investigations", "phase": 2, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["predesign_site_visit"], "gates": [], "evidence_required": [], "detail": "Well, soil condition (black cotton soil), test pit (outstation).", "icon": "magnifier", "prd_stage": 3}, {"key": "concept", "number": null, "label": "Preliminary concept", "phase": 2, "workstream": "Studio", "owner_role": "architect", "predecessors": ["requirements_signoff"], "gates": [], "evidence_required": [], "detail": "Initial layouts and ideas.", "icon": "pencil", "prd_stage": 4}, {"key": "tentative_elevations", "number": null, "label": "Tentative elevations", "phase": 2, "workstream": "Studio", "owner_role": "architect", "predecessors": ["concept"], "gates": [], "evidence_required": [], "detail": "Not frozen, for discussion only.", "icon": "drafting", "prd_stage": 4}, {"key": "grid", "number": "5", "label": "Centerline, grid, foundation basis and column positions", "phase": 3, "workstream": "Studio", "owner_role": "architect", "predecessors": ["investigations", "tentative_elevations"], "gates": [], "evidence_required": [], "detail": "Based on site data and the preliminary design.", "icon": "ruler", "prd_stage": 5}, {"key": "grid_freeze", "number": "6", "label": "Architect and structural consultant freeze", "phase": 3, "workstream": "Studio", "owner_role": "team_lead", "predecessors": ["grid"], "gates": ["finding_disposition"], "evidence_required": [], "detail": "Centerline, foundation and column positions reviewed and signed off.", "icon": "people_check", "prd_stage": 5}, {"key": "structural_design", "number": "7", "label": "Structural design package", "phase": 3, "workstream": "Studio", "owner_role": "structural_consultant", "predecessors": ["grid_freeze"], "gates": [], "evidence_required": [], "detail": "Structural consultant: RCC design, foundation, columns and beams.", "icon": "gear", "prd_stage": 6}, {"key": "architectural_package", "number": "8A", "label": "Architectural package", "phase": 4, "workstream": "Studio", "owner_role": "architect", "predecessors": ["structural_design"], "gates": [], "evidence_required": [], "detail": "Architectural drawings, plans and elevations.", "icon": "house", "prd_stage": 7}, {"key": "structural_package", "number": "8B", "label": "Structural package", "phase": 4, "workstream": "Studio", "owner_role": "structural_consultant", "predecessors": ["structural_design"], "gates": [], "evidence_required": [], "detail": "Final structural drawings.", "icon": "frame", "prd_stage": 7}, {"key": "mep", "number": "9", "label": "MEP and coordination", "phase": 4, "workstream": "Studio", "owner_role": "mep_consultant", "predecessors": ["architectural_package", "structural_package"], "gates": ["issue_closure"], "evidence_required": [], "detail": "Electrical, plumbing and HVAC drawings; clash check across disciplines.", "icon": "pipes", "prd_stage": 7}, {"key": "elevations_package", "number": "10", "label": "All elevations package", "phase": 4, "workstream": "Studio", "owner_role": "architect", "predecessors": ["mep"], "gates": [], "evidence_required": [], "detail": "Final elevations (all sides), materials and finishes, optional 3D views.", "icon": "building", "prd_stage": 8}, {"key": "design_freeze_signoff", "number": "11", "label": "Client sign-off: design freeze", "phase": 5, "workstream": "Studio", "owner_role": "client", "predecessors": ["elevations_package"], "gates": ["client_signoff"], "evidence_required": [], "detail": "Approval of all elevations. Changes after this stage are costly.", "icon": "check_badge", "prd_stage": 8}, {"key": "payment_gate", "number": "12", "label": "50% upfront gate", "phase": 5, "workstream": "Both", "owner_role": "accounts", "predecessors": ["design_freeze_signoff"], "gates": ["payment"], "evidence_required": [], "detail": "Payment milestone cleared before detailed drawings.", "icon": "card", "prd_stage": 9}, {"key": "detailed_drawings", "number": "13", "label": "Detailed drawings and controlled issue", "phase": 6, "workstream": "Studio", "owner_role": "architect", "predecessors": ["payment_gate"], "gates": ["document_status"], "evidence_required": [], "detail": "Detailed architectural, structural and MEP drawings, issued with version control.", "icon": "sheet", "prd_stage": 10}, {"key": "line_out", "number": "14", "label": "Site line-out", "phase": 7, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["detailed_drawings"], "gates": ["legal_approval"], "evidence_required": [], "detail": "Site marking and verification as per approved drawings.", "icon": "surveyor", "prd_stage": 11}, {"key": "construction", "number": "15", "label": "Construction quality stages", "phase": 7, "workstream": "Site", "owner_role": "civil_engineer", "predecessors": ["line_out"], "gates": [], "evidence_required": [], "detail": "Site visits with checklists, photos, review and derived progress.", "icon": "clipboard", "prd_stage": 12}, {"key": "civil_completion", "number": "16", "label": "Civil completion", "phase": 8, "workstream": "Site", "owner_role": "team_lead", "predecessors": ["construction"], "gates": ["no_open_major_problems", "checklist"], "evidence_required": [], "detail": "Civil completion checklist and quality sign-off; ready for interiors.", "icon": "city", "prd_stage": 13}, {"key": "finishing_fee_gate", "number": null, "label": "80% fee gate", "phase": 9, "workstream": "Both", "owner_role": "accounts", "predecessors": ["civil_completion"], "gates": ["payment"], "evidence_required": [], "detail": "80% of fees collected before the finishing package", "icon": "card", "prd_stage": 14}, {"key": "interiors_signoff", "number": "17", "label": "Client sign-off: finishing package (tile and material selection)", "phase": 9, "workstream": "Both", "owner_role": "client", "predecessors": ["finishing_fee_gate"], "gates": ["client_signoff"], "evidence_required": [], "detail": "Finishing package: material, tile and fixture selection approvals", "icon": "sofa", "prd_stage": 14}, {"key": "handover_signoff", "number": "18", "label": "Client sign-off: handover and closeout", "phase": 10, "workstream": "Both", "owner_role": "client", "predecessors": ["interiors_signoff"], "gates": ["client_signoff"], "evidence_required": [], "detail": "Final inspection, snag list and handover documents.", "icon": "key", "prd_stage": 15}], "placeholder_gates": {"payment": "The payment check", "finding_disposition": "The site findings check", "issue_closure": "The coordination issues check", "document_status": "The drawing status check", "checklist": "The civil completion checklist"}, "exception_roles": ["admin", "team_lead"], "fee_basis_help": "What the fee percentages are calculated on, for example the total fee or a stage fee. Still to be decided by Parvez (D-05).", "stage_file_mb": {"photo": 10, "video": 100, "document": 20, "cad": 50}, "principal": {"major_milestones": ["requirements_signoff", "design_freeze_signoff", "payment_gate", "line_out", "civil_completion", "finishing_fee_gate", "interiors_signoff", "handover_signoff"], "completion_weights": {}, "resolved_issues_days": 30}, "business_timezone": "Asia/Kolkata", "signoff": {"sla_days": 7, "invite_ttl_days": 7, "invite_max_attempts": 5, "attachment_types": ["application/pdf", "image/jpeg", "image/png", "image/webp"], "max_attachment_mb": 20, "confirmation_text": "I have reviewed every document in this package and I approve this version on behalf of the client."}};
@@ -1980,7 +2004,7 @@ function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add
 /* ---------- navigation ---------- */
 async function go(route, p = {}){
   ui.route = route; ui.p = p; ui.error = null; ui.loadError = null; ui.data = {}; ui.lightbox = null;
-  if (typeof hideCallout === 'function') hideCallout();
+  if (typeof closeSheets === 'function') closeSheets();
   const v = V[route];
   if (v && v.load){
     $('#main').innerHTML = shell() + '<div class="empty">Loading…</div>';
@@ -2066,7 +2090,8 @@ function wfFlow(ph){
 function wfCalloutHtml(p){
   const wf = p.workflow, c = wf.counts, total = Object.values(c).reduce((a, b) => a + b, 0);
   return `<div class="wfc-h"><div><b>${esc(p.name)}</b><div class="small muted">${p.phase ? `Phase ${p.phase.number} · ${esc(p.phase.name)} · ` : ''}${c.done} of ${total} done</div></div>
-      <button class="btn sm" data-act="open-project" data-force="1" data-pid="${p.id}" data-testid="wfc-open-${p.id}">Open project</button></div>
+      <div class="row"><button class="btn sm" data-act="open-project" data-force="1" data-pid="${p.id}" data-testid="wfc-open-${p.id}">Open project</button>
+      <button class="sheet-x" data-act="close-sheet" aria-label="Close" data-testid="wfc-close-${p.id}">${ico('x')}</button></div></div>
     <div class="wfc-legend" data-testid="wfc-counts">${WF_COUNT_LABEL.map(([k, l]) => `<span class="wfc-box h-${k}" style="display:inline-flex;padding:1px 6px">${HEALTH_MARK[k] ? ico(HEALTH_MARK[k]) : ''}${c[k]} ${l}</span>`).join('')}</div>
     ${wf.phases.map(ph => `<div class="wfc-ph" data-testid="wfc-phase-${ph.number}"><div class="wfc-ph-name">${ph.number}. ${esc(ph.name)}</div><div class="wfc-flow">${wfFlow(ph)}</div></div>`).join('')}`;
 }
@@ -2078,7 +2103,7 @@ function showCallout(el, pinned){
   // A tapped callout is pinned (a second tap closes it); a hovered one stays open while the pointer is on it.
   box.classList.toggle('pinned', !!pinned);
   if (wfOpenFor !== String(p.id)){ box.innerHTML = wfCalloutHtml(p); box.setAttribute('data-testid', `wf-callout-${p.id}`); }
-  box.hidden = false; box.style.maxHeight = ''; wfOpenFor = String(p.id);
+  box.hidden = false; box.style.maxHeight = ''; wfOpenFor = String(p.id); sheetLock();
   // Beside a narrow card, else below the row (or above it): never over the row that opened it.
   const r = el.getBoundingClientRect(), w = box.offsetWidth, h = box.offsetHeight;
   let left, top;
@@ -2094,7 +2119,28 @@ function showCallout(el, pinned){
   }
   box.style.left = `${left}px`; box.style.top = `${Math.max(8, top)}px`;
 }
-function hideCallout(){ clearTimeout(wfHoverT); clearTimeout(wfHideT); const box = $('#wf-callout'); if (box){ box.hidden = true; } wfOpenFor = null; }
+function hideCallout(){ clearTimeout(wfHoverT); clearTimeout(wfHideT); const box = $('#wf-callout'); if (box){ box.hidden = true; } wfOpenFor = null; sheetLock(); }
+
+/* On a phone a tapped phase icon or project opens a full-screen sheet with a close button and a way into the
+   project; on a wider screen the same content stays a tooltip. */
+const isPhone = () => matchMedia('(max-width:600px)').matches;
+function sheetLock(){
+  const box = $('#wf-callout'), sheet = $('#phase-sheet');
+  const open = (sheet && !sheet.hidden) || (box && !box.hidden && box.classList.contains('pinned') && isPhone());
+  document.documentElement.classList.toggle('sheet-open', !!open);
+}
+function openPhaseSheet(icon){
+  const tip = icon.querySelector('.ptip'), sheet = $('#phase-sheet'); if (!tip || !sheet) return;
+  const pid = icon.dataset.pid, p = WF[pid] || (ui.data.projects || []).find(x => String(x.id) === pid);
+  sheet.innerHTML = `<div class="sheet-h"><div>${p ? `<div class="small muted">${esc(p.name)}</div>` : ''}<b>${esc(tip.querySelector('b').textContent)}</b></div>
+      <button class="sheet-x" data-act="close-sheet" aria-label="Close" data-testid="phase-sheet-close">${ico('x')}</button></div>
+    <div class="sheet-b">${[...tip.querySelectorAll('.pt-row')].map(r => r.outerHTML).join('')}</div>
+    <div class="sheet-f"><button class="btn primary" data-act="open-project" data-force="1" data-pid="${esc(pid)}" data-testid="phase-sheet-details">View project details</button></div>`;
+  sheet.setAttribute('data-testid', icon.dataset.testid.replace('phase-icon', 'phase-sheet'));
+  sheet.hidden = false; sheetLock(); sheet.querySelector('.sheet-x').focus();
+}
+function closePhaseSheet(){ const sheet = $('#phase-sheet'); if (sheet && !sheet.hidden){ sheet.hidden = true; sheetLock(); } }
+function closeSheets(){ closePhaseSheet(); hideCallout(); }
 
 /* The 10 phases as icons, each coloured by its health (worst stage wins), with a tooltip of its stages.
    Hover or focus shows the tooltip; a tap toggles it. Colour is never the only signal: aria-label and tooltip text. */
@@ -2103,7 +2149,7 @@ const HEALTH_MARK = {done: 'check', waiting: 'cal', delayed: 'alert', upcoming: 
 function phaseStrip(p){
   const wf = p.workflow;
   if (!wf || typeof wfIcon !== 'function') return legacySteps(p);
-  return `<div class="pstrip" data-testid="phase-strip-${p.id}">${wf.phases.map(ph => `<span class="picon h-${ph.health}" role="img" tabindex="0" data-act="phase-tip"
+  return `<div class="pstrip" data-testid="phase-strip-${p.id}">${wf.phases.map(ph => `<span class="picon h-${ph.health}" role="img" tabindex="0" data-act="phase-tip" data-pid="${p.id}"
       data-testid="phase-icon-${p.id}-${ph.number}" aria-label="Phase ${ph.number}, ${esc(ph.name)}: ${HEALTH_LABEL[ph.health]}">${wfIcon(ph.icon)}
       <span class="ptip" role="tooltip"><b>Phase ${ph.number} · ${esc(ph.name)}</b>${ph.stages.map(s => `<span class="pt-row h-${s.health}">${HEALTH_MARK[s.health] ? ico(HEALTH_MARK[s.health]) : '<i class="pt-dot"></i>'}<span>${s.number ? esc(s.number) + '. ' : ''}${esc(s.label)}<br><span class="small">${esc(HEALTH_LABEL[s.health])}${s.reason && s.health !== 'done' ? ' · ' + esc(s.reason) : ''}</span></span></span>`).join('')}</span></span>`).join('')}</div>`;
 }
@@ -3382,7 +3428,7 @@ document.addEventListener('focusout', e => {
 document.addEventListener('change', e => { if (e.target.id === 'fe-project') go('fees', {pid: +e.target.value}); });
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape'){ document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open')); hideCallout(); return; }
+  if (e.key === 'Escape'){ document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open')); closeSheets(); return; }
   const el = e.target;
   if ((e.key === 'Enter' || e.key === ' ') && el.matches && el.matches('[role="button"][data-act]')){ e.preventDefault(); el.click(); }
 });
@@ -3396,9 +3442,11 @@ document.addEventListener('click', async e => {
         if (wfOpenFor === a.dataset.wfPid) hideCallout(); else showCallout(a, true);
         break;
       }
-      hideCallout(); go('project', {pid: +a.dataset.pid}); break;
+      closeSheets(); go('project', {pid: +a.dataset.pid}); break;
+    case 'close-sheet': closeSheets(); break;
     case 'po-toggle': { const id = +a.dataset.pid; ui.p.poOpen = ui.p.poOpen === id ? null : id; rerenderKeepScroll(); break; }
     case 'phase-tip': {
+      if (isPhone()){ openPhaseSheet(a); break; }
       const open = a.classList.contains('open');
       document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open'));
       if (!open) a.classList.add('open');
@@ -3754,7 +3802,7 @@ document.addEventListener('change', e => {
 window.addEventListener('online', () => render());
 window.addEventListener('offline', () => render());
 if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.App){
-  window.Capacitor.Plugins.App.addListener('backButton', () => { if (ui.route !== home() && ui.me) go(home()); else window.Capacitor.Plugins.App.exitApp(); });
+  window.Capacitor.Plugins.App.addListener('backButton', () => { if (document.documentElement.classList.contains('sheet-open')){ closeSheets(); return; } if (ui.route !== home() && ui.me) go(home()); else window.Capacitor.Plugins.App.exitApp(); });
 }
 
 /* ---------- boot ---------- */

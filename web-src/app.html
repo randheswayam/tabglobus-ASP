@@ -315,7 +315,30 @@ button.ph{padding:0;cursor:zoom-in}
 .ptip .pt-row .i{width:14px;height:14px;flex:none;margin-top:1px}
 .pt-row.h-done .i{color:var(--ok)}.pt-row.h-waiting .i{color:var(--warn)}.pt-row.h-delayed .i{color:var(--bad,#B3261E)}
 .pt-dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;margin:4px 3px 0}
-@media (max-width:600px){.picon{width:22px;height:22px}.picon .wi{width:14px;height:14px}.ptip{position:fixed;left:12px;right:12px;top:auto;bottom:80px;max-width:none}}
+@media (max-width:600px){.picon{width:22px;height:22px}.picon .wi{width:14px;height:14px}.ptip{display:none!important}}
+/* Phone sheets: a tapped phase icon or project fills the screen, with a close button and a way into the project. */
+.sheet-x{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);display:grid;place-items:center;padding:0}
+.sheet-x .i{width:18px;height:18px}
+.wfc .sheet-x{display:none}
+html.sheet-open,html.sheet-open body{overflow:hidden}
+.sheet{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;background:var(--surface);color:var(--ink);padding-top:env(safe-area-inset-top,0px)}
+.sheet[hidden]{display:none}
+.sheet-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px;border-bottom:1px solid var(--line)}
+.sheet-h b{display:block;font-family:var(--f-display);font-size:18px;line-height:1.25;margin-top:2px}
+.sheet-b{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:15px}
+.sheet-b .pt-row{display:flex;gap:10px;align-items:flex-start;line-height:1.35;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.sheet-b .pt-row .i{width:18px;height:18px;flex:none;margin-top:1px}
+.sheet-b .pt-row .small{font-size:13px;color:var(--ink-2)}
+.sheet-f{padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+.sheet-f .btn{width:100%;padding:13px;font-size:15px}
+@media (max-width:600px){
+  .wfc.pinned{inset:0!important;width:auto;max-width:none;max-height:none!important;border:0;border-radius:0;box-shadow:none;z-index:80;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px));font-size:13px}
+  .wfc.pinned .sheet-x{display:grid}
+  .wfc.pinned .wfc-h{position:sticky;top:calc(-14px - env(safe-area-inset-top,0px));background:var(--surface);margin:-14px -16px 10px;padding:14px 16px 10px;border-bottom:1px solid var(--line);z-index:1}
+  .wfc.pinned .wfc-h b{font-size:17px}
+  .wfc.pinned .wfc-h>div:first-child{min-width:0}
+  .wfc.pinned .wfc-h .row{flex-wrap:nowrap;flex:none}
+}
 .stage-files{display:flex;flex-direction:column;gap:8px;margin:8px 0}
 .sf-list{display:flex;flex-direction:column;gap:6px}
 .sf{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)}
@@ -494,6 +517,7 @@ body.anon .side,body.anon .tabs{display:none}
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="wf-callout" class="wfc" role="tooltip" hidden></div>
+<div id="phase-sheet" class="sheet" role="dialog" aria-modal="true" hidden></div>
 
 <script>
 /*__APP_JS__*/

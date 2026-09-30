@@ -92,7 +92,12 @@ test('on a phone the first tap opens the callout and its button opens the projec
   const r = await box.boundingBox();
   expect(r.x).toBeGreaterThanOrEqual(0);
   expect(r.x + r.width).toBeLessThanOrEqual(page.viewportSize().width);
+  expect(r.height).toBe(page.viewportSize().height);  // a tapped callout fills the phone screen
   await shot(page, 'task29-03-phone-sheet');
+  await box.getByTestId(`wfc-close-${p.id}`).tap();
+  await expect(box).toBeHidden();
+  await page.getByTestId(`project-card-${p.id}`).locator('h3').tap();
+  await expect(box).toBeVisible();
   await box.getByTestId(`wfc-open-${p.id}`).tap();
   await expect(page.getByTestId('project-title')).toHaveText('Callout Phone Villa');
   await context.close();

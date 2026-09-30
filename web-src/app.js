@@ -83,7 +83,7 @@ function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add
 /* ---------- navigation ---------- */
 async function go(route, p = {}){
   ui.route = route; ui.p = p; ui.error = null; ui.loadError = null; ui.data = {}; ui.lightbox = null;
-  if (typeof hideCallout === 'function') hideCallout();
+  if (typeof closeSheets === 'function') closeSheets();
   const v = V[route];
   if (v && v.load){
     $('#main').innerHTML = shell() + '<div class="empty">Loading…</div>';
@@ -169,7 +169,8 @@ function wfFlow(ph){
 function wfCalloutHtml(p){
   const wf = p.workflow, c = wf.counts, total = Object.values(c).reduce((a, b) => a + b, 0);
   return `<div class="wfc-h"><div><b>${esc(p.name)}</b><div class="small muted">${p.phase ? `Phase ${p.phase.number} · ${esc(p.phase.name)} · ` : ''}${c.done} of ${total} done</div></div>
-      <button class="btn sm" data-act="open-project" data-force="1" data-pid="${p.id}" data-testid="wfc-open-${p.id}">Open project</button></div>
+      <div class="row"><button class="btn sm" data-act="open-project" data-force="1" data-pid="${p.id}" data-testid="wfc-open-${p.id}">Open project</button>
+      <button class="sheet-x" data-act="close-sheet" aria-label="Close" data-testid="wfc-close-${p.id}">${ico('x')}</button></div></div>
     <div class="wfc-legend" data-testid="wfc-counts">${WF_COUNT_LABEL.map(([k, l]) => `<span class="wfc-box h-${k}" style="display:inline-flex;padding:1px 6px">${HEALTH_MARK[k] ? ico(HEALTH_MARK[k]) : ''}${c[k]} ${l}</span>`).join('')}</div>
     ${wf.phases.map(ph => `<div class="wfc-ph" data-testid="wfc-phase-${ph.number}"><div class="wfc-ph-name">${ph.number}. ${esc(ph.name)}</div><div class="wfc-flow">${wfFlow(ph)}</div></div>`).join('')}`;
 }
@@ -181,7 +182,7 @@ function showCallout(el, pinned){
   // A tapped callout is pinned (a second tap closes it); a hovered one stays open while the pointer is on it.
   box.classList.toggle('pinned', !!pinned);
   if (wfOpenFor !== String(p.id)){ box.innerHTML = wfCalloutHtml(p); box.setAttribute('data-testid', `wf-callout-${p.id}`); }
-  box.hidden = false; box.style.maxHeight = ''; wfOpenFor = String(p.id);
+  box.hidden = false; box.style.maxHeight = ''; wfOpenFor = String(p.id); sheetLock();
   // Beside a narrow card, else below the row (or above it): never over the row that opened it.
   const r = el.getBoundingClientRect(), w = box.offsetWidth, h = box.offsetHeight;
   let left, top;
@@ -197,7 +198,28 @@ function showCallout(el, pinned){
   }
   box.style.left = `${left}px`; box.style.top = `${Math.max(8, top)}px`;
 }
-function hideCallout(){ clearTimeout(wfHoverT); clearTimeout(wfHideT); const box = $('#wf-callout'); if (box){ box.hidden = true; } wfOpenFor = null; }
+function hideCallout(){ clearTimeout(wfHoverT); clearTimeout(wfHideT); const box = $('#wf-callout'); if (box){ box.hidden = true; } wfOpenFor = null; sheetLock(); }
+
+/* On a phone a tapped phase icon or project opens a full-screen sheet with a close button and a way into the
+   project; on a wider screen the same content stays a tooltip. */
+const isPhone = () => matchMedia('(max-width:600px)').matches;
+function sheetLock(){
+  const box = $('#wf-callout'), sheet = $('#phase-sheet');
+  const open = (sheet && !sheet.hidden) || (box && !box.hidden && box.classList.contains('pinned') && isPhone());
+  document.documentElement.classList.toggle('sheet-open', !!open);
+}
+function openPhaseSheet(icon){
+  const tip = icon.querySelector('.ptip'), sheet = $('#phase-sheet'); if (!tip || !sheet) return;
+  const pid = icon.dataset.pid, p = WF[pid] || (ui.data.projects || []).find(x => String(x.id) === pid);
+  sheet.innerHTML = `<div class="sheet-h"><div>${p ? `<div class="small muted">${esc(p.name)}</div>` : ''}<b>${esc(tip.querySelector('b').textContent)}</b></div>
+      <button class="sheet-x" data-act="close-sheet" aria-label="Close" data-testid="phase-sheet-close">${ico('x')}</button></div>
+    <div class="sheet-b">${[...tip.querySelectorAll('.pt-row')].map(r => r.outerHTML).join('')}</div>
+    <div class="sheet-f"><button class="btn primary" data-act="open-project" data-force="1" data-pid="${esc(pid)}" data-testid="phase-sheet-details">View project details</button></div>`;
+  sheet.setAttribute('data-testid', icon.dataset.testid.replace('phase-icon', 'phase-sheet'));
+  sheet.hidden = false; sheetLock(); sheet.querySelector('.sheet-x').focus();
+}
+function closePhaseSheet(){ const sheet = $('#phase-sheet'); if (sheet && !sheet.hidden){ sheet.hidden = true; sheetLock(); } }
+function closeSheets(){ closePhaseSheet(); hideCallout(); }
 
 /* The 10 phases as icons, each coloured by its health (worst stage wins), with a tooltip of its stages.
    Hover or focus shows the tooltip; a tap toggles it. Colour is never the only signal: aria-label and tooltip text. */
@@ -206,7 +228,7 @@ const HEALTH_MARK = {done: 'check', waiting: 'cal', delayed: 'alert', upcoming: 
 function phaseStrip(p){
   const wf = p.workflow;
   if (!wf || typeof wfIcon !== 'function') return legacySteps(p);
-  return `<div class="pstrip" data-testid="phase-strip-${p.id}">${wf.phases.map(ph => `<span class="picon h-${ph.health}" role="img" tabindex="0" data-act="phase-tip"
+  return `<div class="pstrip" data-testid="phase-strip-${p.id}">${wf.phases.map(ph => `<span class="picon h-${ph.health}" role="img" tabindex="0" data-act="phase-tip" data-pid="${p.id}"
       data-testid="phase-icon-${p.id}-${ph.number}" aria-label="Phase ${ph.number}, ${esc(ph.name)}: ${HEALTH_LABEL[ph.health]}">${wfIcon(ph.icon)}
       <span class="ptip" role="tooltip"><b>Phase ${ph.number} · ${esc(ph.name)}</b>${ph.stages.map(s => `<span class="pt-row h-${s.health}">${HEALTH_MARK[s.health] ? ico(HEALTH_MARK[s.health]) : '<i class="pt-dot"></i>'}<span>${s.number ? esc(s.number) + '. ' : ''}${esc(s.label)}<br><span class="small">${esc(HEALTH_LABEL[s.health])}${s.reason && s.health !== 'done' ? ' · ' + esc(s.reason) : ''}</span></span></span>`).join('')}</span></span>`).join('')}</div>`;
 }
@@ -1485,7 +1507,7 @@ document.addEventListener('focusout', e => {
 document.addEventListener('change', e => { if (e.target.id === 'fe-project') go('fees', {pid: +e.target.value}); });
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape'){ document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open')); hideCallout(); return; }
+  if (e.key === 'Escape'){ document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open')); closeSheets(); return; }
   const el = e.target;
   if ((e.key === 'Enter' || e.key === ' ') && el.matches && el.matches('[role="button"][data-act]')){ e.preventDefault(); el.click(); }
 });
@@ -1499,9 +1521,11 @@ document.addEventListener('click', async e => {
         if (wfOpenFor === a.dataset.wfPid) hideCallout(); else showCallout(a, true);
         break;
       }
-      hideCallout(); go('project', {pid: +a.dataset.pid}); break;
+      closeSheets(); go('project', {pid: +a.dataset.pid}); break;
+    case 'close-sheet': closeSheets(); break;
     case 'po-toggle': { const id = +a.dataset.pid; ui.p.poOpen = ui.p.poOpen === id ? null : id; rerenderKeepScroll(); break; }
     case 'phase-tip': {
+      if (isPhone()){ openPhaseSheet(a); break; }
       const open = a.classList.contains('open');
       document.querySelectorAll('.picon.open').forEach(x => x.classList.remove('open'));
       if (!open) a.classList.add('open');
@@ -1857,7 +1881,7 @@ document.addEventListener('change', e => {
 window.addEventListener('online', () => render());
 window.addEventListener('offline', () => render());
 if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.App){
-  window.Capacitor.Plugins.App.addListener('backButton', () => { if (ui.route !== home() && ui.me) go(home()); else window.Capacitor.Plugins.App.exitApp(); });
+  window.Capacitor.Plugins.App.addListener('backButton', () => { if (document.documentElement.classList.contains('sheet-open')){ closeSheets(); return; } if (ui.route !== home() && ui.me) go(home()); else window.Capacitor.Plugins.App.exitApp(); });
 }
 
 /* ---------- boot ---------- */

@@ -41,18 +41,33 @@ test('dashboard stage column shows the icons too', async ({ page, request }) => 
   await shot(page, 'task28-02-dashboard-icons');
 });
 
-test('phase icons on a phone: a tap shows the tooltip without opening the project', async ({ browser, request }) => {
+test('phase icons on a phone: a tap opens a full-screen sheet with a close button and project details', async ({ browser, request }) => {
   const p = await atDesignFreeze(request, 'Icon Phone Villa');
   const context = await browser.newContext({ ...devices['Pixel 7'] });
   const page = await context.newPage();
   await signIn(page, 'architect');
   await page.getByTestId('tab-projects').click();
-  const five = page.getByTestId(`phase-icon-${p.id}-5`);
-  await five.tap();
-  await expect(five.locator('.ptip')).toBeVisible();
-  await expect(page.getByTestId('project-title')).toHaveCount(0);
   const strip = await page.getByTestId(`phase-strip-${p.id}`).boundingBox();
   expect(strip.x + strip.width).toBeLessThanOrEqual(page.viewportSize().width);
+  const five = page.getByTestId(`phase-icon-${p.id}-5`);
+  await five.tap();
+  const sheet = page.getByTestId(`phase-sheet-${p.id}-5`);
+  await expect(sheet).toBeVisible();
+  await expect(page.getByTestId('project-title')).toHaveCount(0);
+  await expect(sheet).toContainText('Icon Phone Villa');
+  await expect(sheet).toContainText('Phase 5 · Client approval and commercial gate');
+  await expect(sheet).toContainText('Client sign-off: design freeze');
+  const box = await sheet.boundingBox(), vp = page.viewportSize();
+  expect(box.width).toBe(vp.width);  // fills the screen
+  expect(box.height).toBe(vp.height);
   await shot(page, 'task28-03-phone-tap');
+
+  await sheet.getByTestId('phase-sheet-close').tap();
+  await expect(sheet).toBeHidden();
+  await five.tap();
+  await expect(sheet).toBeVisible();
+  await sheet.getByTestId('phase-sheet-details').tap();
+  await expect(page.getByTestId('project-title')).toHaveText('Icon Phone Villa');
+  await expect(sheet).toBeHidden();
   await context.close();
 });
