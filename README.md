@@ -15,6 +15,23 @@ The app talks to the FastAPI backend in `backend/` (see [backend/README.md](back
 
 `docker compose down` stops the stack; `docker compose down -v` also deletes the database and media volumes.
 
+## Deploy the browser demo to Vercel
+
+The standalone client demo is the static site in `demo/site/`. It uses sample data in the browser and does not need the FastAPI backend.
+
+1. Before publishing changes to the app, rebuild the generated demo page from the repository root:
+
+   ```
+   python web-src/build.py
+   ```
+
+2. Commit and push the updated `demo/site/index.html` to GitHub.
+3. In Vercel, choose **Add New → Project** and import this GitHub repository.
+4. Set **Root Directory** to `demo/site` and **Framework Preset** to **Other**. Leave the build command and output directory empty; Vercel will serve `index.html` directly as a static site.
+5. Select **Deploy**. The generated Vercel URL serves the demo. Future pushes to the connected branch trigger a redeploy.
+
+The backend-connected web console is a different deployment: `www/index.html` calls the API at `http://localhost:8000` by default. Publishing it as static files alone will not provide a working production console; it needs a publicly hosted API over HTTPS and a corresponding API URL configuration.
+
 ## What it does
 
 | Area | What the app does |

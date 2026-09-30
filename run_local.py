@@ -4,7 +4,7 @@
     backend/.venv/bin/python run_local.py            (macOS, Linux)
 
 Data is kept in backend/local.db (SQLite) unless DATABASE_URL is set, e.g. to the docker-compose
-PostgreSQL. On first run the four users are created with one shared password: SEED_PASSWORD if set,
+PostgreSQL. Set API_HOST=0.0.0.0 to reach the API from a phone on the same network. On first run the users are created with one shared password: SEED_PASSWORD if set,
 otherwise a random one that is printed once. Delete backend/local.db to start over. Stop with Ctrl+C.
 """
 import functools
@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parent
 BACKEND = ROOT / "backend"
 WWW = ROOT / "www"
 API_PORT = int(os.environ.get("API_PORT", "8000"))
+API_HOST = os.environ.get("API_HOST", "127.0.0.1")  # 0.0.0.0 lets a phone on the same Wi-Fi reach the API
 WEB_PORT = int(os.environ.get("WEB_PORT", "8080"))
 if WEB_PORT != 8080 and "CORS_ORIGINS" not in os.environ:
     # Allow the chosen web port as well as the Android app's origins.
@@ -74,7 +75,7 @@ def main() -> None:
     print("  Stop with Ctrl+C\n")
 
     from app.main import app
-    uvicorn.run(app, host="127.0.0.1", port=API_PORT, log_level="warning")
+    uvicorn.run(app, host=API_HOST, port=API_PORT, log_level="warning")
 
 
 if __name__ == "__main__":
